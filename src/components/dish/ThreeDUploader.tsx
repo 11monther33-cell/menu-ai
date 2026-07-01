@@ -1,8 +1,9 @@
 import React, { useState, useRef, useCallback, lazy, Suspense } from 'react';
 import { assetService } from '../../services/assetService';
 import { useLanguage } from '../../context/LanguageContext';
-import { Box, Sparkles, Upload, Trash2, Eye } from 'lucide-react';
-import { AIGenerate3D } from './AIGenerate3D';
+import { Box, Sparkles, Upload, Trash2, Eye, Loader2, CheckCircle, AlertTriangle, Camera } from 'lucide-react';
+import { generateLocalModel } from '../../lib/3d/localModelGenerator';
+import { useNavigate } from 'react-router-dom';
 
 const ARLauncher = lazy(() => import('../3d/ARLauncher'));
 const DishViewer3D = lazy(() => import('../3d/DishViewer3D'));
@@ -29,6 +30,13 @@ export function ThreeDUploader({
   const [showARCamera, setShowARCamera] = useState(false);
   const [showManualUpload, setShowManualUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  // Local 3D generation state
+  type GenStatus = 'idle' | 'generating' | 'done' | 'error';
+  const [genStatus, setGenStatus] = useState<GenStatus>('idle');
+  const [genProgress, setGenProgress] = useState(0);
+  const [genError, setGenError] = useState('');
   
   // Custom Image — stored locally (no upload needed!)
   const [customFile, setCustomFile] = useState<File | null>(null);
@@ -151,7 +159,7 @@ export function ThreeDUploader({
           ════════════════════════════════════════════════════════════ */}
       {!model3dUrl && (
         <>
-          {/* ── الخيار الأساسي: AI Generate ───────────────────────── */}
+          {/* ── الخيار الأساسي: التوليد المحلي ───────────────────── */}
           {isPro && (
             <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-[#151518] to-[#111] p-6 space-y-5">
               {/* Header */}
@@ -167,7 +175,7 @@ export function ThreeDUploader({
                     {isAr ? 'حوّل صورة الطبق إلى نموذج 3D' : 'Convert dish photo to 3D model'}
                   </h3>
                   <p className="text-muted text-xs mt-0.5">
-                    {isAr ? 'بالذكاء الاصطناعي — خلال ثوانٍ' : 'AI-powered — in seconds'}
+                    {isAr ? 'توليد محلي — بدون API خارجي' : 'Local generation — no external API'}
                   </p>
                 </div>
               </div>
@@ -179,7 +187,7 @@ export function ThreeDUploader({
                 </p>
                 <p className="text-white/40 text-[10px]">
                   {isAr 
-                    ? 'إذا كانت صورة واجهة الطبق لا تصلح كمرجع لـ 3D، يمكنك تصوير الطبق من الأعلى أو الجانب المفضل هنا. (إذا لم ترفع سيتم استخدام صورة الواجهة).' 
+                    ? 'إذا كانت صورة واجهة الطبق لا تصلح كمرجع لـ 3D، يمكنك تصوير الطبق من الأعلى أو الجانب المفضل هنا.' 
                     : 'If the main image is not suitable for 3D, take a picture of the dish from the top/side here.'}
                 </p>
                 
@@ -211,16 +219,142 @@ export function ThreeDUploader({
                 </div>
               </div>
 
-              {/* AI Generate Component */}
-              <AIGenerate3D
-                dishId={dishId || 'new'}
-                imageUrl={dishImageUrl || null}
-                customFile={customFile || undefined}
-                hasModel={!!model3dUrl}
-                primaryColor={primaryColor}
-                lang={lang}
-                onSuccess={(url) => onChange(url)}
-              />
+              {/* ── LOCAL Generate Component (replaces AIGenerate3D) ── */}
+              <div className="rounded-2xl overflow-hidden border border-white/5" style={{ background: `${primaryColor}06` }}>
+                <div className="px-4 py-3 flex items-center gap-2.5 border-b border-white/5">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${primaryColor}15` }}>
+                    <Sparkles size={16} style={{ color: primaryColor }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-white/90 tracking-wide">
+                      {isAr ? 'توليد 3D محلي' : 'Local 3D Generation'}
+                    </p>
+                    <p className="text-[10px] text-white/35 tracking-wide uppercase font-semibold">
+                      {isAr ? 'صورة واحدة → نموذج 3D خلال ثوانٍ' : 'One photo → 3D model in seconds'}
+                    </p>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-md" style={{ background: `${primaryColor}18`, color: primaryColor }}>
+                    LOCAL
+                  </span>
+                </div>
+
+                <div className="p-4">
+                  {/* IDLE / ERROR */}
+                  {(genStatus === 'idle' || genStatus === 'error') && (
+                    <>
+                      {!targetImageUrl && (
+                        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-lg bg-white/5 border border-white/5">
+                          <span className="text-xs">📸</span>
+                          <p className="text-[11px] text-white/40 font-medium">
+                            {isAr ? 'أضف صورة للطبق أولاً ثم وّلد' : 'Add a dish photo first then generate'}
+                          </p>
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!targetImageUrl) {
+                            setGenError(isAr ? 'أضف صورة للطبق أولاً' : 'Add a dish image first');
+                            return;
+                          }
+                          setGenStatus('generating');
+                          setGenError('');
+                          setGenProgress(0);
+                          try {
+                            const result = await generateLocalModel([targetImageUrl], (pct) => setGenProgress(pct));
+                            setGenStatus('done');
+                            onChange(result.blobUrl);
+                          } catch (e: any) {
+                            setGenError(e.message);
+                            setGenStatus('error');
+                          }
+                        }}
+                        disabled={!targetImageUrl}
+                        className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        style={{
+                          background: targetImageUrl
+                            ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`
+                            : 'rgba(255,255,255,0.06)',
+                          color: targetImageUrl ? '#0a0a0e' : 'rgba(255,255,255,0.25)',
+                          cursor: targetImageUrl ? 'pointer' : 'not-allowed',
+                          boxShadow: targetImageUrl ? `0 4px 20px ${primaryColor}30` : 'none',
+                          border: 'none',
+                        }}
+                      >
+                        <Sparkles size={15} />
+                        {isAr ? 'وّلد نموذج 3D من الصورة' : 'Generate 3D from Photo'}
+                      </button>
+
+                      {genError && (
+                        <p className="mt-2 text-center text-[11px] text-red-400 font-semibold">{genError}</p>
+                      )}
+                    </>
+                  )}
+
+                  {/* GENERATING */}
+                  {genStatus === 'generating' && (
+                    <div className="flex flex-col items-center gap-4 py-6">
+                      <div className="relative w-16 h-16">
+                        <div className="absolute inset-0 rounded-full border-2 border-white/5" />
+                        <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin" style={{ borderTopColor: primaryColor, borderRightColor: `${primaryColor}60` }} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <Sparkles size={20} style={{ color: primaryColor }} className="animate-pulse" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-white/70 text-sm font-semibold">{isAr ? 'جاري بناء النموذج محلياً...' : 'Building model locally...'}</p>
+                        <p className="text-white/30 text-[10px] mt-1 uppercase tracking-wider font-medium">{genProgress}%</p>
+                      </div>
+                      <div className="w-full flex gap-1.5 mt-1">
+                        {[
+                          { label: isAr ? 'تحليل' : 'Analyze', threshold: 20 },
+                          { label: isAr ? 'عمق' : 'Depth', threshold: 40 },
+                          { label: isAr ? 'الشكل' : 'Mesh', threshold: 60 },
+                          { label: isAr ? 'تصدير' : 'Export', threshold: 90 },
+                        ].map((phase, i) => (
+                          <div key={i}
+                            className="flex-1 text-center text-[9px] font-bold uppercase tracking-wider py-1.5 rounded-md transition-colors"
+                            style={{
+                              color: genProgress >= phase.threshold ? primaryColor : 'rgba(255,255,255,0.2)',
+                              background: genProgress >= phase.threshold ? `${primaryColor}12` : 'rgba(255,255,255,0.03)',
+                            }}
+                          >
+                            {phase.label}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* DONE */}
+                  {genStatus === 'done' && (
+                    <div className="flex items-center gap-3 py-1">
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(34,197,94,0.12)' }}>
+                        <CheckCircle size={18} className="text-green-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-green-400 text-sm font-bold">{isAr ? 'تم توليد النموذج محلياً!' : 'Model generated locally!'}</p>
+                        <p className="text-white/35 text-[10px] font-medium">{isAr ? 'بدون API خارجي' : 'No external API used'}</p>
+                      </div>
+                      <button type="button" onClick={() => { setGenStatus('idle'); setGenError(''); }}
+                        className="text-[10px] font-bold uppercase tracking-wider text-white/40 px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors">
+                        {isAr ? 'إعادة' : 'Redo'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ── رابط لصفحة المسح التفاعلي ── */}
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard/object-capture')}
+                className="w-full py-3 rounded-xl border border-dashed border-white/10 text-white/50 text-xs font-bold flex items-center justify-center gap-2 hover:border-white/20 hover:text-white/70 transition-all"
+              >
+                <Camera size={14} />
+                {isAr ? 'أو استخدم المسح التفاعلي بالكاميرا (8 زوايا)' : 'Or use Interactive Camera Scanner (8 angles)'}
+              </button>
             </div>
           )}
 
