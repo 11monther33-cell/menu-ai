@@ -1,0 +1,138 @@
+{
+  "dashboard": {
+    "title": "Statistics",
+    "snapThisWeek": "Snap This Week",
+    "growth": "Growth from last week",
+    "estimatedReach": "Estimated Reach",
+    "longestStreak": "Longest Streak",
+    "topDishes": "Most Shared Dishes on Snap",
+    "shares": "Shares"
+  },
+  "qr": {
+    "title": "QR Codes",
+    "table": "Table",
+    "download": "Download",
+    "copyLink": "Copy Link",
+    "openMenu": "Open Menu",
+    "downloadAll": "Download All QR Codes"
+  },
+  "menu": {
+    "view3D": "View 3D",
+    "shareOnSnap": "Share on Snap",
+    "available": "Available",
+    "unavailable": "Unavailable",
+    "builder": "Menu Builder",
+    "preview": "Preview Menu"
+  },
+  "sidebar": {
+    "main": "MAIN",
+    "overview": "Overview",
+    "menuBuilder": "Menu Builder",
+    "orders": "Orders",
+    "arSystem": "3D & AR SYSTEM",
+    "modelManager": "3D Model Manager",
+    "arPreview": "AR Preview",
+    "qr3d": "QR + 3D Link",
+    "snapAnalytics": "Snap Analytics",
+    "operations": "OPERATIONS",
+    "kitchenPulse": "Kitchen Pulse",
+    "qrCodes": "QR Codes",
+    "analytics": "Analytics"
+  },
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "welcome": "Welcome back,",
+    "totalRestaurants": "Total Restaurants",
+    "pendingApprovals": "Pending Approvals",
+    "activeUsers": "Active Users",
+    "revenueGrowth": "Revenue Growth",
+    "registrationsByCity": "Registrations by City",
+    "viewAll": "View All",
+    "restaurant": "Restaurant",
+    "city": "City",
+    "status": "Status",
+    "actions": "Actions",
+    "approve": "Approve",
+    "reject": "Reject",
+    "noPending": "No pending approvals",
+    "instructionsTitle": "Quick Admin Guide",
+    "instructions": [
+      "Review and approve new restaurant registrations",
+      "Manage subscription plans and pricing",
+      "Monitor system-wide analytics and revenue",
+      "Configure global feature flags and settings"
+    ],
+    "priority": "High Priority",
+    "logout": "Logout",
+    "search": "Search restaurants, owners...",
+    "nav": {
+      "core": "Core",
+      "restaurants": "Restaurants",
+      "pricing": "Pricing",
+      "features": "Features",
+      "revenue": "Revenue",
+      "users": "Users",
+      "analytics": "Analytics",
+      "content": "Content",
+      "communication": "Communication",
+      "security": "Security",
+      "items": {
+        "coupons": "Coupons",
+        "settings": "Settings",
+        "subscriptions": "Subscriptions",
+        "roles": "Roles",
+        "requests3d": "3D Requests",
+        "emails": "Emails",
+        "notifications": "Notifications",
+        "announcements": "Announcements",
+        "logs": "System Logs",
+        "security": "Security Center"
+      }
+    },
+    "pages": {
+      "restaurants": {
+        "title": "All Restaurants",
+        "desc": "Manage and monitor all registered restaurants"
+      },
+      "approvals": {
+        "title": "Pending Approvals",
+        "desc": "Review new restaurant applications"
+      },
+      "features": {
+        "title": "Feature Management",
+        "desc": "Enable or disable global system features"
+      },
+      "pricing": {
+        "title": "Plans & Pricing",
+        "desc": "Configure subscription tiers and coupons"
+      },
+      "revenue": {
+        "title": "Revenue Overview",
+        "desc": "Detailed financial performance analytics"
+      }
+    },
+    "stats": {
+      "mrr": "MRR",
+      "arr": "ARR",
+      "scans": "Total Scans",
+      "churn": "Churn Rate",
+      "growth": "Growth"
+    },
+    "system": {
+      "healthy": "System Healthy",
+      "loading": "Loading data...",
+      "addManual": "Add Restaurant",
+      "proPlan": "Pro Plan",
+      "underDevelopment": "Under Development",
+      "underDevelopmentDesc": "The {tab} section is currently being built.",
+      "viewAllActivity": "View All Activity",
+      "tooltips": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "view": "View Details",
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    }
+  }
+}

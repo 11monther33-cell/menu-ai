@@ -1,0 +1,138 @@
+{
+  "dashboard": {
+    "title": "الإحصائيات",
+    "snapThisWeek": "هذا الأسبوع Snap",
+    "growth": "نمو عن الأسبوع الماضي",
+    "estimatedReach": "وصول تقديري",
+    "longestStreak": "أطول استريك",
+    "topDishes": "أكثر الأطباق مشاركةً على Snap",
+    "shares": "مشاركة"
+  },
+  "qr": {
+    "title": "QR Codes",
+    "table": "الطاولة",
+    "download": "تحميل",
+    "copyLink": "نسخ الرابط",
+    "openMenu": "فتح المنيو",
+    "downloadAll": "تحميل كل الـ QR Codes"
+  },
+  "menu": {
+    "view3D": "عرض 3D",
+    "shareOnSnap": "شارك على Snap",
+    "available": "متاح",
+    "unavailable": "غير متاح",
+    "builder": "بناء المنيو",
+    "preview": "معاينة المنيو"
+  },
+  "sidebar": {
+    "main": "الرئيسية",
+    "overview": "نظرة عامة",
+    "menuBuilder": "بناء المنيو",
+    "orders": "الطلبات",
+    "arSystem": "نظام 3D & AR",
+    "modelManager": "مدير موديلات 3D",
+    "arPreview": "معاينة AR",
+    "qr3d": "رابط QR + 3D",
+    "snapAnalytics": "تحليلات Snap",
+    "operations": "العمليات",
+    "kitchenPulse": "نبض المطبخ",
+    "qrCodes": "رموز QR",
+    "analytics": "التحليلات"
+  },
+  "admin": {
+    "dashboard": "لوحة تحكم المسؤول",
+    "welcome": "مرحباً بعودتك،",
+    "totalRestaurants": "إجمالي المطاعم",
+    "pendingApprovals": "طلبات معلقة",
+    "activeUsers": "المستخدمين النشطين",
+    "revenueGrowth": "نمو الإيرادات",
+    "registrationsByCity": "التسجيلات حسب المدينة",
+    "viewAll": "عرض الكل",
+    "restaurant": "المطعم",
+    "city": "المدينة",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "noPending": "لا توجد طلبات معلقة",
+    "instructionsTitle": "دليل المسؤول السريع",
+    "instructions": [
+      "مراجعة والموافقة على تسجيلات المطاعم الجديدة",
+      "إدارة خطط الاشتراك والأسعار",
+      "مراقبة التحليلات والإيرادات على مستوى النظام",
+      "تكوين ميزات النظام والإعدادات العامة"
+    ],
+    "priority": "أولوية عالية",
+    "logout": "تسجيل الخروج",
+    "search": "بحث عن مطاعم، ملاك...",
+    "nav": {
+      "core": "الأساسية",
+      "restaurants": "المطاعم",
+      "pricing": "الأسعار",
+      "features": "الميزات",
+      "revenue": "الإيرادات",
+      "users": "المستخدمين",
+      "analytics": "التحليلات",
+      "content": "المحتوى",
+      "communication": "التواصل",
+      "security": "الأمان",
+      "items": {
+        "coupons": "الكوبونات",
+        "settings": "الإعدادات",
+        "subscriptions": "الاشتراكات",
+        "roles": "الأدوار",
+        "requests3d": "طلبات 3D",
+        "emails": "الإيميلات",
+        "notifications": "التنبيهات",
+        "announcements": "الإعلانات",
+        "logs": "سجلات النظام",
+        "security": "مركز الأمان"
+      }
+    },
+    "pages": {
+      "restaurants": {
+        "title": "جميع المطاعم",
+        "desc": "إدارة ومراقبة جميع المطاعم المسجلة"
+      },
+      "approvals": {
+        "title": "الموافقات المعلقة",
+        "desc": "مراجعة طلبات المطاعم الجديدة"
+      },
+      "features": {
+        "title": "إدارة الميزات",
+        "desc": "تفعيل أو تعطيل ميزات النظام العامة"
+      },
+      "pricing": {
+        "title": "الخطط والأسعار",
+        "desc": "تكوين فئات الاشتراك والكوبونات"
+      },
+      "revenue": {
+        "title": "نظرة على الإيرادات",
+        "desc": "تحليلات الأداء المالي المفصلة"
+      }
+    },
+    "stats": {
+      "mrr": "MRR",
+      "arr": "ARR",
+      "scans": "إجمالي المسحات",
+      "churn": "معدل الإلغاء",
+      "growth": "النمو"
+    },
+    "system": {
+      "healthy": "النظام يعمل بشكل جيد",
+      "loading": "جاري تحميل البيانات...",
+      "addManual": "إضافة مطعم",
+      "proPlan": "الخطة الاحترافية",
+      "underDevelopment": "قيد التطوير",
+      "underDevelopmentDesc": "قسم {tab} قيد الإنشاء حالياً.",
+      "viewAllActivity": "عرض كل النشاطات",
+      "tooltips": {
+        "approve": "موافقة",
+        "reject": "رفض",
+        "view": "عرض التفاصيل",
+        "edit": "تعديل",
+        "delete": "حذف"
+      }
+    }
+  }
+}

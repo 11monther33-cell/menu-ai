@@ -1,0 +1,8 @@
+{
+  "name": "TableX - Restaurant Dashboard",
+  "description": "A comprehensive restaurant management dashboard with AR/3D menu, Snap analytics, and QR code generation.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

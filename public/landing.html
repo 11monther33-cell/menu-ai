@@ -1,0 +1,2239 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Primary Meta Tags -->
+  <title>TableX | قائمة مطعم ذكية بتقنية AR و QR — جرّبها مجاناً 14 يوم</title>
+  <meta name="description" content="نظام طلب ذكي للمطاعم مع قائمة ثلاثية الأبعاد (AR/3D)، توصيات ذكاء اصطناعي، وطلب عبر QR بدون تطبيق. يرفع متوسط الطلب 35%. جرّب مجاناً 14 يوماً.">
+  <meta name="keywords" content="قائمة طعام ذكية, نظام طلب مطعم, QR مطعم, قائمة AR ثلاثية الأبعاد, برنامج مطعم, ذكاء اصطناعي مطاعم, نظام كاشير, TableX">
+  <meta name="robots" content="index, follow">
+  <meta name="language" content="Arabic">
+  <link rel="canonical" href="https://tablexapp.vercel.app/">
+  <link rel="icon" type="image/png" href="/logo.png">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://tablexapp.vercel.app/">
+  <meta property="og:title" content="TableX | قائمة مطعم ذكية — AR + QR + ذكاء اصطناعي">
+  <meta property="og:description" content="ضاعف طلبات مطعمك مع قائمة ثلاثية الأبعاد وطلب ذكي عبر QR. بدون تطبيق. إعداد في 24 ساعة.">
+  <meta property="og:image" content="https://tablexapp.vercel.app/og-image.jpg">
+  <meta property="og:locale" content="ar_SA">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TableX | قائمة مطعم ذكية — AR + QR + AI">
+  <meta name="twitter:description" content="نظام طلب ذكي للمطاعم. قائمة AR ثلاثية الأبعاد + توصيات AI + QR بدون تطبيق.">
+  <meta name="twitter:image" content="https://tablexapp.vercel.app/og-image.jpg">
+
+  <!-- Schema.org -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "TableX",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, iOS, Android",
+    "description": "منصة ذكية للمطاعم تجمع قائمة AR ثلاثية الأبعاد، طلب QR، وتوصيات ذكاء اصطناعي",
+    "url": "https://tablexapp.vercel.app/",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "SAR",
+      "description": "تجربة مجانية 14 يوماً"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "120"
+    }
+  }
+  </script>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       CSS VARIABLES
+    ═══════════════════════════════════════════ */
+    :root {
+      --bg-primary: #0A0F1E;
+      --bg-secondary: #0F172A;
+      --bg-card: #1E293B;
+      --bg-card-hover: #243044;
+      --accent-primary: #F59E0B;
+      --accent-secondary: #EF4444;
+      --accent-glow: rgba(245,158,11,0.15);
+      --text-primary: #F8FAFC;
+      --text-secondary: rgba(248,250,252,0.65);
+      --text-muted: rgba(248,250,252,0.4);
+      --border-subtle: rgba(255,255,255,0.08);
+      --border-accent: rgba(245,158,11,0.3);
+      --success: #10B981;
+      --danger: #EF4444;
+      --radius-card: 16px;
+      --radius-btn: 50px;
+      --radius-badge: 50px;
+    }
+
+    /* ═══════════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════════ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      text-align: right;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      font-size: 18px;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { max-width: 100%; display: block; }
+    a { text-decoration: none; color: inherit; }
+    button { border: none; cursor: pointer; font-family: inherit; }
+    ul { list-style: none; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    .section-pad {
+      padding: 96px 0;
+    }
+
+    /* Focus Visible */
+    :focus-visible {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 3px;
+    }
+
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Number font */
+    .num-font { font-family: 'Inter', sans-serif; }
+
+    /* ═══════════════════════════════════════════
+       REVEAL ANIMATION
+    ═══════════════════════════════════════════ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 1 — NAVBAR
+    ═══════════════════════════════════════════ */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      padding: 18px 0;
+      transition: all 0.35s cubic-bezier(0.22,1,0.36,1);
+    }
+    .navbar.scrolled {
+      background: rgba(10,15,30,0.95);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .navbar .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-primary), #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nav-logo img {
+      height: 36px;
+      width: auto;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      font-size: 15px;
+      font-weight: 500;
+      transition: color 0.25s;
+      position: relative;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-links a::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      right: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent-primary);
+      transition: width 0.3s;
+    }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      color: #0A0F1E;
+      padding: 10px 28px;
+      border-radius: var(--radius-btn);
+      font-weight: 700;
+      font-size: 14px;
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .nav-cta:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 30px rgba(245,158,11,0.3);
+    }
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      padding: 8px;
+    }
+    .hamburger span {
+      display: block;
+      width: 26px;
+      height: 2.5px;
+      background: var(--text-primary);
+      border-radius: 2px;
+      transition: all 0.3s;
+    }
+    .hamburger.active span:nth-child(1) { transform: translateY(7.5px) rotate(45deg); }
+    .hamburger.active span:nth-child(2) { opacity: 0; }
+    .hamburger.active span:nth-child(3) { transform: translateY(-7.5px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(10,15,30,0.98);
+      backdrop-filter: blur(20px);
+      z-index: 999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .mobile-menu.open {
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .mobile-menu a {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: color 0.25s;
+    }
+    .mobile-menu a:hover { color: var(--accent-primary); }
+
+    @media (max-width: 768px) {
+      .nav-links, .nav-cta { display: none; }
+      .hamburger { display: flex; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 2 — HERO
+    ═══════════════════════════════════════════ */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(160deg, #0A0F1E 0%, #0F172A 50%, #0A0F1E 100%);
+      padding-top: 100px;
+    }
+
+    /* Hero Grid Pattern */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(245,158,11,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,158,11,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    /* Particles */
+    .particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      width: var(--size, 4px);
+      height: var(--size, 4px);
+      background: var(--accent-primary);
+      border-radius: 50%;
+      opacity: var(--opacity, 0.3);
+      animation: particleFloat var(--duration, 8s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+    @keyframes particleFloat {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(var(--tx1, 20px), var(--ty1, -30px)); }
+      50% { transform: translate(var(--tx2, -10px), var(--ty2, -60px)); }
+      75% { transform: translate(var(--tx3, 30px), var(--ty3, -20px)); }
+    }
+
+    .hero .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      align-items: center;
+      gap: 60px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-text h1 {
+      font-size: 60px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 24px;
+    }
+    .hero-text h1 .ar-highlight {
+      background: linear-gradient(135deg, var(--accent-primary), #F97316);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      font-size: 19px;
+      color: var(--text-secondary);
+      max-width: 560px;
+      margin-bottom: 28px;
+      line-height: 1.8;
+    }
+
+    /* Social Proof Bar */
+    .social-proof-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .proof-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-badge);
+      font-size: 13px;
+      color: var(--text-secondary);
+      backdrop-filter: blur(8px);
+    }
+    .proof-pill .emoji { font-size: 16px; }
+
+    /* Hero CTA */
+    .hero-cta-wrap { margin-bottom: 16px; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 40px;
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      color: #0A0F1E;
+      font-size: 17px;
+      font-weight: 700;
+      border-radius: var(--radius-btn);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 40px rgba(245,158,11,0.35);
+    }
+    /* Pulse ring */
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: var(--radius-btn);
+      border: 2px solid var(--accent-primary);
+      opacity: 0;
+      animation: pulseRing 2.5s ease-out infinite;
+    }
+    @keyframes pulseRing {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.15); opacity: 0; }
+    }
+
+    .hero-micro {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .hero-micro span { margin: 0 6px; }
+
+    .hero-link {
+      color: var(--accent-primary);
+      font-weight: 600;
+      font-size: 15px;
+      transition: color 0.25s;
+    }
+    .hero-link:hover { color: #FBBF24; }
+
+    /* Hero Phone Mockup */
+    .hero-visual {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    .phone-mockup {
+      width: 280px;
+      height: 560px;
+      background: #111827;
+      border-radius: 36px;
+      border: 3px solid rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+      animation: phoneFloat 4s ease-in-out infinite;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 60px rgba(245,158,11,0.08);
+    }
+    @keyframes phoneFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    .phone-notch {
+      width: 120px;
+      height: 28px;
+      background: #0A0F1E;
+      border-radius: 0 0 16px 16px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 5;
+    }
+    .phone-screen {
+      padding: 20px;
+      height: calc(100% - 28px);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      direction: rtl;
+    }
+    .phone-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .phone-logo-text {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--accent-primary);
+    }
+    .phone-search {
+      width: 100%;
+      height: 36px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      border: 1px solid var(--border-subtle);
+    }
+    .phone-categories {
+      display: flex;
+      gap: 8px;
+    }
+    .phone-cat {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .phone-cat:first-child {
+      background: var(--accent-primary);
+      color: #0A0F1E;
+    }
+    .phone-cat:not(:first-child) {
+      background: rgba(255,255,255,0.06);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* 3D Dish Card */
+    .dish-card-3d {
+      background: linear-gradient(145deg, #1E293B, #162032);
+      border-radius: 16px;
+      padding: 16px;
+      border: 1px solid var(--border-subtle);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dish-visual {
+      height: 140px;
+      background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(217,119,6,0.05));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .dish-3d-cube {
+      width: 70px;
+      height: 70px;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: rotateDish 6s linear infinite;
+    }
+    @keyframes rotateDish {
+      0% { transform: rotateX(-15deg) rotateY(0deg); }
+      100% { transform: rotateX(-15deg) rotateY(360deg); }
+    }
+    .cube-face {
+      position: absolute;
+      width: 70px;
+      height: 70px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+    .cube-face.front  { transform: translateZ(35px); background: rgba(245,158,11,0.2); border: 1px solid rgba(245,158,11,0.3); }
+    .cube-face.back   { transform: rotateY(180deg) translateZ(35px); background: rgba(217,119,6,0.2); border: 1px solid rgba(217,119,6,0.3); }
+    .cube-face.right  { transform: rotateY(90deg) translateZ(35px); background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.25); }
+    .cube-face.left   { transform: rotateY(-90deg) translateZ(35px); background: rgba(217,119,6,0.15); border: 1px solid rgba(217,119,6,0.25); }
+    .cube-face.top    { transform: rotateX(90deg) translateZ(35px); background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.25); }
+    .cube-face.bottom { transform: rotateX(-90deg) translateZ(35px); background: rgba(180,83,9,0.15); border: 1px solid rgba(180,83,9,0.2); }
+
+    .ar-badge-phone {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(245,158,11,0.15);
+      border: 1px solid var(--border-accent);
+      color: var(--accent-primary);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .dish-info-phone {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dish-name-phone {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .dish-price-phone {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent-primary);
+      font-family: 'Inter', sans-serif;
+    }
+    .dish-add-btn {
+      width: 100%;
+      padding: 10px;
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      border-radius: 10px;
+      color: #0A0F1E;
+      font-weight: 700;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* QR pulse at bottom of phone */
+    .phone-qr {
+      width: 50px;
+      height: 50px;
+      margin: 0 auto;
+      border: 2px dashed var(--accent-primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: qrPulse 2s ease-in-out infinite;
+      position: relative;
+    }
+    .phone-qr::before {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 14px;
+      animation: qrRing 2s ease-out infinite;
+    }
+    @keyframes qrPulse {
+      0%, 100% { border-color: var(--accent-primary); }
+      50% { border-color: rgba(245,158,11,0.4); }
+    }
+    @keyframes qrRing {
+      0% { transform: scale(1); opacity: 0.5; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+    .qr-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      width: 28px;
+      height: 28px;
+    }
+    .qr-cell {
+      background: var(--accent-primary);
+      border-radius: 1px;
+      opacity: 0.7;
+    }
+    .qr-cell:nth-child(2), .qr-cell:nth-child(5), .qr-cell:nth-child(8), .qr-cell:nth-child(11),
+    .qr-cell:nth-child(14) { opacity: 0.3; }
+
+    /* Glow orbs behind phone */
+    .glow-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+    }
+    .glow-orb-1 {
+      width: 300px; height: 300px;
+      background: rgba(245,158,11,0.08);
+      top: -50px; right: -80px;
+    }
+    .glow-orb-2 {
+      width: 200px; height: 200px;
+      background: rgba(239,68,68,0.06);
+      bottom: -30px; left: -60px;
+    }
+
+    @media (max-width: 768px) {
+      .hero { padding-top: 80px; min-height: auto; padding-bottom: 60px; }
+      .hero .container { grid-template-columns: 1fr; text-align: center; }
+      .hero-text h1 { font-size: 34px; }
+      .hero-sub { font-size: 16px; margin-left: auto; margin-right: auto; }
+      .social-proof-bar { justify-content: center; }
+      .hero-cta-wrap { text-align: center; }
+      .hero-micro { text-align: center; }
+      .hero-link { display: block; text-align: center; }
+      .phone-mockup { width: 240px; height: 480px; margin-top: 40px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 3 — LOGOS BAR
+    ═══════════════════════════════════════════ */
+    .logos-section {
+      background: #111827;
+      padding: 48px 0;
+      border-top: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      overflow: hidden;
+    }
+    .logos-title {
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      font-weight: 500;
+    }
+    .logos-track {
+      display: flex;
+      gap: 40px;
+      animation: marquee 25s linear infinite;
+      width: max-content;
+    }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    .logo-box {
+      flex-shrink: 0;
+      padding: 14px 32px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 4 — PROBLEMS
+    ═══════════════════════════════════════════ */
+    .problems-section {
+      background: var(--bg-primary);
+    }
+    .section-eyebrow {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 56px;
+    }
+    .problems-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .problem-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      padding: 32px;
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    .problem-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--danger);
+    }
+    .problem-icon {
+      font-size: 40px;
+      margin-bottom: 20px;
+    }
+    .problem-card h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text-primary);
+    }
+    .problem-card p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    .problem-divider {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      padding: 20px 0;
+    }
+    .problem-divider .arrow { font-size: 28px; display: block; margin-bottom: 8px; }
+
+    @media (max-width: 768px) {
+      .section-title { font-size: 28px; margin-bottom: 36px; }
+      .problems-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 5 — FEATURES
+    ═══════════════════════════════════════════ */
+    .features-section {
+      background: var(--bg-secondary);
+    }
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      margin-bottom: 80px;
+    }
+    .feature-row:last-child { margin-bottom: 0; }
+    .feature-row.reverse { direction: ltr; }
+    .feature-row.reverse .feature-text { direction: rtl; text-align: right; }
+
+    .feature-text h3 {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+    .feature-text p {
+      font-size: 17px;
+      color: var(--text-secondary);
+      line-height: 1.85;
+      margin-bottom: 20px;
+    }
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: rgba(245,158,11,0.08);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-badge);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent-primary);
+    }
+
+    /* Feature Mockups */
+    .feature-mockup {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mockup-phone {
+      width: 260px;
+      height: 460px;
+      background: #111827;
+      border-radius: 32px;
+      border: 2px solid var(--border-subtle);
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+    }
+    .mockup-phone-inner {
+      padding: 40px 20px 20px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Feature 1: Rotating card */
+    .ar-card-demo {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 600px;
+    }
+    .ar-card-flip {
+      width: 180px;
+      height: 220px;
+      position: relative;
+      transform-style: preserve-3d;
+      animation: cardFlip 5s ease-in-out infinite;
+    }
+    @keyframes cardFlip {
+      0%, 40% { transform: rotateY(0deg); }
+      50%, 90% { transform: rotateY(180deg); }
+    }
+    .card-face-front, .card-face-back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .card-face-front {
+      background: linear-gradient(145deg, #1E293B, #162032);
+      border: 1px solid var(--border-subtle);
+    }
+    .card-face-front .food-emoji { font-size: 56px; margin-bottom: 12px; }
+    .card-face-front .food-name { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+    .card-face-front .food-price { font-size: 18px; font-weight: 800; color: var(--accent-primary); font-family: 'Inter'; margin-top: 4px; }
+    .card-face-back {
+      background: linear-gradient(145deg, #162032, #1E293B);
+      border: 1px solid var(--border-accent);
+      transform: rotateY(180deg);
+    }
+    .card-face-back .ar-icon { font-size: 40px; margin-bottom: 12px; }
+    .card-face-back .ar-text { font-size: 13px; color: var(--text-secondary); text-align: center; line-height: 1.6; direction: rtl; }
+
+    /* Feature 2: QR scan */
+    .qr-demo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+    }
+    .qr-scan-box {
+      width: 120px;
+      height: 120px;
+      border: 3px dashed var(--accent-primary);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      animation: qrScanRotate 8s linear infinite;
+    }
+    @keyframes qrScanRotate {
+      0% { border-color: var(--accent-primary); }
+      50% { border-color: #FBBF24; }
+      100% { border-color: var(--accent-primary); }
+    }
+    .qr-scan-box::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+      animation: scanLine 2s ease-in-out infinite;
+    }
+    @keyframes scanLine {
+      0%, 100% { top: 10%; }
+      50% { top: 90%; }
+    }
+    .qr-pattern {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 3px;
+      width: 60px;
+      height: 60px;
+    }
+    .qr-dot {
+      background: var(--text-primary);
+      border-radius: 2px;
+    }
+    .qr-dot:nth-child(even) { opacity: 0.4; }
+    .qr-scan-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    /* Feature 3: AI chat bubble */
+    .ai-demo {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+      padding: 0 4px;
+      direction: rtl;
+    }
+    .chat-bubble {
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 90%;
+      animation: bubbleFade 0.5s ease-out forwards;
+      opacity: 0;
+    }
+    .chat-bubble:nth-child(1) { animation-delay: 0.3s; }
+    .chat-bubble:nth-child(2) { animation-delay: 1s; }
+    .chat-bubble:nth-child(3) { animation-delay: 1.8s; }
+    @keyframes bubbleFade {
+      to { opacity: 1; }
+    }
+    .chat-user {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      align-self: flex-start;
+    }
+    .chat-ai {
+      background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(245,158,11,0.05));
+      border: 1px solid var(--border-accent);
+      color: var(--text-primary);
+      align-self: flex-end;
+    }
+    .chat-ai .ai-label {
+      font-size: 10px;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .feature-row, .feature-row.reverse { grid-template-columns: 1fr; direction: rtl; }
+      .feature-text { order: 1; }
+      .feature-mockup { order: 2; }
+      .feature-text h3 { font-size: 24px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 6 — HOW IT WORKS
+    ═══════════════════════════════════════════ */
+    .how-section {
+      background: var(--bg-primary);
+    }
+    .how-section .section-title {
+      text-align: center;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 48px;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--border-subtle), var(--accent-primary), var(--border-subtle));
+    }
+    .step-item {
+      text-align: center;
+      padding: 0 24px;
+      position: relative;
+    }
+    .step-number {
+      width: 72px;
+      height: 72px;
+      background: var(--bg-card);
+      border: 2px solid var(--border-accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      font-family: 'Inter', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      position: relative;
+      z-index: 2;
+    }
+    .step-item h3 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .step-item p {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+    @media (max-width: 768px) {
+      .steps-grid { grid-template-columns: 1fr; gap: 48px; }
+      .steps-grid::before { display: none; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 7 — STATS
+    ═══════════════════════════════════════════ */
+    .stats-section {
+      background: linear-gradient(135deg, var(--accent-primary), #D97706, #B45309);
+      padding: 72px 0;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      text-align: center;
+    }
+    .stat-item {}
+    .stat-value {
+      font-family: 'Inter', sans-serif;
+      font-size: 52px;
+      font-weight: 700;
+      color: #0A0F1E;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 16px;
+      font-weight: 600;
+      color: rgba(10,15,30,0.7);
+    }
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .stat-value { font-size: 36px; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 8 — TESTIMONIALS
+    ═══════════════════════════════════════════ */
+    .testimonials-section {
+      background: var(--bg-secondary);
+    }
+    .testimonials-section .section-title { text-align: center; }
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .testimonial-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-card);
+      padding: 32px;
+      transition: transform 0.3s, border-color 0.3s;
+    }
+    .testimonial-card:hover {
+      transform: translateY(-4px);
+      border-color: var(--border-accent);
+    }
+    .testimonial-stars {
+      color: var(--accent-primary);
+      font-size: 18px;
+      margin-bottom: 16px;
+      letter-spacing: 3px;
+    }
+    .testimonial-quote {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.85;
+      margin-bottom: 24px;
+      font-style: italic;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .author-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: #0A0F1E;
+    }
+    .author-name {
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 2px;
+    }
+    .author-role {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    @media (max-width: 768px) {
+      .testimonials-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 9 — PRICING
+    ═══════════════════════════════════════════ */
+    .pricing-section {
+      background: var(--bg-primary);
+    }
+    .pricing-section .section-eyebrow,
+    .pricing-section .section-title { text-align: center; }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .pricing-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      padding: 36px;
+      position: relative;
+      transition: transform 0.3s;
+    }
+    .pricing-card:hover { transform: translateY(-4px); }
+    .pricing-card.popular {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 50px rgba(245,158,11,0.1);
+      transform: scale(1.04);
+    }
+    .pricing-card.popular:hover { transform: scale(1.06); }
+    .popular-badge {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      color: #0A0F1E;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 20px;
+      border-radius: var(--radius-badge);
+      white-space: nowrap;
+    }
+    .pricing-plan-name {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .pricing-plan-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 20px;
+    }
+    .pricing-price {
+      margin-bottom: 8px;
+    }
+    .pricing-price .amount {
+      font-family: 'Inter', sans-serif;
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .pricing-price .period {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+    .pricing-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 28px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .pricing-features {
+      margin-bottom: 32px;
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+    .pricing-features li .check { color: var(--success); font-weight: 700; font-size: 16px; }
+    .pricing-features li .cross { color: var(--text-muted); font-weight: 700; font-size: 16px; }
+    .pricing-features li.disabled { color: var(--text-muted); }
+
+    .btn-pricing {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      text-align: center;
+      transition: all 0.3s;
+    }
+    .btn-pricing-primary {
+      background: linear-gradient(135deg, var(--accent-primary), #D97706);
+      color: #0A0F1E;
+    }
+    .btn-pricing-primary:hover {
+      box-shadow: 0 0 30px rgba(245,158,11,0.3);
+      transform: translateY(-2px);
+    }
+    .btn-pricing-secondary {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-pricing-secondary:hover {
+      border-color: var(--accent-primary);
+      background: rgba(245,158,11,0.05);
+    }
+
+    .pricing-footer {
+      text-align: center;
+      margin-top: 48px;
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+      .pricing-card.popular { transform: scale(1); }
+      .pricing-card.popular:hover { transform: scale(1.02); }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 10 — FAQ
+    ═══════════════════════════════════════════ */
+    .faq-section {
+      background: var(--bg-secondary);
+    }
+    .faq-section .section-title { text-align: center; }
+    .faq-list {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .faq-question {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding: 24px 0;
+      background: none;
+      color: var(--text-primary);
+      font-size: 18px;
+      font-weight: 600;
+      text-align: right;
+      cursor: pointer;
+      transition: color 0.25s;
+    }
+    .faq-question:hover { color: var(--accent-primary); }
+    .faq-icon {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: var(--accent-primary);
+      transition: transform 0.3s, background 0.3s;
+      margin-right: 16px;
+    }
+    .faq-item.active .faq-icon {
+      transform: rotate(45deg);
+      background: rgba(245,158,11,0.1);
+    }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    .faq-answer-inner {
+      padding: 0 0 24px;
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.85;
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 11 — FINAL CTA
+    ═══════════════════════════════════════════ */
+    .final-cta-section {
+      background: linear-gradient(135deg, var(--accent-primary), #D97706, #B45309);
+      padding: 96px 0;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .final-cta-section::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .final-cta-section h2 {
+      font-size: 48px;
+      font-weight: 800;
+      color: #0A0F1E;
+      margin-bottom: 16px;
+      line-height: 1.3;
+      position: relative;
+      z-index: 2;
+    }
+    .final-cta-sub {
+      font-size: 18px;
+      color: rgba(10,15,30,0.6);
+      margin-bottom: 40px;
+      position: relative;
+      z-index: 2;
+    }
+    .btn-final {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 44px;
+      background: #0A0F1E;
+      color: var(--text-primary);
+      font-size: 17px;
+      font-weight: 700;
+      border-radius: var(--radius-btn);
+      transition: transform 0.3s, box-shadow 0.3s;
+      position: relative;
+      z-index: 2;
+    }
+    .btn-final:hover {
+      transform: scale(1.04);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    }
+    .final-contact {
+      margin-top: 28px;
+      font-size: 15px;
+      color: rgba(10,15,30,0.5);
+      position: relative;
+      z-index: 2;
+    }
+    .final-contact a {
+      color: rgba(10,15,30,0.7);
+      font-weight: 600;
+      transition: color 0.25s;
+    }
+    .final-contact a:hover { color: #0A0F1E; }
+    @media (max-width: 768px) {
+      .final-cta-section h2 { font-size: 28px; }
+      .final-cta-section { padding: 64px 0; }
+    }
+
+    /* ═══════════════════════════════════════════
+       SECTION 12 — FOOTER
+    ═══════════════════════════════════════════ */
+    .site-footer {
+      background: #070B16;
+      padding: 72px 0 0;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 48px;
+      margin-bottom: 48px;
+    }
+    .footer-brand-logo {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-primary), #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+    .footer-brand p {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.8;
+      margin-bottom: 24px;
+      max-width: 320px;
+    }
+    .footer-social {
+      display: flex;
+      gap: 12px;
+    }
+    .footer-social a {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 18px;
+      transition: all 0.25s;
+    }
+    .footer-social a:hover {
+      background: rgba(245,158,11,0.1);
+      border-color: var(--border-accent);
+      color: var(--accent-primary);
+    }
+    .footer-col h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+    }
+    .footer-col a {
+      display: block;
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 6px 0;
+      transition: color 0.25s;
+    }
+    .footer-col a:hover { color: var(--accent-primary); }
+    .footer-bottom {
+      border-top: 1px solid var(--border-subtle);
+      padding: 24px 0;
+      text-align: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .footer-bottom span { color: #EF4444; }
+    @media (max-width: 768px) {
+      .footer-grid { grid-template-columns: 1fr; gap: 32px; }
+      .section-pad { padding: 64px 0; }
+    }
+
+    /* ═══════════════════════════════════════════
+       WHATSAPP FLOATING BUTTON
+    ═══════════════════════════════════════════ */
+    .whatsapp-float {
+      position: fixed;
+      bottom: 28px;
+      left: 28px;
+      width: 60px;
+      height: 60px;
+      background: #25D366;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.3);
+      z-index: 900;
+      transition: transform 0.3s;
+    }
+    .whatsapp-float:hover { transform: scale(1.1); }
+    .whatsapp-float svg { width: 32px; height: 32px; fill: white; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════════ NAVBAR ═══════════════ -->
+  <header class="navbar" id="navbar">
+    <div class="container">
+      <a href="#home" class="nav-logo">
+        <img src="/logo.png" alt="شعار TableX">
+        TableX
+      </a>
+      <nav class="nav-links">
+        <a href="#home">الرئيسية</a>
+        <a href="#features">المزايا</a>
+        <a href="#how-it-works">كيف يعمل</a>
+        <a href="#pricing">الأسعار</a>
+        <a href="#contact">اتصل بنا</a>
+      </nav>
+      <a href="/register" class="nav-cta">ابدأ مجاناً</a>
+      <button class="hamburger" id="hamburger" aria-label="فتح القائمة">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#home" onclick="closeMobile()">الرئيسية</a>
+    <a href="#features" onclick="closeMobile()">المزايا</a>
+    <a href="#how-it-works" onclick="closeMobile()">كيف يعمل</a>
+    <a href="#pricing" onclick="closeMobile()">الأسعار</a>
+    <a href="#contact" onclick="closeMobile()">اتصل بنا</a>
+    <a href="/register" class="nav-cta" onclick="closeMobile()" style="display:inline-block;margin-top:16px;">ابدأ مجاناً</a>
+  </div>
+
+  <main>
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <section class="hero" id="home">
+      <!-- Particles -->
+      <div class="particles" id="particles"></div>
+
+      <div class="container">
+        <div class="hero-text">
+          <h1>
+            ضاعف طلبات مطعمك<br>
+            مع قائمة ذكية بتقنية <span class="ar-highlight">AR</span>
+          </h1>
+          <p class="hero-sub">
+            قائمة ثلاثية الأبعاد يشوفها الزبون قبل ما يطلب.
+            طلب عبر QR بدون تطبيق. توصيات ذكاء اصطناعي ترفع متوسط الطلب.
+          </p>
+          <div class="social-proof-bar">
+            <span class="proof-pill"><span class="emoji">⭐</span> <span class="num-font">4.8/5</span> من <span class="num-font">120+</span> مطعم</span>
+            <span class="proof-pill"><span class="emoji">🍽</span> +<span class="num-font">200</span> مطعم نشط</span>
+            <span class="proof-pill"><span class="emoji">📈</span> متوسط زيادة المبيعات <span class="num-font">35%</span></span>
+          </div>
+          <div class="hero-cta-wrap">
+            <a href="/register" class="btn-primary">
+              جرّب مجاناً 14 يوم — لا بطاقة ائتمانية
+            </a>
+          </div>
+          <p class="hero-micro">
+            إلغاء في أي وقت <span>•</span> إعداد خلال 24 ساعة <span>•</span> دعم فني على واتساب
+          </p>
+          <a href="#how-it-works" class="hero-link">شاهد كيف يعمل ←</a>
+        </div>
+
+        <div class="hero-visual">
+          <div class="glow-orb glow-orb-1"></div>
+          <div class="glow-orb glow-orb-2"></div>
+          <div class="phone-mockup">
+            <div class="phone-notch"></div>
+            <div class="phone-screen">
+              <div class="phone-header">
+                <span class="phone-logo-text">TableX</span>
+                <span style="font-size:12px;color:var(--text-muted);">🔔</span>
+              </div>
+              <div class="phone-search"></div>
+              <div class="phone-categories">
+                <span class="phone-cat">الكل</span>
+                <span class="phone-cat">مشاوي</span>
+                <span class="phone-cat">مشروبات</span>
+              </div>
+              <div class="dish-card-3d">
+                <div class="dish-visual">
+                  <span class="ar-badge-phone">AR 3D</span>
+                  <div class="dish-3d-cube">
+                    <div class="cube-face front">🍔</div>
+                    <div class="cube-face back">🍖</div>
+                    <div class="cube-face right">🥗</div>
+                    <div class="cube-face left">🍕</div>
+                    <div class="cube-face top">🍳</div>
+                    <div class="cube-face bottom">🧆</div>
+                  </div>
+                </div>
+                <div class="dish-info-phone">
+                  <span class="dish-name-phone">برجر كلاسيك</span>
+                  <span class="dish-price-phone">45 ر.س</span>
+                </div>
+                <div class="dish-add-btn">أضف للطلب</div>
+              </div>
+              <div class="phone-qr">
+                <div class="qr-inner">
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                  <div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div><div class="qr-cell"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ LOGOS BAR ═══════════════ -->
+    <section class="logos-section">
+      <p class="logos-title">يثق بنا أكثر من 200 مطعم في المنطقة</p>
+      <div class="logos-track">
+        <div class="logo-box">مطعم الشيف</div>
+        <div class="logo-box">كافيه النخيل</div>
+        <div class="logo-box">بيت الكبسة</div>
+        <div class="logo-box">برجر هاوس</div>
+        <div class="logo-box">مطعم الخليج</div>
+        <div class="logo-box">شاورما بلس</div>
+        <div class="logo-box">بيتزا كينج</div>
+        <div class="logo-box">كوفي لاب</div>
+        <!-- Duplicate for seamless marquee -->
+        <div class="logo-box">مطعم الشيف</div>
+        <div class="logo-box">كافيه النخيل</div>
+        <div class="logo-box">بيت الكبسة</div>
+        <div class="logo-box">برجر هاوس</div>
+        <div class="logo-box">مطعم الخليج</div>
+        <div class="logo-box">شاورما بلس</div>
+        <div class="logo-box">بيتزا كينج</div>
+        <div class="logo-box">كوفي لاب</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ PROBLEMS ═══════════════ -->
+    <section class="problems-section section-pad" id="problems">
+      <div class="container">
+        <p class="section-eyebrow reveal">المشكلة التي تعرفها كويس</p>
+        <h2 class="section-title reveal">كل يوم تخسر فيه من غير ما تعرف</h2>
+        <div class="problems-grid">
+          <div class="problem-card reveal">
+            <div class="problem-icon">📋</div>
+            <h3>قائمة ورقية تسبب فوضى</h3>
+            <p>الزبون يسأل عن كل شيء، النادل يتعب، والطلب يتأخر أو يتغلط</p>
+          </div>
+          <div class="problem-card reveal">
+            <div class="problem-icon">📞</div>
+            <h3>طلبات تضيع بين الشفهي والكتابي</h3>
+            <p>طلبات خاطئة، زبائن زعلانين، وخسارة في المواد</p>
+          </div>
+          <div class="problem-card reveal">
+            <div class="problem-icon">📊</div>
+            <h3>ما تعرف ليش مبيعاتك ثابتة</h3>
+            <p>بدون بيانات حقيقية، قراراتك تعتمد على الحدس مش الأرقام</p>
+          </div>
+        </div>
+        <div class="problem-divider reveal">
+          <span class="arrow">↓</span>
+          TableX يحل هذا كله
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ FEATURES ═══════════════ -->
+    <section class="features-section section-pad" id="features">
+      <div class="container">
+        <p class="section-eyebrow reveal">المزايا الرئيسية</p>
+        <h2 class="section-title reveal">كل اللي تحتاجه في منصة واحدة</h2>
+
+        <!-- Feature 1 — AR/3D Menu -->
+        <div class="feature-row reveal">
+          <div class="feature-text">
+            <h3>قائمة ثلاثية الأبعاد تبيع بدلك</h3>
+            <p>
+              زبونك يشوف الطبق قبل ما يطلبه — بالحجم الحقيقي، والألوان الجذابة.
+              النتيجة: طلب أكثر، تردد أقل، ورضا أعلى.
+            </p>
+            <span class="stat-badge">↑ <span class="num-font">40%</span> متوسط قيمة الطلب</span>
+          </div>
+          <div class="feature-mockup">
+            <div class="mockup-phone">
+              <div class="mockup-phone-inner">
+                <div class="ar-card-demo">
+                  <div class="ar-card-flip">
+                    <div class="card-face-front">
+                      <span class="food-emoji">🍛</span>
+                      <span class="food-name">كبسة لحم</span>
+                      <span class="food-price">65 ر.س</span>
+                    </div>
+                    <div class="card-face-back">
+                      <span class="ar-icon">📱</span>
+                      <span class="ar-text">شاهد الطبق بتقنية AR<br>على طاولتك الحقيقية</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature 2 — QR Ordering -->
+        <div class="feature-row reverse reveal">
+          <div class="feature-mockup">
+            <div class="mockup-phone">
+              <div class="mockup-phone-inner">
+                <div class="qr-demo">
+                  <div class="qr-scan-box">
+                    <div class="qr-pattern">
+                      <div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div>
+                      <div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div>
+                      <div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div>
+                      <div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div>
+                      <div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div><div class="qr-dot"></div>
+                    </div>
+                  </div>
+                  <p class="qr-scan-text">امسح الكود — اطلب فوراً</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="feature-text">
+            <h3>اطلب بدون نادل — QR على كل طاولة</h3>
+            <p>
+              الزبون يمسح الكود، يتصفح القائمة، ويطلب مباشرةً.
+              الطلب يوصل للمطبخ فوراً. بدون تطبيق، بدون انتظار.
+            </p>
+            <span class="stat-badge">⏱ <span class="num-font">40%</span> أسرع في الخدمة</span>
+          </div>
+        </div>
+
+        <!-- Feature 3 — AI Recommendations -->
+        <div class="feature-row reveal">
+          <div class="feature-text">
+            <h3>الذكاء الاصطناعي يبيع بدلك — 24 ساعة</h3>
+            <p>
+              النظام يتعلم تفضيلات زبائنك ويقترح الإضافات الصح في الوقت الصح.
+              "تبي تضيف مشروب؟" — بس الزبون اللي شاف كبسة اليوم.
+            </p>
+            <span class="stat-badge">🤖 +<span class="num-font">28%</span> من البيع الإضافي</span>
+          </div>
+          <div class="feature-mockup">
+            <div class="mockup-phone">
+              <div class="mockup-phone-inner">
+                <div class="ai-demo">
+                  <div class="chat-bubble chat-user">طلبت كبسة لحم ✅</div>
+                  <div class="chat-bubble chat-ai">
+                    <span class="ai-label">🤖 توصية ذكية</span>
+                    تبي تضيف لبن طازج؟ الأغلبية طلبوه مع الكبسة — بس 8 ر.س 🥛
+                  </div>
+                  <div class="chat-bubble chat-user">أضفه! 👍</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ HOW IT WORKS ═══════════════ -->
+    <section class="how-section section-pad" id="how-it-works">
+      <div class="container">
+        <h2 class="section-title reveal">ابدأ في 3 خطوات بسيطة</h2>
+        <div class="steps-grid reveal">
+          <div class="step-item">
+            <div class="step-number num-font">01</div>
+            <h3>سجّل مطعمك</h3>
+            <p>أنشئ حسابك خلال دقيقتين. لا تقنيين، لا تركيب.</p>
+          </div>
+          <div class="step-item">
+            <div class="step-number num-font">02</div>
+            <h3>ارفع قائمتك</h3>
+            <p>صور أطباقك وأسعارها — نحن نحولها لقائمة AR تفاعلية.</p>
+          </div>
+          <div class="step-item">
+            <div class="step-number num-font">03</div>
+            <h3>ضع الـ QR على الطاولات</h3>
+            <p>اطبع الكود وضعه. زبائنك يطلبون فوراً، أنت تتابع من لوحة التحكم.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ STATS ═══════════════ -->
+    <section class="stats-section" id="stats">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value" data-target="200">0</div>
+            <div class="stat-label">مطعم يستخدم TableX+</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" data-target="35" data-suffix="%">0</div>
+            <div class="stat-label">متوسط زيادة المبيعات</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" data-target="40" data-suffix="%">0</div>
+            <div class="stat-label">توفير في وقت الخدمة</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value" data-target="4.8" data-suffix="★" data-decimal="true">0</div>
+            <div class="stat-label">تقييم العملاء</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ TESTIMONIALS ═══════════════ -->
+    <section class="testimonials-section section-pad" id="testimonials">
+      <div class="container">
+        <h2 class="section-title reveal">ماذا يقول أصحاب المطاعم؟</h2>
+        <div class="testimonials-grid">
+          <article class="testimonial-card reveal">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-quote">
+              "من اليوم اللي ركّبنا TableX، الطلبات زادت والأخطاء وقفت. الزبائن يحبون يشوفون الأكل قبل ما يطلبون."
+            </p>
+            <div class="testimonial-author">
+              <div class="author-avatar">أش</div>
+              <div>
+                <div class="author-name">أحمد الشمري</div>
+                <div class="author-role">صاحب مطعم بيت الكبسة — الرياض</div>
+              </div>
+            </div>
+          </article>
+          <article class="testimonial-card reveal">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-quote">
+              "أسرع إعداد في حياتي. في أقل من يوم كان الكافيه كله على TableX. والفريق يساعد على واتساب في أي وقت."
+            </p>
+            <div class="testimonial-author">
+              <div class="author-avatar">فع</div>
+              <div>
+                <div class="author-name">فاطمة العتيبي</div>
+                <div class="author-role">مديرة كافيه النخيل — جدة</div>
+              </div>
+            </div>
+          </article>
+          <article class="testimonial-card reveal">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-quote">
+              "الـ AI يقترح الإضافات للزبون ويشتغل وحده. مبيعاتنا من الـ upsell زادت ربع."
+            </p>
+            <div class="testimonial-author">
+              <div class="author-avatar">خم</div>
+              <div>
+                <div class="author-name">خالد المنصوري</div>
+                <div class="author-role">مدير عمليات سلسلة برجر هاوس — دبي</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ PRICING ═══════════════ -->
+    <section class="pricing-section section-pad" id="pricing">
+      <div class="container">
+        <p class="section-eyebrow reveal">بدون مفاجآت</p>
+        <h2 class="section-title reveal">اختر الباقة المناسبة لمطعمك</h2>
+
+        <div class="pricing-grid reveal">
+          <!-- Starter -->
+          <div class="pricing-card">
+            <div class="pricing-plan-name">STARTER</div>
+            <div class="pricing-plan-title">المبتدئ</div>
+            <div class="pricing-price">
+              <span class="amount">مجاناً</span>
+            </div>
+            <p class="pricing-subtitle">لأول شهر، ثم <span class="num-font">149</span> ريال/شهر</p>
+            <ul class="pricing-features">
+              <li><span class="check">✓</span> قائمة QR تفاعلية</li>
+              <li><span class="check">✓</span> حتى <span class="num-font">50</span> صنف</li>
+              <li><span class="check">✓</span> لوحة طلبات فورية</li>
+              <li><span class="check">✓</span> دعم واتساب</li>
+              <li class="disabled"><span class="cross">✗</span> قائمة AR ثلاثية الأبعاد</li>
+              <li class="disabled"><span class="cross">✗</span> توصيات AI</li>
+            </ul>
+            <a href="/register" class="btn-pricing btn-pricing-secondary">ابدأ مجاناً</a>
+          </div>
+
+          <!-- Pro -->
+          <div class="pricing-card popular">
+            <div class="popular-badge">الأكثر طلباً ⭐</div>
+            <div class="pricing-plan-name">PRO</div>
+            <div class="pricing-plan-title">الاحترافي</div>
+            <div class="pricing-price">
+              <span class="amount num-font">349</span>
+              <span class="period">ريال/شهر</span>
+            </div>
+            <p class="pricing-subtitle">فوترة شهرية أو سنوية بخصم <span class="num-font">20%</span></p>
+            <ul class="pricing-features">
+              <li><span class="check">✓</span> كل مزايا Starter</li>
+              <li><span class="check">✓</span> قائمة AR/3D كاملة</li>
+              <li><span class="check">✓</span> توصيات AI للزبائن</li>
+              <li><span class="check">✓</span> تحليلات مبيعات متقدمة</li>
+              <li><span class="check">✓</span> حتى <span class="num-font">200</span> صنف</li>
+              <li><span class="check">✓</span> دعم أولوية</li>
+            </ul>
+            <a href="/register" class="btn-pricing btn-pricing-primary">ابدأ الآن</a>
+          </div>
+
+          <!-- Business -->
+          <div class="pricing-card">
+            <div class="pricing-plan-name">BUSINESS</div>
+            <div class="pricing-plan-title">الأعمال</div>
+            <div class="pricing-price">
+              <span class="amount" style="font-size:32px;">تواصل معنا</span>
+            </div>
+            <p class="pricing-subtitle">أسعار مخصصة حسب احتياجاتك</p>
+            <ul class="pricing-features">
+              <li><span class="check">✓</span> كل مزايا Pro</li>
+              <li><span class="check">✓</span> فروع غير محدودة</li>
+              <li><span class="check">✓</span> تكامل مع أنظمة POS</li>
+              <li><span class="check">✓</span> مدير حساب مخصص</li>
+              <li><span class="check">✓</span> تخصيص كامل للهوية</li>
+            </ul>
+            <a href="#contact" class="btn-pricing btn-pricing-secondary">تواصل معنا</a>
+          </div>
+        </div>
+
+        <p class="pricing-footer reveal">
+          جميع الباقات تشمل: تجربة مجانية 14 يوماً • إلغاء في أي وقت • دعم واتساب 24/7 • لا رسوم إعداد
+        </p>
+      </div>
+    </section>
+
+    <!-- ═══════════════ FAQ ═══════════════ -->
+    <section class="faq-section section-pad" id="faq">
+      <div class="container">
+        <h2 class="section-title reveal">أسئلة شائعة</h2>
+        <div class="faq-list reveal">
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>هل أحتاج أجهزة خاصة لتشغيل TableX؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                لا. TableX يعمل على أي هاتف أو تابلت أو لاب توب. الزبون يمسح QR من هاتفه العادي، وأنت تدير كل شيء من المتصفح.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>كيف تعمل قائمة AR الثلاثية الأبعاد؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                نحن نحول صور أطباقك لنماذج ثلاثية الأبعاد. الزبون يمسح QR، يختار الطبق، ويشوفه بالحجم الحقيقي على طاولته. لا تحتاج تطبيق خاص.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>هل البيانات آمنة؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                نعم. نستخدم تشفير SSL/TLS، والبيانات محفوظة على خوادم آمنة. لن نشارك بيانات مطعمك مع أي طرف ثالث.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>كم يستغرق الإعداد؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                بين 4 و 24 ساعة. فريقنا يساعدك في رفع القائمة وإعداد كل شيء. أنت فقط ترسل الصور والأسعار.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>هل يمكنني الإلغاء في أي وقت؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                نعم تماماً. لا عقود، لا غرامات. تلغي باشتراك واحد، وتحتفظ ببياناتك.
+              </div>
+            </div>
+          </div>
+
+          <div class="faq-item">
+            <button class="faq-question" aria-expanded="false">
+              <span>ما طرق الدفع المتاحة؟</span>
+              <span class="faq-icon">+</span>
+            </button>
+            <div class="faq-answer">
+              <div class="faq-answer-inner">
+                Visa، Mastercard، مدى، Apple Pay، وتحويل بنكي للباقات السنوية.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════ FINAL CTA ═══════════════ -->
+    <section class="final-cta-section" id="contact">
+      <div class="container">
+        <h2 class="reveal">
+          مطعمك يستاهل أكثر.<br>
+          ابدأ اليوم — التجربة مجانية.
+        </h2>
+        <p class="final-cta-sub reveal">
+          انضم إلى 200+ مطعم يبنون تجربة زبائن استثنائية مع TableX
+        </p>
+        <a href="/register" class="btn-final reveal">
+          جرّب مجاناً 14 يوم — لا بطاقة ائتمانية
+        </a>
+        <div class="final-contact reveal">
+          <a href="https://wa.me/966500000000">📞 تواصل عبر واتساب</a>
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+          <a href="mailto:info@tablexapp.com">📧 info@tablexapp.com</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ═══════════════ FOOTER ═══════════════ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="footer-brand-logo">TableX</div>
+          <p>منصة ذكية للمطاعم تجمع AR وQR وذكاء اصطناعي في مكان واحد.</p>
+          <div class="footer-social">
+            <a href="#" aria-label="انستغرام">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg>
+            </a>
+            <a href="#" aria-label="تيك توك">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>
+            </a>
+            <a href="#" aria-label="لينكد إن">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+            </a>
+            <a href="https://wa.me/966500000000" aria-label="واتساب">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-col">
+          <h4>روابط سريعة</h4>
+          <a href="#home">الرئيسية</a>
+          <a href="#features">المزايا</a>
+          <a href="#pricing">الأسعار</a>
+          <a href="#">المدونة</a>
+          <a href="#contact">اتصل بنا</a>
+        </div>
+        <div class="footer-col">
+          <h4>الدعم</h4>
+          <a href="#">مركز المساعدة</a>
+          <a href="#">دليل البدء</a>
+          <a href="/privacy-policy">سياسة الخصوصية</a>
+          <a href="/terms-conditions">شروط الاستخدام</a>
+        </div>
+        <div class="footer-col">
+          <h4>تواصل</h4>
+          <a href="https://wa.me/966500000000">واتساب: <span class="num-font" dir="ltr">+966 5X XXX XXXX</span></a>
+          <a href="mailto:info@tablexapp.com">البريد: info@tablexapp.com</a>
+          <a href="#">الدعم: <span class="num-font">24/7</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div class="container">
+        © <span class="num-font">2025</span> TableX. جميع الحقوق محفوظة. | صُنع بـ <span>❤</span> للمطاعم العربية
+      </div>
+    </div>
+  </footer>
+
+  <!-- WhatsApp Float -->
+  <a href="https://wa.me/966500000000" class="whatsapp-float" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب">
+    <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  </a>
+
+  <!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+  <script>
+    // ──── Navbar Scroll ────
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      navbar.classList.toggle('scrolled', window.scrollY > 80);
+    }, { passive: true });
+
+    // ──── Mobile Menu ────
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+
+    hamburger.addEventListener('click', () => {
+      hamburger.classList.toggle('active');
+      mobileMenu.classList.toggle('open');
+      document.body.style.overflow = mobileMenu.classList.contains('open') ? 'hidden' : '';
+    });
+
+    function closeMobile() {
+      hamburger.classList.remove('active');
+      mobileMenu.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // ──── Reveal on Scroll ────
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+    // ──── Stats Counter ────
+    const statsObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const target = parseFloat(el.dataset.target);
+          const suffix = el.dataset.suffix || '';
+          const isDecimal = el.dataset.decimal === 'true';
+          const duration = 2000;
+          const startTime = performance.now();
+
+          function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+          function animate(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easedProgress = easeOutCubic(progress);
+            const current = easedProgress * target;
+
+            if (isDecimal) {
+              el.textContent = current.toFixed(1) + suffix;
+            } else {
+              el.textContent = Math.floor(current) + (target >= 100 ? '+' : '') + suffix;
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              if (isDecimal) {
+                el.textContent = target.toFixed(1) + suffix;
+              } else {
+                el.textContent = target + (target >= 100 ? '+' : '') + suffix;
+              }
+            }
+          }
+
+          requestAnimationFrame(animate);
+          statsObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.stat-value').forEach(el => statsObserver.observe(el));
+
+    // ──── FAQ Accordion ────
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const answer = item.querySelector('.faq-answer');
+        const isActive = item.classList.contains('active');
+
+        // Close all others
+        document.querySelectorAll('.faq-item').forEach(other => {
+          other.classList.remove('active');
+          other.querySelector('.faq-answer').style.maxHeight = null;
+          other.querySelector('.faq-question').setAttribute('aria-expanded', 'false');
+        });
+
+        if (!isActive) {
+          item.classList.add('active');
+          answer.style.maxHeight = answer.scrollHeight + 'px';
+          btn.setAttribute('aria-expanded', 'true');
+        }
+      });
+    });
+
+    // ──── Generate Particles ────
+    (function generateParticles() {
+      const container = document.getElementById('particles');
+      if (!container) return;
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.setProperty('--size', (2 + Math.random() * 4) + 'px');
+        p.style.setProperty('--opacity', (0.15 + Math.random() * 0.3).toFixed(2));
+        p.style.setProperty('--duration', (6 + Math.random() * 8) + 's');
+        p.style.setProperty('--delay', (Math.random() * 5) + 's');
+        p.style.setProperty('--tx1', (Math.random() * 60 - 30) + 'px');
+        p.style.setProperty('--ty1', (Math.random() * -60 - 10) + 'px');
+        p.style.setProperty('--tx2', (Math.random() * 40 - 20) + 'px');
+        p.style.setProperty('--ty2', (Math.random() * -80 - 20) + 'px');
+        p.style.setProperty('--tx3', (Math.random() * 50 - 25) + 'px');
+        p.style.setProperty('--ty3', (Math.random() * -40 - 10) + 'px');
+        p.style.left = (Math.random() * 100) + '%';
+        p.style.top = (Math.random() * 100) + '%';
+        container.appendChild(p);
+      }
+    })();
+
+    // ──── Smooth scroll for anchor links ────
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "DM Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", "IBM Plex Sans Arabic", ui-serif, Georgia, serif;
+  
+  /* Core Palette - High End Gold */
+  --color-gold: #CBA358; /* Muted, elegant gold */
+  --color-gold-light: #E4C88A;
+  --color-gold-dark: #A37E3A;
+  
+  /* Backgrounds - Deep Near-Blacks */
+  --color-main: #0A0A0A;
+  --color-surface: #111111;
+  --color-surface-2: #161616;
+  --color-sidebar: #0A0A0A;
+  --color-card: #111111;
+  
+  /* Text - Crisp White & Muted Grays */
+  --color-text: rgba(255, 255, 255, 0.95);
+  --color-text-primary: rgba(255, 255, 255, 0.95);
+  --color-text-secondary: rgba(255, 255, 255, 0.65);
+  --color-text-muted: rgba(255, 255, 255, 0.45);
+  
+  /* UI Elements */
+  --color-dark: #0A0A0A;
+  --color-dark-2: #111111;
+  --color-dark-custom: #0A0A0A;
+  --color-border-custom: #222222;
+  
+  /* Radii - Unified to 8px modern sleek */
+  /* We will override utilities manually where possible, or rely on tailwind defaults *if restricted* */
+}
+
+@layer base {
+  body {
+    @apply bg-main text-text;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    font-weight: 500;
+  }
+}
+
+/* Premium noise texture (disabled per user request) */
+.site-noise {
+  display: none;
+}
+
+.rtl {
+  direction: rtl;
+}
+
+.ltr {
+  direction: ltr;
+}
+
+/* Custom scrollbar - Cleaned up */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
