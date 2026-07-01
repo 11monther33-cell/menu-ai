@@ -20,8 +20,6 @@ import { Branding } from './pages/Branding';
 import { QrCodes } from './pages/QrCodes';
 import { Subscription } from './pages/Subscription';
 import { DishFormPage } from './pages/DishFormPage'; // Import DishFormPage
-import { Generate3DPage } from './pages/Generate3DPage';
-import { ObjectCapturePage } from './pages/ObjectCapturePage';
 
 export const RestaurantDashboard = () => {
   const { isRtl, t, lang, setLang } = useLanguage();
@@ -52,8 +50,6 @@ export const RestaurantDashboard = () => {
       { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders'), path: '/dashboard/live-orders', badge: 'LIVE' },
     ]},
     { group: t('restaurant.nav.tools') || 'الأدوات', items: [
-      { id: 'object-capture', icon: <Camera size={20} />, label: (isRtl ? 'مسح 3D' : '3D Scan'), path: '/dashboard/object-capture' },
-      { id: 'generate-3d', icon: <Camera size={20} />, label: (isRtl ? 'رفع 3D' : 'Upload 3D'), path: '/dashboard/generate-3d' },
       { id: 'qr-codes', icon: <QrCode size={20} />, label: t('restaurant.nav.qrCodes'), path: '/dashboard/qr-codes' },
       { id: 'kitchen-pulse', icon: <Zap size={20} />, label: t('restaurant.nav.kitchenPulse'), path: '/dashboard/kitchen-pulse' },
       { id: 'chef-notes', icon: <MessageSquare size={20} />, label: t('restaurant.nav.chefNotes'), path: '/dashboard/chef-notes' },
@@ -260,8 +256,6 @@ export const RestaurantDashboard = () => {
                 <Route path="/branches" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.branches'))}</div>} />
                 <Route path="/settings" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.settings'))}</div>} />
                 <Route path="/subscription" element={<Subscription />} />
-                <Route path="/generate-3d" element={<Generate3DPage />} />
-                <Route path="/object-capture" element={<ObjectCapturePage />} />
               </Routes>
             </motion.div>
           </AnimatePresence>

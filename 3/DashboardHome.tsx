@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useLanguage } from '../../../context/LanguageContext';
 import { useAuth } from '../../../hooks/useAuth';
@@ -8,7 +7,7 @@ import {
   Eye, ClipboardList, Utensils, QrCode, 
   Plus, ExternalLink, Clock, TrendingUp, 
   TrendingDown, Camera, ChevronRight,
-  MoreVertical, Box, Sparkles
+  MoreVertical, Box
 } from 'lucide-react';
 import { 
   LineChart, Line, XAxis, YAxis, 
@@ -101,11 +100,6 @@ export const DashboardHome = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link to="/dashboard/object-capture"
-            className="flex-1 md:flex-none px-4 py-2.5 bg-purple-600 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-purple-600/20 hover:bg-purple-700 transition-all">
-            <Sparkles size={18} />
-            {isRtl ? 'مسح 3D بالكاميرا' : '3D Camera Scan'}
-          </Link>
           <button className="flex-1 md:flex-none px-4 py-2.5 bg-gold text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-gold/20 hover:bg-gold/90 transition-all">
             <Plus size={18} />
             {t('restaurant.dashboard.quickActions.addDish')}

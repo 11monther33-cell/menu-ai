@@ -108,7 +108,7 @@ export default function WebXRViewer({
     loadGLBModel(modelUrl).then(model => {
       model.visible = false
       scene.add(model)
-      modelRef.current = model as THREE.Group
+      modelRef.current = model
     }).catch(console.error)
 
     // Hit Test Source

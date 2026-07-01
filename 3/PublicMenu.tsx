@@ -402,7 +402,7 @@ const PublicMenu = () => {
 
       {/* Full-screen 3D+AR Experience */}
       {show3DFull && selectedItem?.model3D && (
-        <React.Suspense fallback={<div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white">Loading 3D Viewer...</div>}>
+        <React.Suspense fallback={<div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white">Loading 3D Experience...</div>}>
           <ThreeDViewerFull
             modelUrl={selectedItem.model3D}
             dishName={selectedItem.nameEn}
@@ -411,8 +411,8 @@ const PublicMenu = () => {
             primaryColor={branding?.primary_color || '#C9A84C'}
             onClose={() => setShow3DFull(false)}
             onOrderAdd={() => {
-              toast.success(isRtl ? 'تمت الإضافة للطلب' : 'Added to order')
-              setShow3DFull(false)
+              toast.success(isRtl ? 'تمت الإضافة للطلب' : 'Added to order');
+              setShow3DFull(false);
             }}
           />
         </React.Suspense>
