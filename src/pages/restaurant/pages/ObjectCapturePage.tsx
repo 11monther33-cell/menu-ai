@@ -21,8 +21,9 @@ import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   ChevronLeft, Camera, RotateCcw, Download,
-  Check, AlertTriangle, Sparkles, X
+  Check, AlertTriangle, Sparkles, X, Smartphone
 } from 'lucide-react';
+import { useGyroscopeScan } from '../../../hooks/useGyroscopeScan';
 
 // ── Constants ─────────────────────────────────────────────────────
 const TOTAL_CAPTURES = 8;
@@ -42,10 +43,19 @@ export const ObjectCapturePage = () => {
   const [modelUrl, setModelUrl] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Gyroscope Hook
+  const gyro = useGyroscopeScan(TOTAL_CAPTURES);
+
+  // Auto-capture when gyro hits a new target
+  useEffect(() => {
+    if (phase === 'scanning' && gyro.capturedCount > captureCount && captureCount < TOTAL_CAPTURES) {
+      capturePhoto();
+    }
+  }, [gyro.capturedCount, phase, captureCount]);
 
   // ── Camera Management ───────────────────────────────────────────
   const startCamera = useCallback(async () => {
@@ -65,6 +75,7 @@ export const ObjectCapturePage = () => {
         await videoRef.current.play();
       }
       setPhase('scanning');
+      gyro.requestPermission();
     } catch (err: any) {
       console.error('Camera error:', err);
       setErrorMsg(
@@ -150,7 +161,8 @@ export const ObjectCapturePage = () => {
     setModelUrl(null);
     setErrorMsg('');
     setPhase('intro');
-  }, [stopCamera]);
+    gyro.resetScan();
+  }, [stopCamera, gyro]);
 
   // ── Download Model ──────────────────────────────────────────────
   const downloadModel = useCallback(() => {
@@ -222,8 +234,8 @@ export const ObjectCapturePage = () => {
             {/* Steps */}
             <div className="w-full max-w-xs space-y-3 mb-10">
               {[
-                { icon: '📷', ar: 'صوّب الكاميرا على الطبق', en: 'Point camera at the dish' },
-                { icon: '🔄', ar: `التقط ${TOTAL_CAPTURES} صور من زوايا مختلفة`, en: `Take ${TOTAL_CAPTURES} photos from different angles` },
+                { icon: '📱', ar: 'اسمَح باستخدام حساس الحركة', en: 'Allow motion sensor access' },
+                { icon: '🔄', ar: 'دور حول الطبق 360 درجة ببطء', en: 'Rotate slowly 360° around dish' },
                 { icon: '🧠', ar: 'التوليد يتم محلياً في ثوانٍ', en: 'Generation happens locally in seconds' },
               ].map((step, i) => (
                 <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/5">
@@ -281,12 +293,17 @@ export const ObjectCapturePage = () => {
 
             {/* Interactive Scanner Overlay */}
             <InteractiveScanner
-              onCapture={capturePhoto}
-              progress={scanProgress}
+              onCapture={() => {
+                gyro.forceCapture(); // Manually force capture if gyro not moving
+                capturePhoto();
+              }}
+              progress={gyro.progress > 0 ? gyro.progress : scanProgress * 100}
               totalCaptures={TOTAL_CAPTURES}
               currentCapture={captureCount}
               isProcessing={false}
               isRtl={isRtl}
+              isGyroMode={gyro.hasPermission}
+              currentAngle={gyro.currentAngle}
             />
 
             {/* Close button */}

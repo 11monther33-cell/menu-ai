@@ -31,11 +31,13 @@ interface ScanWave {
 
 interface InteractiveScannerProps {
   onCapture      : () => void;
-  progress       : number;       // 0 → 1
+  progress       : number;       // 0 → 100
   totalCaptures  : number;
   currentCapture : number;
   isProcessing   : boolean;
   isRtl          : boolean;
+  currentAngle?  : number;       // For 360 radar
+  isGyroMode?    : boolean;
 }
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -52,6 +54,8 @@ export const InteractiveScanner: React.FC<InteractiveScannerProps> = ({
   currentCapture,
   isProcessing,
   isRtl,
+  currentAngle = 0,
+  isGyroMode = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointsRef = useRef<FeaturePoint[]>([]);
@@ -230,7 +234,8 @@ export const InteractiveScanner: React.FC<InteractiveScannerProps> = ({
   // ── Progress Ring Calculations ──────────────────────────────────
   const radius = 34;
   const circumference = 2 * Math.PI * radius;
-  const dashOffset = circumference - progress * circumference;
+  // Progress is now 0-100
+  const dashOffset = circumference - (progress / 100) * circumference;
   const isComplete = currentCapture >= totalCaptures;
 
   return (
@@ -327,6 +332,50 @@ export const InteractiveScanner: React.FC<InteractiveScannerProps> = ({
         </div>
       </div>
 
+      {/* ── 360 Radar Overlay (Gyro Mode) ────────────────────── */}
+      {isGyroMode && !isComplete && !isProcessing && (
+        <div className="absolute top-[140px] left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30">
+          <div className="relative w-24 h-24 rounded-full border border-white/20 bg-black/20 backdrop-blur-sm flex items-center justify-center">
+            {/* Center dot */}
+            <div className="w-2 h-2 rounded-full bg-white/50" />
+            
+            {/* Radar Sweep */}
+            <motion.div 
+              className="absolute top-1/2 left-1/2 w-[40px] h-[40px] origin-top-left"
+              style={{
+                background: `conic-gradient(from 0deg, transparent 0deg, rgba(${ACCENT_RGB}, 0.6) 90deg, ${ACCENT} 90deg, transparent 91deg)`,
+              }}
+              animate={{ rotate: currentAngle - 90 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+            />
+            
+            {/* Target dots on radar */}
+            {Array.from({ length: totalCaptures }).map((_, i) => {
+              const angle = (i * (360 / totalCaptures)) * (Math.PI / 180);
+              const px = Math.cos(angle) * 40;
+              const py = Math.sin(angle) * 40;
+              const isCaptured = i < currentCapture;
+              
+              return (
+                <div
+                  key={i}
+                  className="absolute w-1.5 h-1.5 rounded-full"
+                  style={{
+                    left: 48 + px - 3,
+                    top: 48 + py - 3,
+                    backgroundColor: isCaptured ? ACCENT : 'rgba(255,255,255,0.2)',
+                    boxShadow: isCaptured ? `0 0 6px ${ACCENT}` : 'none'
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div className="mt-2 text-[10px] font-bold tracking-wider text-white/60 bg-black/40 px-3 py-1 rounded-full">
+            {isRtl ? 'دور حول الطبق 360°' : 'ROTATE 360°'}
+          </div>
+        </div>
+      )}
+
       {/* ── Bottom Controls ────────────────────────────────────── */}
       <div className="absolute bottom-0 left-0 right-0 pb-10 flex flex-col items-center gap-5 pointer-events-auto z-30">
         {/* Instruction Text */}
@@ -351,8 +400,8 @@ export const InteractiveScanner: React.FC<InteractiveScannerProps> = ({
           }
         </motion.div>
 
-        {/* Capture Button */}
-        {!isComplete && !isProcessing && (
+        {/* Capture Button (Only if not gyro mode, or fallback) */}
+        {!isComplete && !isProcessing && !isGyroMode && (
           <button
             onClick={handleCapture}
             className="relative w-20 h-20 rounded-full focus:outline-none active:scale-90 transition-transform"

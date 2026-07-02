@@ -1,102 +1,122 @@
-/**
- * useGyroscopeScan.ts
- * 
- * يتتبع دوران الهاتف 360° عبر DeviceOrientationEvent
- * يقسم الدائرة إلى 72 قطاع (كل قطاع 5 درجات)
- * عندما تكتمل كل القطاعات = 100% مسح
- */
+import { useState, useEffect, useCallback } from 'react';
 
-import { useRef, useState, useCallback } from 'react'
-
-const SECTORS        = 72                    // 72 × 5° = 360°
-const MIN_COVERAGE   = 60                    // 60 قطاع = 300 درجة = كافي
-const SMOOTHING      = 3                     // يملأ 3 قطاعات مجاورة في كل قراءة
-
-export interface ScanState {
-  progress    : number                       // 0-100
-  covered     : boolean[]                   // 72 عنصر
-  isComplete  : boolean
-  currentAlpha: number                       // الاتجاه الحالي 0-360
-  hasPermission: boolean | null             // null = لم يسأل بعد
+interface ScanProgress {
+  progress: number; // 0 to 100
+  currentAngle: number; // 0 to 360
+  isScanning: boolean;
+  hasPermission: boolean;
+  error: string | null;
 }
 
-export function useGyroscopeScan() {
-  const sectorsRef  = useRef<boolean[]>(new Array(SECTORS).fill(false))
-  const lastAlpha   = useRef<number | null>(null)
-  const [state, setState] = useState<ScanState>({
-    progress    : 0,
-    covered     : new Array(SECTORS).fill(false),
-    isComplete  : false,
-    currentAlpha: 0,
-    hasPermission: null,
-  })
+export function useGyroscopeScan(targetAnglesCount: number = 8) {
+  const [state, setState] = useState<ScanProgress>({
+    progress: 0,
+    currentAngle: 0,
+    isScanning: false,
+    hasPermission: false,
+    error: null,
+  });
 
-  // ── طلب إذن iOS 13+ ─────────────────────────────────────────────
-  const requestPermission = useCallback(async (): Promise<boolean> => {
-    // iOS يحتاج طلب صريح
-    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-      try {
-        const result = await (DeviceOrientationEvent as any).requestPermission()
-        const granted = result === 'granted'
-        setState(s => ({ ...s, hasPermission: granted }))
-        return granted
-      } catch {
-        setState(s => ({ ...s, hasPermission: false }))
-        return false
+  const [startAngle, setStartAngle] = useState<number | null>(null);
+  const [capturedAngles, setCapturedAngles] = useState<number[]>([]);
+
+  // Request permission (needed for iOS 13+)
+  const requestPermission = async () => {
+    try {
+      if (
+        typeof (DeviceOrientationEvent as any) !== 'undefined' &&
+        typeof (DeviceOrientationEvent as any).requestPermission === 'function'
+      ) {
+        const permissionState = await (DeviceOrientationEvent as any).requestPermission();
+        if (permissionState === 'granted') {
+          setState(prev => ({ ...prev, hasPermission: true, isScanning: true }));
+        } else {
+          setState(prev => ({ ...prev, error: 'Permission denied for device orientation' }));
+        }
+      } else {
+        // Non-iOS 13+ devices
+        setState(prev => ({ ...prev, hasPermission: true, isScanning: true }));
       }
+    } catch (err: any) {
+      setState(prev => ({ ...prev, error: err.message }));
     }
+  };
 
-    // Android — لا يحتاج إذن
-    setState(s => ({ ...s, hasPermission: true }))
-    return true
-  }, [])
-
-  // ── معالجة قراءة الجيروسكوب ─────────────────────────────────────
   const handleOrientation = useCallback((event: DeviceOrientationEvent) => {
-    const alpha = event.alpha   // 0-360 — الاتجاه البوصلي
-    if (alpha === null) return
+    if (!state.isScanning) return;
 
-    // حساب القطاع الحالي
-    const sectorIndex = Math.floor(alpha / (360 / SECTORS)) % SECTORS
+    let alpha = event.alpha; // 0 to 360 (compass direction)
     
-    // ملء القطاع الحالي + المجاورين للتخفيف من الخطأ
-    for (let i = -SMOOTHING; i <= SMOOTHING; i++) {
-      const idx = ((sectorIndex + i) % SECTORS + SECTORS) % SECTORS
-      sectorsRef.current[idx] = true
+    // Fallback if alpha is null (some devices)
+    if (alpha === null) {
+      // Use webkitCompassHeading if available
+      alpha = (event as any).webkitCompassHeading;
     }
 
-    // حساب نسبة التغطية
-    const coveredCount = sectorsRef.current.filter(Boolean).length
-    const progress     = Math.min(100, Math.round((coveredCount / MIN_COVERAGE) * 100))
-    const isComplete   = coveredCount >= MIN_COVERAGE
+    if (alpha === null || alpha === undefined) return;
 
-    setState({
-      progress,
-      covered     : [...sectorsRef.current],
-      isComplete,
-      currentAlpha: alpha,
-      hasPermission: true,
-    })
+    setStartAngle(prevStart => {
+      const start = prevStart === null ? alpha : prevStart;
+      
+      // Calculate how far we've rotated relative to the start angle
+      let relativeAngle = alpha! - start!;
+      if (relativeAngle < 0) relativeAngle += 360;
 
-    lastAlpha.current = alpha
-  }, [])
+      // Update current angle
+      setState(prev => ({ ...prev, currentAngle: relativeAngle }));
 
-  // ── بدء وإيقاف التتبع ────────────────────────────────────────────
-  const startTracking = useCallback(() => {
-    window.addEventListener('deviceorientation', handleOrientation, true)
-  }, [handleOrientation])
+      // Check if we hit a new target angle interval
+      const interval = 360 / targetAnglesCount;
+      const targetIndex = Math.floor(relativeAngle / interval);
+      
+      setCapturedAngles(prevCaptured => {
+        if (!prevCaptured.includes(targetIndex)) {
+          const newCaptured = [...prevCaptured, targetIndex];
+          const newProgress = Math.min(100, (newCaptured.length / targetAnglesCount) * 100);
+          
+          setState(prev => ({ ...prev, progress: newProgress }));
+          
+          return newCaptured;
+        }
+        return prevCaptured;
+      });
 
-  const stopTracking = useCallback(() => {
-    window.removeEventListener('deviceorientation', handleOrientation, true)
-  }, [handleOrientation])
+      return start;
+    });
+  }, [state.isScanning, targetAnglesCount]);
 
-  const reset = useCallback(() => {
-    sectorsRef.current = new Array(SECTORS).fill(false)
-    setState({
-      progress: 0, covered: new Array(SECTORS).fill(false),
-      isComplete: false, currentAlpha: 0, hasPermission: true,
-    })
-  }, [])
+  useEffect(() => {
+    if (state.isScanning && state.hasPermission) {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    }
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation, true);
+    };
+  }, [state.isScanning, state.hasPermission, handleOrientation]);
 
-  return { state, requestPermission, startTracking, stopTracking, reset }
+  const resetScan = () => {
+    setStartAngle(null);
+    setCapturedAngles([]);
+    setState(prev => ({ ...prev, progress: 0, currentAngle: 0 }));
+  };
+
+  const forceCapture = () => {
+    // Manually force a capture step if gyroscope is not working/moving
+    setCapturedAngles(prev => {
+      if (prev.length < targetAnglesCount) {
+        const next = [...prev, prev.length];
+        setState(s => ({ ...s, progress: (next.length / targetAnglesCount) * 100 }));
+        return next;
+      }
+      return prev;
+    });
+  };
+
+  return {
+    ...state,
+    requestPermission,
+    resetScan,
+    forceCapture,
+    capturedCount: capturedAngles.length
+  };
 }
