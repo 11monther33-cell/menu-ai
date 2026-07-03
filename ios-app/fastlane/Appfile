@@ -1,0 +1,3 @@
+app_identifier("com.yourrestaurant.arcodecapture")  # عدّل حسب الـ Bundle ID الفعلي
+apple_id(ENV["APPLE_ID"])
+team_id(ENV["APPLE_TEAM_ID"])

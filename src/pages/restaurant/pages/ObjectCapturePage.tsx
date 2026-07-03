@@ -72,7 +72,7 @@ export const ObjectCapturePage = () => {
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        videoRef.current.play().catch(console.error);
       }
       setPhase('scanning');
       gyro.requestPermission();
@@ -179,6 +179,15 @@ export const ObjectCapturePage = () => {
 
   return (
     <div className="fixed inset-0 z-50 bg-black text-white overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Camera Video Feed - Always mounted for iOS compatibility */}
+      <video
+        ref={videoRef}
+        playsInline
+        muted
+        autoPlay
+        className={`absolute inset-0 w-full h-full object-cover ${phase === 'scanning' ? 'opacity-100' : 'opacity-0 pointer-events-none'} transition-opacity duration-300`}
+      />
+
       {/* Hidden capture canvas */}
       <canvas ref={captureCanvasRef} className="hidden" />
 
@@ -274,15 +283,6 @@ export const ObjectCapturePage = () => {
             exit={{ opacity: 0 }}
             className="absolute inset-0"
           >
-            {/* Camera Video Feed */}
-            <video
-              ref={videoRef}
-              playsInline
-              muted
-              autoPlay
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-
             {/* Vignette overlay */}
             <div
               className="absolute inset-0 pointer-events-none"

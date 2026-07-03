@@ -654,3 +654,50 @@ CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_qr_codes_restaurant_id ON qr_codes(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_chef_notes_restaurant_id ON chef_notes(restaurant_id);
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON profiles(role);
+
+-- ╔══════════════════════════════════════════════════════════════╗
+-- ║  📱 3D MODELS & DEVICE PAIRING (iOS App Integration)         ║
+-- ╚══════════════════════════════════════════════════════════════╝
+
+CREATE TABLE IF NOT EXISTS product_3d_models (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  product_id UUID NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
+  usdz_url TEXT NOT NULL,
+  glb_url TEXT,
+  thumbnail_url TEXT,
+  status VARCHAR(20) NOT NULL DEFAULT 'processing', -- processing | ready | failed
+  file_size_bytes BIGINT,
+  created_by UUID REFERENCES auth.users(id),
+  metadata JSONB, -- detailLevel, capturedImageCount, deviceModel, appVersion
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_product_3d_models_product_id ON product_3d_models(product_id);
+CREATE INDEX IF NOT EXISTS idx_product_3d_models_status ON product_3d_models(status);
+
+CREATE TABLE IF NOT EXISTS device_pairing_codes (
+  code VARCHAR(6) PRIMARY KEY,
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES dishes(id) ON DELETE SET NULL,
+  used BOOLEAN NOT NULL DEFAULT false,
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE product_3d_models ENABLE ROW LEVEL SECURITY;
+ALTER TABLE device_pairing_codes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public read ready 3d models"
+  ON product_3d_models FOR SELECT
+  USING (status = 'ready');
+
+CREATE POLICY "Owner manage 3d models"
+  ON product_3d_models FOR ALL
+  USING (product_id IN (SELECT d.id FROM dishes d WHERE d.restaurant_id IN (SELECT get_my_restaurant_ids())))
+  WITH CHECK (product_id IN (SELECT d.id FROM dishes d WHERE d.restaurant_id IN (SELECT get_my_restaurant_ids())));
+
+CREATE POLICY "Owner manage pairing codes"
+  ON device_pairing_codes FOR ALL
+  USING (restaurant_id IN (SELECT get_my_restaurant_ids()))
+  WITH CHECK (restaurant_id IN (SELECT get_my_restaurant_ids()));

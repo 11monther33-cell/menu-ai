@@ -242,6 +242,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ svg: Buffer.from(qrSvg).toString('base64'), qrData });
     }
 
+    // ── Device Pairing (Generate) ────────────────────────
+    if (url === '/api/device-pairing/generate' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { productId } = req.body;
+      const { data: profile } = await sb.from('profiles').select('restaurant_id').eq('id', user.id).single();
+      if (!profile?.restaurant_id) return res.status(403).json({ error: 'No restaurant associated' });
+
+      const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+
+      await sb.from('device_pairing_codes').insert({
+        code: pairingCode,
+        restaurant_id: profile.restaurant_id,
+        product_id: productId || null,
+        expires_at: expiresAt
+      });
+
+      return res.json({ pairingCode, expiresAt });
+    }
+
+    // ── Device Pairing (Auth) ────────────────────────────
+    if (url === '/api/auth/device-pair' && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'Supabase missing' });
+      const { pairingCode } = req.body;
+      
+      const { data: pairing } = await sb.from('device_pairing_codes')
+        .select('*')
+        .eq('code', pairingCode)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+        
+      if (!pairing) return res.status(401).json({ error: 'Invalid or expired code' });
+      
+      await sb.from('device_pairing_codes').update({ used: true }).eq('code', pairingCode);
+      
+      return res.json({
+        accessToken: `dev_${pairing.restaurant_id}_${Date.now()}`,
+        refreshToken: 'dummy_refresh',
+        restaurantId: pairing.restaurant_id,
+        preselectedProductId: pairing.product_id,
+        expiresIn: 3600 * 24 * 365,
+      });
+    }
+
+    // ── 3D Model Status ──────────────────────────────────
+    const statusMatch = url.match(/^\/api\/products\/([^/]+)\/3d-model\/status$/);
+    if (statusMatch && method === 'GET') {
+      if (!sb) return res.status(500).json({ error: 'Supabase missing' });
+      const { data: model } = await sb.from('product_3d_models')
+        .select('status, glb_url, usdz_url, thumbnail_url')
+        .eq('product_id', statusMatch[1])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (!model) return res.status(404).json({ error: 'No model found' });
+      return res.json(model);
+    }
+
     // ── AI generate ──────────────────────────────────────
     if (url === '/api/ai/generate' && method === 'POST') {
       const { user } = await getUser(req);
