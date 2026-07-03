@@ -1,0 +1,47 @@
+name: ARCodeCaptureApp
+options:
+  bundleIdPrefix: com.yourrestaurant
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "1"          # iPhone only
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+
+targets:
+  ARCodeCaptureApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: ARCodeCaptureApp
+    resources:
+      - path: ARCodeCaptureApp/Resources
+    info:
+      path: ARCodeCaptureApp/Info.plist
+      properties:
+        UILaunchScreen: {}
+        NSCameraUsageDescription: "This app needs camera access to capture 360° photos of menu items for 3D model generation."
+        UIRequiredDeviceCapabilities: [arm64, arkit]
+        UIBackgroundModes: [processing]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        CFBundleURLTypes:
+          - CFBundleURLSchemes: [arcodecapture]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.yourrestaurant.arcodecapture
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: $(APPLE_TEAM_ID)
+    dependencies: []   # لا حاجة لأي مكتبة خارجية - RealityKit/ARKit/SwiftUI مدمجة بالنظام
+
+schemes:
+  ARCodeCaptureApp:
+    build:
+      targets:
+        ARCodeCaptureApp: all
+    run:
+      config: Debug
+    archive:
+      config: Release

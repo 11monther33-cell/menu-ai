@@ -20,6 +20,17 @@ jobs:
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_15.4.app
 
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate .xcodeproj from project.yml
+        run: |
+          cd ios-app
+          xcodegen generate
+          # هذي الخطوة تولّد ARCodeCaptureApp.xcodeproj من project.yml تلقائياً
+          # المطور ما يحتاج يفتح Xcode أبداً ولا حتى يمتلك ملف .xcodeproj بالريبو -
+          # فقط يكتب/يعدّل project.yml وملفات Swift، والباقي يصير هنا.
+
       - name: Install Fastlane
         run: |
           cd ios-app
