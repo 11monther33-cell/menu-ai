@@ -10,7 +10,8 @@ import {
   QrCode, Settings, LogOut, Bell, Search, 
   ChevronLeft, ChevronRight, Menu, X,
   Layers, Zap, MessageSquare, Camera,
-  Palette, MapPin, CreditCard, Globe, RefreshCw
+  Palette, MapPin, CreditCard, Globe, RefreshCw,
+  Calculator, FileText, Package, TrendingDown
 } from 'lucide-react';
 import { DashboardHome } from './pages/DashboardHome';
 import { MenuBuilder } from './pages/MenuBuilder';
@@ -22,6 +23,16 @@ import { Subscription } from './pages/Subscription';
 import { DishFormPage } from './pages/DishFormPage'; // Import DishFormPage
 import { Generate3DPage } from './pages/Generate3DPage';
 import { ObjectCapturePage } from './pages/ObjectCapturePage';
+
+// POS & Accounting Pages
+import { POSScreen } from './pages/POSScreen';
+import { POSProducts } from './pages/POSProducts';
+import { POSInventory } from './pages/POSInventory';
+import { POSExpenses } from './pages/POSExpenses';
+import { POSInvoices } from './pages/POSInvoices';
+import { POSReports } from './pages/POSReports';
+import { POSSettings } from './pages/POSSettings';
+
 
 export const RestaurantDashboard = () => {
   const { isRtl, t, lang, setLang } = useLanguage();
@@ -61,6 +72,15 @@ export const RestaurantDashboard = () => {
     ]},
     { group: t('restaurant.nav.analytics') || 'التحليلات', items: [
       { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics'), path: '/dashboard/analytics' },
+    ]},
+    { group: isRtl ? 'المحاسبة ونقاط البيع' : 'POS & Accounting', items: [
+      { id: 'pos', icon: <Calculator size={20} />, label: isRtl ? 'نقطة البيع (POS)' : 'Point of Sale (POS)', path: '/dashboard/pos' },
+      { id: 'pos-products', icon: <Utensils size={20} />, label: isRtl ? 'إدارة المنتجات' : 'Products Management', path: '/dashboard/pos-products' },
+      { id: 'pos-inventory', icon: <Package size={20} />, label: isRtl ? 'المخزون' : 'Inventory', path: '/dashboard/pos-inventory' },
+      { id: 'pos-expenses', icon: <TrendingDown size={20} />, label: isRtl ? 'المصروفات' : 'Expenses', path: '/dashboard/pos-expenses' },
+      { id: 'pos-invoices', icon: <FileText size={20} />, label: isRtl ? 'الفواتير' : 'Invoices', path: '/dashboard/pos-invoices' },
+      { id: 'pos-reports', icon: <BarChart3 size={20} />, label: isRtl ? 'التقارير المالية' : 'Financial Reports', path: '/dashboard/pos-reports' },
+      { id: 'pos-settings', icon: <Settings size={20} />, label: isRtl ? 'إعدادات الفرع' : 'Branch Settings', path: '/dashboard/pos-settings' },
     ]},
     { group: t('restaurant.nav.settings') || 'الإعدادات', items: [
       { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding'), path: '/dashboard/branding' },
@@ -259,6 +279,13 @@ export const RestaurantDashboard = () => {
                 <Route path="/branding" element={<Branding />} />
                 <Route path="/branches" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.branches'))}</div>} />
                 <Route path="/settings" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.settings'))}</div>} />
+                <Route path="/pos" element={<POSScreen />} />
+                <Route path="/pos-products" element={<POSProducts />} />
+                <Route path="/pos-inventory" element={<POSInventory />} />
+                <Route path="/pos-expenses" element={<POSExpenses />} />
+                <Route path="/pos-invoices" element={<POSInvoices />} />
+                <Route path="/pos-reports" element={<POSReports />} />
+                <Route path="/pos-settings" element={<POSSettings />} />
                 <Route path="/subscription" element={<Subscription />} />
                 <Route path="/generate-3d" element={<Generate3DPage />} />
                 <Route path="/object-capture" element={<ObjectCapturePage />} />
