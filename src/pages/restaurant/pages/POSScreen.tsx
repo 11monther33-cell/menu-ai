@@ -108,7 +108,7 @@ export const POSScreen = () => {
   const handlePayClick = () => {
     if (cart.length === 0) return;
     const subtotal = getCartSubtotal();
-    const vat = subtotal * (currentBranch!.vat_rate / 100);
+    const vat = subtotal * ((currentBranch?.vat_rate ?? 5.00) / 100);
     const total = subtotal + vat;
     setAmountTendered(total.toFixed(3));
     setShowPaymentModal(true);
@@ -142,7 +142,7 @@ export const POSScreen = () => {
         orderIdToPay,
         paymentMethod,
         Number(amountTendered),
-        currentBranch.vat_rate,
+        vatRate,
         idempotencyKey
       );
 
@@ -484,7 +484,7 @@ export const POSScreen = () => {
                     <span>{Number(receiptData.subtotal).toFixed(3)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>{isRtl ? `الضريبة (${currentBranch?.vat_rate}%):` : `VAT (${currentBranch?.vat_rate}%):`}</span>
+                    <span>{isRtl ? `الضريبة (${vatRate}%):` : `VAT (${vatRate}%):`}</span>
                     <span>{Number(receiptData.vatAmount).toFixed(3)}</span>
                   </div>
                   <div className="flex justify-between text-sm font-bold pt-1">
