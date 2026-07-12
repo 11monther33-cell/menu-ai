@@ -581,6 +581,11 @@ export async function removeOrderItem(itemId: string, orderId: string) {
     .eq('id', orderId);
 }
 
+export async function clearOrderItems(orderId: string) {
+  const { error } = await supabase.from('pos_order_items').delete().eq('order_id', orderId);
+  if (error) throw error;
+}
+
 // Addition A: closeOrder now accepts an idempotency key to prevent double-payments
 export async function closeOrder(
   orderId: string,

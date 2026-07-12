@@ -25,6 +25,7 @@ interface POSState {
   removeFromCart: (productId: string) => void;
   updateCartItemQty: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  setCartFromOrder: (items: any[], orderId: string) => void;
   setCurrentOrderId: (orderId: string | null) => void;
   setTableNumber: (tableNumber: string) => void;
 
@@ -59,6 +60,21 @@ export const usePOSStore = create<POSState>((set, get) => ({
   currentOrderId: null,
   tableNumber: '',
   idempotencyKey: null,
+
+  setCartFromOrder: (items, orderId) => {
+    set({
+      currentOrderId: orderId,
+      cart: items.map((item: any) => ({
+        productId: item.product_id,
+        name: item.pos_products?.name || 'Unknown Item',
+        quantity: item.quantity,
+        unitPrice: Number(item.unit_price),
+        lineTotal: Number(item.line_total),
+        costPrice: item.pos_products?.cost_price ? Number(item.pos_products.cost_price) : undefined,
+        hasRecipe: item.pos_products?.cost_price !== null && item.pos_products?.cost_price !== undefined
+      }))
+    });
+  },
 
   addToCart: (product, hasRecipe) => {
     set((state) => {

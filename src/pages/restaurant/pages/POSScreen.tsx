@@ -9,6 +9,7 @@ import {
   closeOrder,
   getOpenOrderForTable,
   fetchOrderWithItems,
+  clearOrderItems,
   POSProduct,
   POSMenuCategory
 } from '../../../services/posService';
@@ -52,7 +53,15 @@ export const POSScreen = () => {
   const [receiptData, setReceiptData] = useState<any | null>(null);
 
   const loadData = async () => {
-    if (!currentBranch) return;
+    if (!currentBranch) {
+      // If no branch is selected yet, we wait. But to prevent infinite spinner if none exists:
+      setTimeout(() => {
+        if (!usePOSStore.getState().currentBranch) {
+          setLoading(false);
+        }
+      }, 3000);
+      return;
+    }
     setLoading(true);
     try {
       const [cats, prods] = await Promise.all([
@@ -72,6 +81,23 @@ export const POSScreen = () => {
   useEffect(() => {
     loadData();
   }, [currentBranch?.id]);
+
+  // Item 1: Wire up open-order recovery
+  const handleTableNumberBlur = async () => {
+    if (!tableNumber || !currentBranch) return;
+    try {
+      const orderId = await getOpenOrderForTable(currentBranch.id, tableNumber);
+      if (orderId) {
+        const orderData = await fetchOrderWithItems(orderId);
+        if (orderData && orderData.items && orderData.items.length > 0) {
+          usePOSStore.getState().setCartFromOrder(orderData.items, orderId);
+          toast.success(isRtl ? 'تم استرجاع طلب مفتوح لهذه الطاولة' : 'Recovered open order for this table', { icon: '🔄' });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch open order for table', err);
+    }
+  };
 
   const handleAddToCart = async (prod: POSProduct) => {
     if (!currentBranch) return;
@@ -95,17 +121,25 @@ export const POSScreen = () => {
       // Addition A: Generate idempotency key BEFORE the request
       const idempotencyKey = generateIdempotencyKey();
 
-      // 1. Create order on the fly
-      const order = await createOrder(currentBranch.id, tableNumber || undefined, currentBranch.currency_code);
+      let orderIdToPay = currentOrderId;
+      
+      if (!orderIdToPay) {
+        // 1. Create order on the fly
+        const order = await createOrder(currentBranch.id, tableNumber || undefined, currentBranch.currency_code);
+        orderIdToPay = order.id;
+      } else {
+        // Clear existing items in DB to reflect the final cart state
+        await clearOrderItems(orderIdToPay);
+      }
 
       // 2. Add all items to order
       for (const item of cart) {
-        await addOrderItem(order.id, item.productId, item.quantity);
+        await addOrderItem(orderIdToPay, item.productId, item.quantity);
       }
 
       // 3. Process payment with idempotency key and get invoice
       const invoice = await closeOrder(
-        order.id,
+        orderIdToPay,
         paymentMethod,
         Number(amountTendered),
         currentBranch.vat_rate,
@@ -122,7 +156,7 @@ export const POSScreen = () => {
         paymentMethod
       });
 
-      toast.success(isRtl ? 'تم إغلاق الطلب وإصدار الفاتورة' : 'Order closed and invoice issued');
+      toast.success(isRtl ? 'تم إتمام الطلب بنجاح' : 'Order completed successfully');
       setShowPaymentModal(false);
       clearCart();
     } catch (err) {
@@ -142,7 +176,8 @@ export const POSScreen = () => {
     : products.filter(p => p.category_id === activeCat);
 
   const subtotal = getCartSubtotal();
-  const vat = subtotal * (currentBranch ? currentBranch.vat_rate / 100 : 0.05);
+  const vatRate = currentBranch?.vat_rate ?? 5.00;
+  const vat = subtotal * (vatRate / 100);
   const total = subtotal + vat;
 
   return (
@@ -241,6 +276,7 @@ export const POSScreen = () => {
             className="w-full bg-main border border-border-custom rounded-xl px-4 py-2.5 text-sm text-text-primary outline-none focus:border-gold/50"
             value={tableNumber}
             onChange={e => setTableNumber(e.target.value)}
+            onBlur={handleTableNumberBlur}
           />
         </div>
 
@@ -292,7 +328,7 @@ export const POSScreen = () => {
               <span>{subtotal.toFixed(3)} {currentBranch?.currency_code}</span>
             </div>
             <div className="flex justify-between">
-              <span>{isRtl ? `الضريبة (${currentBranch?.vat_rate}%)` : `VAT (${currentBranch?.vat_rate}%)`}</span>
+              <span>{isRtl ? `الضريبة (${vatRate}%)` : `VAT (${vatRate}%)`}</span>
               <span>{vat.toFixed(3)} {currentBranch?.currency_code}</span>
             </div>
             <div className="flex justify-between text-base font-bold text-text-primary pt-2 border-t border-border-custom/50">
@@ -306,7 +342,7 @@ export const POSScreen = () => {
             disabled={cart.length === 0}
             className="w-full py-3 bg-gold text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-gold/90 transition-all shadow-lg shadow-gold/20 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isRtl ? 'دفع وإغلاق الطلب' : 'Pay & Issue Invoice'}
+            {isRtl ? 'إتمام الطلب' : 'Complete Order'}
           </button>
         </div>
       </div>
@@ -323,7 +359,7 @@ export const POSScreen = () => {
               className="bg-sidebar border border-border-custom w-full max-w-md rounded-[2rem] overflow-hidden z-10"
             >
               <div className="p-6 border-b border-border-custom flex items-center justify-between bg-card/30">
-                <h3 className="text-xl font-bold text-text-primary">{isRtl ? 'إتمام عملية الدفع' : 'Complete Payment'}</h3>
+                <h3 className="text-xl font-bold text-text-primary">{isRtl ? 'إتمام الطلب' : 'Complete Order'}</h3>
                 <button onClick={() => setShowPaymentModal(false)} className="text-text-secondary hover:text-text-primary">
                   <X size={20} />
                 </button>
@@ -383,7 +419,7 @@ export const POSScreen = () => {
                     className="px-6 py-2 bg-gold text-white font-bold rounded-lg hover:bg-gold/90 flex items-center gap-2"
                   >
                     {paying && <RefreshCw className="animate-spin" size={16} />}
-                    {isRtl ? 'تأكيد ودفع' : 'Confirm & Pay'}
+                    {isRtl ? 'تأكيد إتمام الطلب' : 'Confirm Order'}
                   </button>
                 </div>
               </div>
