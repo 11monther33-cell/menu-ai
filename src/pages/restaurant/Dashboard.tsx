@@ -51,43 +51,39 @@ export const RestaurantDashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { group: t('restaurant.nav.core') || 'الرئيسية', items: [
-      { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: t('restaurant.nav.dashboard'), path: '/dashboard' },
-    ]},
-    { group: t('restaurant.nav.menuBuilder') || 'إدارة المنيو', items: [
-      { id: 'menu-builder', icon: <Utensils size={20} />, label: t('restaurant.nav.menuBuilder'), path: '/dashboard/menu-builder' },
-      { id: 'categories', icon: <Layers size={20} />, label: t('restaurant.nav.categories'), path: '/dashboard/categories' },
-    ]},
-    { group: t('restaurant.nav.orders') || 'الطلبات', items: [
-      { id: 'orders', icon: <ClipboardList size={20} />, label: t('restaurant.nav.orders'), path: '/dashboard/orders' },
-      { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders'), path: '/dashboard/live-orders', badge: 'LIVE' },
-    ]},
-    { group: t('restaurant.nav.tools') || 'الأدوات', items: [
-      { id: 'object-capture', icon: <Camera size={20} />, label: (isRtl ? 'مسح 3D' : '3D Scan'), path: '/dashboard/object-capture' },
-      { id: 'generate-3d', icon: <Camera size={20} />, label: (isRtl ? 'رفع 3D' : 'Upload 3D'), path: '/dashboard/generate-3d' },
-      { id: 'qr-codes', icon: <QrCode size={20} />, label: t('restaurant.nav.qrCodes'), path: '/dashboard/qr-codes' },
-      { id: 'kitchen-pulse', icon: <Zap size={20} />, label: t('restaurant.nav.kitchenPulse'), path: '/dashboard/kitchen-pulse' },
-      { id: 'chef-notes', icon: <MessageSquare size={20} />, label: t('restaurant.nav.chefNotes'), path: '/dashboard/chef-notes' },
-      { id: 'ugc-review', icon: <Camera size={20} />, label: t('restaurant.nav.ugcReview'), path: '/dashboard/ugc-review' },
-    ]},
-    { group: t('restaurant.nav.analytics') || 'التحليلات', items: [
-      { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics'), path: '/dashboard/analytics' },
-    ]},
-    { group: isRtl ? 'المحاسبة ونقاط البيع' : 'POS & Accounting', items: [
-      { id: 'pos', icon: <Calculator size={20} />, label: isRtl ? 'نقطة البيع (POS)' : 'Point of Sale (POS)', path: '/dashboard/pos' },
-      { id: 'pos-products', icon: <Utensils size={20} />, label: isRtl ? 'إدارة المنتجات' : 'Products Management', path: '/dashboard/pos-products' },
-      { id: 'pos-inventory', icon: <Package size={20} />, label: isRtl ? 'المخزون' : 'Inventory', path: '/dashboard/pos-inventory' },
-      { id: 'pos-expenses', icon: <TrendingDown size={20} />, label: isRtl ? 'المصروفات' : 'Expenses', path: '/dashboard/pos-expenses' },
-      { id: 'pos-invoices', icon: <FileText size={20} />, label: isRtl ? 'الفواتير' : 'Invoices', path: '/dashboard/pos-invoices' },
-      { id: 'pos-reports', icon: <BarChart3 size={20} />, label: isRtl ? 'التقارير المالية' : 'Financial Reports', path: '/dashboard/pos-reports' },
-      { id: 'pos-settings', icon: <Settings size={20} />, label: isRtl ? 'إعدادات الفرع' : 'Branch Settings', path: '/dashboard/pos-settings' },
-    ]},
-    { group: t('restaurant.nav.settings') || 'الإعدادات', items: [
-      { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding'), path: '/dashboard/branding' },
-      { id: 'branches', icon: <MapPin size={20} />, label: t('restaurant.nav.branches'), path: '/dashboard/branches' },
-      { id: 'settings', icon: <Settings size={20} />, label: t('restaurant.nav.settings'), path: '/dashboard/settings' },
-      { id: 'subscription', icon: <CreditCard size={20} />, label: t('restaurant.nav.subscription'), path: '/dashboard/subscription' },
-    ]},
+    { 
+      group: isRtl ? 'إدارة المطعم' : 'Restaurant Management', 
+      items: [
+        { id: 'dashboard', icon: <LayoutDashboard size={20} />, label: t('restaurant.nav.dashboard') || (isRtl ? 'لوحة التحكم' : 'Dashboard'), path: '/dashboard' },
+        { id: 'menu-builder', icon: <Utensils size={20} />, label: t('restaurant.nav.menuBuilder') || (isRtl ? 'بناء المنيو' : 'Menu Builder'), path: '/dashboard/menu-builder' },
+        { id: 'categories', icon: <Layers size={20} />, label: t('restaurant.nav.categories') || (isRtl ? 'التصنيفات' : 'Categories'), path: '/dashboard/categories' },
+        { id: 'orders', icon: <ClipboardList size={20} />, label: t('restaurant.nav.orders') || (isRtl ? 'إدارة الطلبات' : 'Orders'), path: '/dashboard/orders' },
+        { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders') || (isRtl ? 'طلبات مباشرة' : 'Live Orders'), path: '/dashboard/live-orders', badge: 'LIVE' },
+        { id: 'object-capture', icon: <Camera size={20} />, label: (isRtl ? 'مسح 3D' : '3D Scan'), path: '/dashboard/object-capture' },
+        { id: 'generate-3d', icon: <Camera size={20} />, label: (isRtl ? 'رفع 3D' : 'Upload 3D'), path: '/dashboard/generate-3d' },
+        { id: 'qr-codes', icon: <QrCode size={20} />, label: t('restaurant.nav.qrCodes') || (isRtl ? 'رموز QR' : 'QR Codes'), path: '/dashboard/qr-codes' },
+        { id: 'kitchen-pulse', icon: <Zap size={20} />, label: t('restaurant.nav.kitchenPulse') || (isRtl ? 'نبض المطبخ' : 'Kitchen Pulse'), path: '/dashboard/kitchen-pulse' },
+        { id: 'chef-notes', icon: <MessageSquare size={20} />, label: t('restaurant.nav.chefNotes') || (isRtl ? 'ملاحظات الشيف' : 'Chef Notes'), path: '/dashboard/chef-notes' },
+        { id: 'ugc-review', icon: <Camera size={20} />, label: t('restaurant.nav.ugcReview') || (isRtl ? 'مراجعة المحتوى' : 'UGC Review'), path: '/dashboard/ugc-review' },
+        { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics') || (isRtl ? 'التحليلات' : 'Analytics'), path: '/dashboard/analytics' },
+        { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding') || (isRtl ? 'الهوية البصرية' : 'Branding'), path: '/dashboard/branding' },
+        { id: 'branches', icon: <MapPin size={20} />, label: t('restaurant.nav.branches') || (isRtl ? 'الفروع' : 'Branches'), path: '/dashboard/branches' },
+        { id: 'settings', icon: <Settings size={20} />, label: t('restaurant.nav.settings') || (isRtl ? 'الإعدادات' : 'Settings'), path: '/dashboard/settings' },
+        { id: 'subscription', icon: <CreditCard size={20} />, label: t('restaurant.nav.subscription') || (isRtl ? 'الاشتراك' : 'Subscription'), path: '/dashboard/subscription' },
+      ]
+    },
+    { 
+      group: isRtl ? 'المحاسبة ونقاط البيع' : 'POS & Accounting', 
+      items: [
+        { id: 'pos', icon: <Calculator size={20} />, label: isRtl ? 'نقطة البيع (POS)' : 'Point of Sale (POS)', path: '/dashboard/pos' },
+        { id: 'pos-products', icon: <Utensils size={20} />, label: isRtl ? 'إدارة المنتجات' : 'Products Management', path: '/dashboard/pos-products' },
+        { id: 'pos-inventory', icon: <Package size={20} />, label: isRtl ? 'المخزون' : 'Inventory', path: '/dashboard/pos-inventory' },
+        { id: 'pos-expenses', icon: <TrendingDown size={20} />, label: isRtl ? 'المصروفات' : 'Expenses', path: '/dashboard/pos-expenses' },
+        { id: 'pos-invoices', icon: <FileText size={20} />, label: isRtl ? 'الفواتير' : 'Invoices', path: '/dashboard/pos-invoices' },
+        { id: 'pos-reports', icon: <BarChart3 size={20} />, label: isRtl ? 'التقارير المالية' : 'Financial Reports', path: '/dashboard/pos-reports' },
+        { id: 'pos-settings', icon: <Settings size={20} />, label: isRtl ? 'إعدادات الفرع' : 'Branch Settings', path: '/dashboard/pos-settings' },
+      ]
+    }
   ];
 
   const handleLogout = async () => {
