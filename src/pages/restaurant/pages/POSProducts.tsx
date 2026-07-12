@@ -47,7 +47,10 @@ export const POSProducts = () => {
   const [newCatName, setNewCatName] = useState('');
 
   const loadData = async () => {
-    if (!currentBranch) return;
+    if (!currentBranch) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const [prodData, catData, invData] = await Promise.all([

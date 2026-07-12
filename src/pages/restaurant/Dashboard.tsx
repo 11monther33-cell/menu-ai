@@ -33,12 +33,32 @@ import { POSInvoices } from './pages/POSInvoices';
 import { POSReports } from './pages/POSReports';
 import { POSSettings } from './pages/POSSettings';
 
+// Global POS Store & Service
+import { getOrCreateBranch } from '../../services/posService';
+import { usePOSStore } from '../../store/posStore';
 
 export const RestaurantDashboard = () => {
   const { isRtl, t, lang, setLang } = useLanguage();
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const { setBranch } = usePOSStore();
+
+  useEffect(() => {
+    const initBranch = async () => {
+      if (user?.restaurantId) {
+        try {
+          const branch = await getOrCreateBranch(user.restaurantId);
+          if (branch) {
+            setBranch(branch);
+          }
+        } catch (err) {
+          console.error("Failed to initialize branch context:", err);
+        }
+      }
+    };
+    initBranch();
+  }, [user?.restaurantId, setBranch]);
 
   useEffect(() => {
     // 🔒 SECURITY: Client-side role check — defense in depth

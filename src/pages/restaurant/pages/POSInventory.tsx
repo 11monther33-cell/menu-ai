@@ -45,7 +45,10 @@ export const POSInventory = () => {
   });
 
   const loadData = async () => {
-    if (!currentBranch) return;
+    if (!currentBranch) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const data = await fetchInventory(currentBranch.id);
