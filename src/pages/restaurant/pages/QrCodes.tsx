@@ -116,6 +116,19 @@ export const QrCodes = () => {
     link.click();
   };
 
+  // Issue 4: Dynamic stats calculation
+  const scansToday = qrCodes
+    .filter(qr => qr.last_scanned_at && new Date(qr.last_scanned_at).toDateString() === new Date().toDateString())
+    .reduce((sum, qr) => sum + (qr.scan_count || 0), 0);
+
+  const mostActiveQr = qrCodes.length > 0 
+    ? [...qrCodes].sort((a, b) => (b.scan_count || 0) - (a.scan_count || 0))[0] 
+    : null;
+
+  const mostActiveTable = mostActiveQr && (mostActiveQr.scan_count || 0) > 0
+    ? `#${mostActiveQr.table_number}`
+    : '—';
+
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -136,8 +149,8 @@ export const QrCodes = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: isRtl ? 'إجمالي الأكواد' : 'Total QRs', value: qrCodes.length, icon: <QrIcon className="text-gold" /> },
-          { label: isRtl ? 'عمليات المسح اليوم' : 'Scans Today', value: '124', icon: <RefreshCw className="text-blue-500" /> },
-          { label: isRtl ? 'أعلى طاولة نشاطاً' : 'Most Active Table', value: '#5', icon: <Layout className="text-green-500" /> },
+          { label: isRtl ? 'عمليات المسح اليوم' : 'Scans Today', value: scansToday, icon: <RefreshCw className="text-blue-500" /> },
+          { label: isRtl ? 'أعلى طاولة نشاطاً' : 'Most Active Table', value: mostActiveTable, icon: <Layout className="text-green-500" /> },
         ].map((stat, i) => (
           <div key={`qr-stat-${i}-${stat.label}`} className="bg-sidebar border border-border-custom p-6 rounded-[2rem] flex items-center gap-4">
             <div className="w-12 h-12 bg-card rounded-2xl flex items-center justify-center border border-border-custom">

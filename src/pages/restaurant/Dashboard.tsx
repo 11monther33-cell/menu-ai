@@ -21,8 +21,6 @@ import { Branding } from './pages/Branding';
 import { QrCodes } from './pages/QrCodes';
 import { Subscription } from './pages/Subscription';
 import { DishFormPage } from './pages/DishFormPage'; // Import DishFormPage
-import { Generate3DPage } from './pages/Generate3DPage';
-import { ObjectCapturePage } from './pages/ObjectCapturePage';
 
 // POS & Accounting Pages
 import { POSScreen } from './pages/POSScreen';
@@ -70,7 +68,10 @@ export const RestaurantDashboard = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = [
+  const navItems: {
+    group: string;
+    items: { id: string; icon: React.ReactNode; label: string; path: string; badge?: string }[];
+  }[] = [
     { 
       group: isRtl ? 'إدارة المطعم' : 'Restaurant Management', 
       items: [
@@ -78,9 +79,7 @@ export const RestaurantDashboard = () => {
         { id: 'menu-builder', icon: <Utensils size={20} />, label: t('restaurant.nav.menuBuilder') || (isRtl ? 'بناء المنيو' : 'Menu Builder'), path: '/dashboard/menu-builder' },
         { id: 'categories', icon: <Layers size={20} />, label: t('restaurant.nav.categories') || (isRtl ? 'التصنيفات' : 'Categories'), path: '/dashboard/categories' },
         { id: 'orders', icon: <ClipboardList size={20} />, label: t('restaurant.nav.orders') || (isRtl ? 'إدارة الطلبات' : 'Orders'), path: '/dashboard/orders' },
-        { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders') || (isRtl ? 'طلبات مباشرة' : 'Live Orders'), path: '/dashboard/live-orders', badge: 'LIVE' },
-        { id: 'object-capture', icon: <Camera size={20} />, label: (isRtl ? 'مسح 3D' : '3D Scan'), path: '/dashboard/object-capture' },
-        { id: 'generate-3d', icon: <Camera size={20} />, label: (isRtl ? 'رفع 3D' : 'Upload 3D'), path: '/dashboard/generate-3d' },
+        { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders') || (isRtl ? 'طلبات مباشرة' : 'Live Orders'), path: '/dashboard/live-orders' },
         { id: 'qr-codes', icon: <QrCode size={20} />, label: t('restaurant.nav.qrCodes') || (isRtl ? 'رموز QR' : 'QR Codes'), path: '/dashboard/qr-codes' },
         { id: 'kitchen-pulse', icon: <Zap size={20} />, label: t('restaurant.nav.kitchenPulse') || (isRtl ? 'نبض المطبخ' : 'Kitchen Pulse'), path: '/dashboard/kitchen-pulse' },
         { id: 'chef-notes', icon: <MessageSquare size={20} />, label: t('restaurant.nav.chefNotes') || (isRtl ? 'ملاحظات الشيف' : 'Chef Notes'), path: '/dashboard/chef-notes' },
@@ -303,8 +302,6 @@ export const RestaurantDashboard = () => {
                 <Route path="/pos-reports" element={<POSReports />} />
                 <Route path="/pos-settings" element={<POSSettings />} />
                 <Route path="/subscription" element={<Subscription />} />
-                <Route path="/generate-3d" element={<Generate3DPage />} />
-                <Route path="/object-capture" element={<ObjectCapturePage />} />
               </Routes>
             </motion.div>
           </AnimatePresence>
