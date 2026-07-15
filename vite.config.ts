@@ -17,7 +17,7 @@ export default defineConfig(() => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-      allowedHosts: true, // 🔓 Allow tunnels like localtunnel
+      allowedHosts: true as true, // 🔓 Allow tunnels like localtunnel
     },
   };
 });
