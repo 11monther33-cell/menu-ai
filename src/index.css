@@ -1,36 +1,37 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "DM Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Playfair Display", "IBM Plex Sans Arabic", ui-serif, Georgia, serif;
+  --font-sans: "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", "Cairo", ui-sans-serif, system-ui, sans-serif;
   
-  /* Core Palette - High End Gold */
-  --color-gold: #CBA358; /* Muted, elegant gold */
-  --color-gold-light: #E4C88A;
-  --color-gold-dark: #A37E3A;
+  /* Core Palette - Tech/3D Accent */
+  --color-gold: #8B5CF6; /* Primary Violet/Purple */
+  --color-gold-light: #A78BFA; /* Lighter Purple */
+  --color-gold-dark: #6D28D9; /* Deep Purple */
   
-  /* Backgrounds - Deep Near-Blacks */
-  --color-main: #0A0A0A;
-  --color-surface: #111111;
-  --color-surface-2: #161616;
-  --color-sidebar: #0A0A0A;
-  --color-card: #111111;
+  /* Backgrounds - Midnight Tech */
+  --color-main: #09090E;
+  --color-surface: #11111A;
+  --color-surface-2: #1A1A24;
+  --color-sidebar: #09090E;
+  --color-card: #11111A;
   
   /* Text - Crisp White & Muted Grays */
-  --color-text: rgba(255, 255, 255, 0.95);
-  --color-text-primary: rgba(255, 255, 255, 0.95);
-  --color-text-secondary: rgba(255, 255, 255, 0.65);
-  --color-text-muted: rgba(255, 255, 255, 0.45);
+  --color-text: rgba(250, 250, 250, 0.95);
+  --color-text-primary: rgba(250, 250, 250, 0.95);
+  --color-text-secondary: rgba(161, 161, 170, 0.85); /* Zinc-400 */
+  --color-text-muted: rgba(161, 161, 170, 0.55);
   
   /* UI Elements */
-  --color-dark: #0A0A0A;
-  --color-dark-2: #111111;
-  --color-dark-custom: #0A0A0A;
-  --color-border-custom: #222222;
+  --color-dark: #09090E;
+  --color-dark-2: #11111A;
+  --color-dark-custom: #09090E;
+  --color-border-custom: #27272A; /* Zinc-800 */
   
-  /* Radii - Unified to 8px modern sleek */
-  /* We will override utilities manually where possible, or rely on tailwind defaults *if restricted* */
+  /* Special Custom Colors */
+  --color-whatsapp: #25D366;
+  --color-cyan-accent: #06B6D4;
 }
 
 @layer base {

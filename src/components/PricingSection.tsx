@@ -43,10 +43,10 @@ export const PricingSection = () => {
             >
               <motion.div 
                 animate={{ x: isAnnual ? (isRtl ? -28 : 28) : 0 }}
-                className="w-5 h-5 bg-gold rounded-full"
+                className="w-5 h-5 bg-indigo-500 rounded-full"
               />
             </button>
-            <span className={`text-sm font-medium ${isAnnual ? 'text-gold' : 'text-muted'}`}>{t('pricing.annual')}</span>
+            <span className={`text-sm font-medium ${isAnnual ? 'text-indigo-400' : 'text-text-muted'}`}>{t('pricing.annual')}</span>
           </div>
         </div>
 
@@ -58,14 +58,14 @@ export const PricingSection = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className={`relative p-8 rounded-2xl border transition-colors ${
+              className={`relative p-8 rounded-[2rem] border transition-all duration-300 ${
                 plan.popular 
-                  ? 'bg-surface-2 border-gold shadow-xl scale-105 z-10' 
-                  : 'bg-surface border-white/5 hover:border-white/10'
+                  ? 'bg-gradient-to-b from-surface-2 to-surface border-indigo-500/50 shadow-2xl shadow-indigo-500/10 scale-105 z-10' 
+                  : 'bg-surface-2/50 backdrop-blur-sm border-border-custom hover:border-indigo-500/30'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gold text-main text-[10px] font-bold px-3 py-1 rounded flex items-center gap-1 uppercase tracking-widest">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-indigo-500 to-cyan-500 text-white text-[10px] font-bold px-4 py-1 rounded-full flex items-center gap-1 uppercase tracking-widest shadow-lg">
                   <Star size={10} fill="currentColor" />
                   {isRtl ? 'الأكثر طلباً' : 'MOST POPULAR'}
                 </div>
@@ -80,13 +80,13 @@ export const PricingSection = () => {
                   </span>
                   <span className="text-muted text-sm">/{isAnnual ? (isRtl ? 'سنوياً' : 'year') : (isRtl ? 'شهرياً' : 'month')}</span>
                 </div>
-                <p className="text-gold text-xs mt-2 uppercase tracking-widest font-medium">3 {isRtl ? 'أيام مجاناً' : 'days free'}</p>
+                <p className="text-indigo-400 text-xs mt-2 uppercase tracking-widest font-medium">3 {isRtl ? 'أيام مجاناً' : 'days free'}</p>
               </div>
 
               <ul className="space-y-4 mb-10">
                 {plan.features.map((feature: string, j: number) => (
                   <li key={`plan-feature-${i}-${j}`} className="flex items-start gap-3 text-sm text-muted">
-                    <Check size={16} className="text-gold shrink-0 mt-0.5" />
+                    <Check size={16} className="text-indigo-400 shrink-0 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}
@@ -96,8 +96,8 @@ export const PricingSection = () => {
                 onClick={() => navigate(`/register?plan=${plan.id}&billing=${isAnnual ? 'annual' : 'monthly'}`)}
                 className={`w-full py-3.5 rounded-lg font-semibold transition-colors uppercase tracking-widest text-[11px] ${
                   plan.popular 
-                    ? 'bg-gold text-main hover:bg-gold-light' 
-                    : 'bg-surface-2 text-text hover:bg-surface border border-white/5'
+                    ? 'bg-text-primary text-main hover:bg-white' 
+                    : 'bg-transparent text-text-primary hover:bg-surface-2 border border-border-custom'
                 }`}
               >
                 {t('pricing.cta')}

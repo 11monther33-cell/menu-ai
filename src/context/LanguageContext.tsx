@@ -89,16 +89,13 @@ const translations = {
           price: '29',
           currency: '$',
           features: [
-            'حتى 50 طبق',
-            'باركود غير محدود (تطبع بنفسك)',
-            'منيو رقمي ثنائي اللغة',
-            'تحديث المنيو في الوقت الفعلي',
-            'Kitchen Pulse أساسي',
-            'ملاحظات الشيف (5 يومياً)',
-            'هوية بصرية (شعار + ألوان)',
-            'تحليلات أساسية (7 أيام)',
+            'منيو رقمي تفاعلي',
+            'مسح باركود (QR) غير محدود',
+            'استقبال الطلبات والدفع (Apple Pay)',
+            'نظام محاسبة أساسي (POS)',
+            'استضافة سحابية 24/7',
             'فرع واحد',
-            'دعم بالإيميل'
+            'دعم فني أوقات العمل'
           ]
         },
         {
@@ -108,18 +105,15 @@ const translations = {
           currency: '$',
           popular: true,
           features: [
-            'كل شيء في Starter، وأيضاً:',
-            'أطباق غير محدودة',
-            'نماذج 3D للأطباق',
-            '3D Snap + نظام الاستريك',
-            'Taste DNA — بصمة الذوق',
-            'Mood Menu بالذكاء الاصطناعي',
-            'طلب بالصوت عربي',
-            'Table Social — سلة مشتركة',
-            'Build-it-3D للأطباق المخصصة',
-            'Kitchen Pulse كامل',
-            'حتى 5 فروع',
-            'دعم أولوية'
+            'كل شيء في البداية، بالإضافة لـ:',
+            'قوائم ثلاثية الأبعاد (AR/3D)',
+            'الرد الآلي بالواتساب (حجوزات واستفسارات)',
+            'شاشة المطبخ الرقمية (KDS)',
+            'نظام التقييمات الذكية',
+            'توصيات الذكاء الاصطناعي',
+            'تتبع أداء الموظفين',
+            'حتى 3 فروع',
+            'دعم فني أولوية'
           ]
         },
         {
@@ -128,15 +122,15 @@ const translations = {
           price: '199',
           currency: '$',
           features: [
-            'كل شيء في Pro، وأيضاً:',
-            'فروع غير محدودة',
-            'خدمة نمذجة 3D من فريقنا',
-            'Custom Domain لمطعمك',
-            'API Access الكامل',
-            'تحليلات سنة كاملة + تصدير',
+            'كل شيء في الاحترافي، وأيضاً:',
+            'نظام نقاط الولاء والتسويق الآلي',
+            'تكامل مع تطبيقات التوصيل',
+            'فروع متعددة غير محدودة',
+            'API Access للربط المخصص',
+            'تحليلات بيانات وتقارير متقدمة',
             'مدير حساب مخصص',
-            'إعداد كامل + تدريب الفريق',
-            'اتفاقية SLA مضمونة'
+            'خدمة تصميم الموديلات 3D',
+            'دعم فني خاص 24/7'
           ]
         }
       ]
@@ -453,16 +447,13 @@ const translations = {
           price: '29',
           currency: '$',
           features: [
-            'Up to 50 dishes',
-            'Unlimited QR codes (print yourself)',
-            'Bilingual digital menu (AR + EN)',
-            'Real-time menu updates',
-            'Basic Kitchen Pulse',
-            'Chef\'s Notes (5/day)',
-            'Basic Brand Kit (logo + colors)',
-            'Basic analytics (7 days)',
+            'Interactive Digital Menu',
+            'Unlimited QR scans',
+            'Order receiving & payments (Apple Pay)',
+            'Basic Point of Sale (POS)',
+            '24/7 Cloud hosting',
             '1 branch',
-            'Email support'
+            'Standard business hours support'
           ]
         },
         {
@@ -473,16 +464,13 @@ const translations = {
           popular: true,
           features: [
             'Everything in Starter, plus:',
-            'Unlimited dishes',
-            '3D dish models',
-            '3D Snap + Streak system',
-            'Taste DNA AI engine',
-            'AI Mood Menu',
-            'Arabic Voice Ordering',
-            'Table Social shared cart',
-            'Build-it-3D customizable dishes',
-            'Full Kitchen Pulse',
-            'Up to 5 branches',
+            'Interactive 3D / AR menus',
+            'WhatsApp AI (Automated reservations & support)',
+            'Kitchen Display System (KDS)',
+            'Smart reviews management',
+            'AI-powered dish recommendations',
+            'Staff performance tracking',
+            'Up to 3 branches',
             'Priority support'
           ]
         },
@@ -493,14 +481,14 @@ const translations = {
           currency: '$',
           features: [
             'Everything in Pro, plus:',
+            'Automated loyalty & marketing system',
+            'Integration with food delivery apps',
             'Unlimited branches',
-            '3D modeling service by VISIONO',
-            'Custom domain',
-            'Full API access',
-            '1-year analytics + CSV export',
+            'Full API access for custom integrations',
+            'Advanced data analytics & reports',
             'Dedicated account manager',
-            'Full onboarding + staff training',
-            'SLA guarantee'
+            '3D modeling service by our team',
+            '24/7 VIP support'
           ]
         }
       ]

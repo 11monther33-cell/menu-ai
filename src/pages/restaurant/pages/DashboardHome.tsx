@@ -221,8 +221,8 @@ export const DashboardHome = () => {
           <div className="h-10 bg-card border border-border-custom rounded-xl w-64"></div>
           <div className="h-10 bg-card border border-border-custom rounded-xl w-96"></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          {[...Array(6)].map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
             <div key={i} className="bg-sidebar border border-border-custom p-6 rounded-[2rem] h-32"></div>
           ))}
         </div>
@@ -268,12 +268,12 @@ export const DashboardHome = () => {
       </div>
 
       {/* Row 2: KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
         {[
           { 
             title: t('restaurant.dashboard.stats.views'), 
             value: totalViews.toLocaleString(), 
-            sub: t('restaurant.dashboard.stats.trend').replace('{value}', '—'),
+            sub: '', 
             trend: 'neutral',
             icon: <Eye size={20} />,
             color: 'text-blue-500',
@@ -297,34 +297,6 @@ export const DashboardHome = () => {
             icon: <Utensils size={20} />,
             color: 'text-green-500',
             bg: 'bg-green-500/10'
-          },
-          { 
-            title: t('restaurant.dashboard.stats.snapShares'), 
-            value: snaps.length, 
-            sub: t('restaurant.dashboard.stats.trend').replace('{value}', '—'),
-            trend: snapsTrend?.trend || 'neutral',
-            trendLabel: snapsTrend?.pct,
-            icon: <Camera size={20} />,
-            color: 'text-purple-500',
-            bg: 'bg-purple-500/10'
-          },
-          { 
-            title: isRtl ? 'نماذج 3D' : '3D Models', 
-            value: modelsCount, 
-            sub: isRtl ? `${dishes.length} طبق إجمالي` : `${dishes.length} total dishes`,
-            trend: 'neutral',
-            icon: <Box size={20} />,
-            color: 'text-cyan-500',
-            bg: 'bg-cyan-500/10'
-          },
-          { 
-            title: isRtl ? 'جلسات AR' : 'AR Sessions', 
-            value: arSessionsCount, 
-            sub: isRtl ? 'هذا الأسبوع' : 'This week',
-            trend: 'neutral',
-            icon: <Camera size={20} />,
-            color: 'text-orange-500',
-            bg: 'bg-orange-500/10'
           },
         ].map((card, i) => (
           <motion.div 
@@ -356,10 +328,6 @@ export const DashboardHome = () => {
           <div className="p-6 border-b border-border-custom flex items-center justify-between bg-card/30">
             <div className="flex items-center gap-3">
               <h3 className="text-xl font-bold text-text-primary">{t('restaurant.dashboard.liveOrders.title')}</h3>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                Live
-              </div>
             </div>
             <div className="flex items-center gap-2 text-xs text-text-secondary">
               <span className="w-2 h-2 bg-green-500 rounded-full" />
