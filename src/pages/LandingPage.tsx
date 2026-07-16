@@ -8,7 +8,7 @@ import { NewHeroSection } from '../components/landing/NewHeroSection';
 import { ProblemSolution } from '../components/landing/ProblemSolution';
 import { SmartMenuFlow } from '../components/landing/SmartMenuFlow';
 import { WhatsAppAI } from '../components/landing/WhatsAppAI';
-import { RestaurantOS } from '../components/landing/RestaurantOS';
+import { ComprehensiveFeatures } from '../components/landing/ComprehensiveFeatures';
 import { WhyUs } from '../components/landing/WhyUs';
 
 const LandingPage = () => {
@@ -20,7 +20,7 @@ const LandingPage = () => {
         <ProblemSolution />
         <SmartMenuFlow />
         <WhatsAppAI />
-        <RestaurantOS />
+        <ComprehensiveFeatures />
         <WhyUs />
         {/* Kept existing pricing section as it already defines plans, might need theme adjustment later if requested */}
         <PricingSection />
