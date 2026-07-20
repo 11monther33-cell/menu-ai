@@ -48,7 +48,7 @@ export const AppConnection = () => {
       // Generate 6 random digits
       const code = Math.floor(100000 + Math.random() * 900000).toString();
       const expiry = new Date();
-      expiry.setMinutes(expiry.getMinutes() + 10); // 10 minutes expiry
+      expiry.setMinutes(expiry.getMinutes() + 30); // 30 minutes expiry
       
       const { error } = await supabase
         .from('device_pairing_codes')
@@ -107,8 +107,8 @@ export const AppConnection = () => {
                   </h3>
                   <p className="text-text-secondary text-sm leading-relaxed mb-8">
                     {isRtl 
-                      ? 'قم بتوليد كود ربط مؤقت صالح لمدة 10 دقائق لتسجيل الدخول بأمان في التطبيق دون الحاجة لمشاركة كلمة المرور.' 
-                      : 'Generate a temporary 10-minute pairing code to securely log in to the app without sharing your password.'}
+                      ? 'قم بتوليد كود ربط مؤقت صالح لمدة 30 دقيقة لتسجيل الدخول بأمان في التطبيق دون الحاجة لمشاركة كلمة المرور.' 
+                      : 'Generate a temporary 30-minute pairing code to securely log in to the app without sharing your password.'}
                   </p>
                 </div>
                 <button
@@ -145,7 +145,7 @@ export const AppConnection = () => {
                 </div>
 
                 <div className="bg-main/50 rounded-2xl p-8 border border-white/5 relative group">
-                  <div className="tracking-[0.5em] text-5xl md:text-6xl font-display font-bold text-white text-center">
+                  <div className="tracking-[0.25em] text-4xl md:text-5xl font-display font-bold text-white text-center">
                     {pairingCode}
                   </div>
                   <button 
