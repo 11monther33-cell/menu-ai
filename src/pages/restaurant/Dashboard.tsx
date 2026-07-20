@@ -89,7 +89,6 @@ export const RestaurantDashboard = () => {
         { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics') || (isRtl ? 'التحليلات' : 'Analytics'), path: '/dashboard/analytics' },
         { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding') || (isRtl ? 'الهوية البصرية' : 'Branding'), path: '/dashboard/branding' },
         { id: 'branches', icon: <MapPin size={20} />, label: t('restaurant.nav.branches') || (isRtl ? 'الفروع' : 'Branches'), path: '/dashboard/branches' },
-        { id: 'app-connection', icon: <Smartphone size={20} />, label: isRtl ? 'ربط التطبيق' : 'App Connection', path: '/dashboard/app-connection' },
         { id: 'settings', icon: <Settings size={20} />, label: t('restaurant.nav.settings') || (isRtl ? 'الإعدادات' : 'Settings'), path: '/dashboard/settings' },
         { id: 'subscription', icon: <CreditCard size={20} />, label: t('restaurant.nav.subscription') || (isRtl ? 'الاشتراك' : 'Subscription'), path: '/dashboard/subscription' },
       ]
