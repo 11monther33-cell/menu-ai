@@ -82,6 +82,7 @@ export const RestaurantDashboard = () => {
         { id: 'orders', icon: <ClipboardList size={20} />, label: t('restaurant.nav.orders') || (isRtl ? 'إدارة الطلبات' : 'Orders'), path: '/dashboard/orders' },
         { id: 'live-orders', icon: <Zap size={20} />, label: t('restaurant.nav.liveOrders') || (isRtl ? 'طلبات مباشرة' : 'Live Orders'), path: '/dashboard/live-orders' },
         { id: 'qr-codes', icon: <QrCode size={20} />, label: t('restaurant.nav.qrCodes') || (isRtl ? 'رموز QR' : 'QR Codes'), path: '/dashboard/qr-codes' },
+        { id: 'app-connection', icon: <Smartphone size={20} />, label: isRtl ? 'ربط التطبيق' : 'App Connection', path: '/dashboard/app-connection' },
         { id: 'kitchen-pulse', icon: <Zap size={20} />, label: t('restaurant.nav.kitchenPulse') || (isRtl ? 'نبض المطبخ' : 'Kitchen Pulse'), path: '/dashboard/kitchen-pulse' },
         { id: 'chef-notes', icon: <MessageSquare size={20} />, label: t('restaurant.nav.chefNotes') || (isRtl ? 'ملاحظات الشيف' : 'Chef Notes'), path: '/dashboard/chef-notes' },
         { id: 'ugc-review', icon: <Camera size={20} />, label: t('restaurant.nav.ugcReview') || (isRtl ? 'مراجعة المحتوى' : 'UGC Review'), path: '/dashboard/ugc-review' },
