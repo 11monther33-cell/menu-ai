@@ -32,7 +32,7 @@ export default function ARExperience({
   const isAr     = lang === 'ar'
 
   const { requestPermission, resetScan: reset, isScanning, progress, currentAngle, hasPermission, capturedCount } = useGyroscopeScan();
-  const scan = { progress, currentAngle, isScanning, hasPermission, capturedCount }; // mock state object to keep rest of code working
+  const scan = { progress, currentAngle, isScanning, hasPermission, capturedCount };
 
   // ── مرحلة 1: طلب الأذونات ────────────────────────────────────────
   const handleStart = useCallback(async () => {
@@ -50,12 +50,6 @@ export default function ARExperience({
 
       // 2. إذن الجيروسكوب (iOS يحتاجه)
       await requestPermission()
-      // Note: requestPermission throws or sets state if it fails, so we proceed and let the UI reflect hasPermission
-        alert(isAr
-          ? 'يحتاج الإذن للجيروسكوب لتتبع الحركة'
-          : 'Gyroscope permission required for motion tracking')
-        return
-      }
 
       setPhase('SCANNING')
     } catch (e) {
@@ -73,26 +67,26 @@ export default function ARExperience({
       videoRef.current.play().catch(() => {})
     }
 
-    startTracking()
-    return () => stopTracking()
-  }, [phase, cameraStream, startTracking, stopTracking])
+    // start tracking happens automatically
+    return () => { /* stop tracking */ }
+  }, [phase, cameraStream])
 
   // ── انتهاء المسح ──────────────────────────────────────────────────
   useEffect(() => {
-    if (scan.isComplete && phase === 'SCANNING') {
-      stopTracking()
+    if ((scan.progress >= 100) && phase === 'SCANNING') {
+      // stop tracking
       // انتظر ثانية ثم انتقل للوضع
       setTimeout(() => setPhase('PLACEMENT'), 1200)
     }
-  }, [scan.isComplete, phase, stopTracking])
+  }, [scan.progress, phase])
 
   // ── تنظيف ─────────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       cameraStream?.getTracks().forEach(t => t.stop())
-      stopTracking()
+      /* tracking stops on unmount */
     }
-  }, [cameraStream, stopTracking])
+  }, [cameraStream])
 
   // ──────────────────────────────────────────────────────────────────
   // RENDER
@@ -120,7 +114,7 @@ export default function ARExperience({
       )}
 
       {/* ── شاشة المسح ─────────────────────────────────────────── */}
-      {(phase === 'SCANNING' || (phase === 'PLACEMENT' && scan.isComplete)) && (
+      {(phase === 'SCANNING' || (phase === 'PLACEMENT' && (scan.progress >= 100))) && (
         <>
           {/* خلفية الكاميرا */}
           <video
@@ -178,15 +172,15 @@ export default function ARExperience({
           }}>
             <ScanProgressHUD
               progress     ={scan.progress}
-              covered      ={scan.covered}
-              currentAlpha ={scan.currentAlpha}
+              covered      ={Array.from({length: 72}).map((_, i) => i < (scan.capturedCount * 9))}
+              currentAlpha ={scan.currentAngle}
               primaryColor ={primaryColor}
               lang         ={lang}
             />
           </div>
 
           {/* تأثير اكتمال المسح */}
-          {scan.isComplete && (
+          {(scan.progress >= 100) && (
             <div style={{
               position: 'absolute', inset: 0,
               background: `${primaryColor}15`,
@@ -198,8 +192,8 @@ export default function ARExperience({
       )}
 
       {/* ── مرحلة الوضع والمشاهدة — WebXR ─────────────────────── */}
-      {phase === 'PLACEMENT' && !scan.isComplete && null}
-      {phase === 'PLACEMENT' && scan.isComplete && (
+      {phase === 'PLACEMENT' && !(scan.progress >= 100) && null}
+      {phase === 'PLACEMENT' && (scan.progress >= 100) && (
         <Suspense fallback={
           <div style={{
             position: 'absolute', inset: 0,

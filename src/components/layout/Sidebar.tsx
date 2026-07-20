@@ -11,7 +11,8 @@ import {
   BarChart2, 
   Zap, 
   QrCode, 
-  PieChart 
+  PieChart,
+  Smartphone
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
@@ -42,6 +43,7 @@ const Sidebar = () => {
       items: [
         { name: t('sidebar.kitchenPulse'), path: '/dashboard/kitchen', icon: Zap },
         { name: t('sidebar.qrCodes'), path: '/dashboard/qr-codes', icon: QrCode },
+        { name: isRtl ? 'ربط التطبيق' : 'App Connection', path: '/dashboard/app-connection', icon: Smartphone },
         { name: t('sidebar.analytics'), path: '/dashboard/analytics', icon: PieChart },
       ]
     }

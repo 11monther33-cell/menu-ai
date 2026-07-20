@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../context/LanguageContext';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import { ScanProgressHUD } from './ar/ScanProgressHUD'; 
 import { ScanProgressHUD } from './ar/ScanProgressHUD';
 
 interface ARScannerProps {
