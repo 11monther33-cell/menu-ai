@@ -19,10 +19,12 @@ import {
   Flame,
   Scale,
   Camera,
-  CheckCircle
+  CheckCircle,
+  MessageSquare
 } from 'lucide-react';
 import { useMenuStore } from '../store/menuStore';
 import { assetService } from '../services/assetService';
+import { AIChatDrawer } from '../components/qr/AIChatDrawer';
 import { cn } from '../lib/utils';
 import { MenuItem } from '../types';
 import { toast } from 'react-hot-toast';
@@ -43,6 +45,7 @@ const PublicMenu = () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [show3DFull, setShow3DFull] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [isOrdering, setIsOrdering] = useState('');
   
   const prefersReducedMotion = useReducedMotion();
@@ -472,6 +475,57 @@ const PublicMenu = () => {
           </div>
         </button>
       </div>
+
+      {/* Floating AI Chat Bubble */}
+      <div className={`fixed bottom-28 ${isRtl ? 'left-6' : 'right-6'} z-40`}>
+        <div className="relative group">
+          {/* Pulse Glow Effect */}
+          <div 
+            className="absolute inset-0 rounded-full blur-md opacity-60 animate-pulse transition-opacity group-hover:opacity-100"
+            style={{ backgroundColor: branding?.primary_color || '#C9A84C' }}
+          />
+          <button 
+            onClick={() => setIsChatOpen(true)}
+            className="relative w-14 h-14 flex items-center justify-center rounded-full shadow-2xl transition-transform hover:scale-105 active:scale-95"
+            style={{ backgroundColor: branding?.primary_color || '#C9A84C' }}
+          >
+            <MessageSquare size={24} className="text-black" />
+            
+            {/* Notification Badge */}
+            <div className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-black" />
+          </button>
+        </div>
+      </div>
+
+      <AIChatDrawer 
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        branding={branding}
+        onViewDish3D={(dishId) => {
+          setIsChatOpen(false);
+          const dish = categories.flatMap(c => c.items).find(i => i.id === dishId);
+          if (dish) {
+            setSelectedItem(dish);
+            setShow3DFull(true);
+          } else {
+            // Hardcoded fallback for mock dish
+            setSelectedItem({
+              id: 'mock-dish-1',
+              nameAr: 'ستيك ريب آي مشوي',
+              nameEn: 'Grilled Ribeye Steak',
+              descriptionAr: 'ستيك ريب آي مع بطاطا مهروسة',
+              descriptionEn: 'Ribeye steak with mashed potatoes',
+              price: 12.5,
+              calories: 800,
+              image: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=800',
+              model3D: '/dish.glb?v=3', // Trigger 3D view
+              isNew: false,
+              isPopular: true
+            } as unknown as MenuItem);
+            setShow3DFull(true);
+          }
+        }}
+      />
     </div>
   );
 };
