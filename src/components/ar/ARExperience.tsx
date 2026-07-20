@@ -31,8 +31,8 @@ export default function ARExperience({
   const videoRef = useRef<HTMLVideoElement>(null)
   const isAr     = lang === 'ar'
 
-  const { state: scan, requestPermission, startTracking, stopTracking, reset } =
-    useGyroscopeScan()
+  const { requestPermission, resetScan: reset, isScanning, progress, currentAngle, hasPermission, capturedCount } = useGyroscopeScan();
+  const scan = { progress, currentAngle, isScanning, hasPermission, capturedCount }; // mock state object to keep rest of code working
 
   // ── مرحلة 1: طلب الأذونات ────────────────────────────────────────
   const handleStart = useCallback(async () => {
@@ -49,8 +49,8 @@ export default function ARExperience({
       setCameraStream(stream)
 
       // 2. إذن الجيروسكوب (iOS يحتاجه)
-      const gyroOk = await requestPermission()
-      if (!gyroOk) {
+      await requestPermission()
+      // Note: requestPermission throws or sets state if it fails, so we proceed and let the UI reflect hasPermission
         alert(isAr
           ? 'يحتاج الإذن للجيروسكوب لتتبع الحركة'
           : 'Gyroscope permission required for motion tracking')

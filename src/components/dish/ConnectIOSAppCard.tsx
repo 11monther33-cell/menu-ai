@@ -11,8 +11,8 @@ interface ConnectIOSAppCardProps {
 }
 
 export function ConnectIOSAppCard({ productId, productName, authToken, primaryColor = '#10B981' }: ConnectIOSAppCardProps) {
-  const { language } = useLanguage();
-  const isAr = language === 'ar';
+  const { isRtl, lang } = useLanguage();
+  const isAr = lang === 'ar';
   
   const [pairingCode, setPairingCode] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<Date | null>(null);

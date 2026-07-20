@@ -26,7 +26,7 @@ export const ComprehensiveFeatures = () => {
     return pattern[index % pattern.length] as string;
   };
 
-  type Feature = { id: string; icon: JSX.Element; title: string; desc: string };
+  type Feature = { id: string; icon: React.ReactNode; title: string; desc: string };
 
   // PART A: LIVE FEATURES
   const liveFeatures: Feature[] = [
