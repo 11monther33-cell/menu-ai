@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { 
   LayoutDashboard, Utensils, ClipboardList, BarChart3, 
-  QrCode, Settings, LogOut, Bell, Search, 
+  QrCode, Settings, LogOut, Smartphone, Bell, Search, 
   ChevronLeft, ChevronRight, Menu, X,
   Layers, Zap, MessageSquare, Camera,
   Palette, MapPin, CreditCard, Globe, RefreshCw,
@@ -20,7 +20,8 @@ import { Orders } from './pages/Orders';
 import { Branding } from './pages/Branding';
 import { QrCodes } from './pages/QrCodes';
 import { Subscription } from './pages/Subscription';
-import { DishFormPage } from './pages/DishFormPage'; // Import DishFormPage
+import { DishFormPage } from './pages/DishFormPage';
+import { AppConnection } from './pages/AppConnection'; // Import DishFormPage
 
 // POS & Accounting Pages
 import { POSScreen } from './pages/POSScreen';
@@ -87,6 +88,7 @@ export const RestaurantDashboard = () => {
         { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics') || (isRtl ? 'التحليلات' : 'Analytics'), path: '/dashboard/analytics' },
         { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding') || (isRtl ? 'الهوية البصرية' : 'Branding'), path: '/dashboard/branding' },
         { id: 'branches', icon: <MapPin size={20} />, label: t('restaurant.nav.branches') || (isRtl ? 'الفروع' : 'Branches'), path: '/dashboard/branches' },
+        { id: 'app-connection', icon: <Smartphone size={20} />, label: isRtl ? 'ربط التطبيق' : 'App Connection', path: '/dashboard/app-connection' },
         { id: 'settings', icon: <Settings size={20} />, label: t('restaurant.nav.settings') || (isRtl ? 'الإعدادات' : 'Settings'), path: '/dashboard/settings' },
         { id: 'subscription', icon: <CreditCard size={20} />, label: t('restaurant.nav.subscription') || (isRtl ? 'الاشتراك' : 'Subscription'), path: '/dashboard/subscription' },
       ]
@@ -293,6 +295,7 @@ export const RestaurantDashboard = () => {
                 <Route path="/analytics" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.analytics'))}</div>} />
                 <Route path="/branding" element={<Branding />} />
                 <Route path="/branches" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.branches'))}</div>} />
+                <Route path="/app-connection" element={<AppConnection />} />
                 <Route path="/settings" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.settings'))}</div>} />
                 <Route path="/pos" element={<POSScreen />} />
                 <Route path="/pos-products" element={<POSProducts />} />

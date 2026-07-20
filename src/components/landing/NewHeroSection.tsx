@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { ArrowLeft } from 'lucide-react';
-import DishViewer3D from '../3d/DishViewer3D';
+import { ArrowLeft, Box } from 'lucide-react';
 
 export const NewHeroSection = () => {
   return (
@@ -50,39 +49,76 @@ export const NewHeroSection = () => {
             </div>
           </motion.div>
 
-          {/* Visual: 3D Model Viewer */}
+          {/* Visual: Tablet Mockup */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.2 }}
             className="relative lg:h-[600px] h-[400px] flex items-center justify-center"
+            style={{ perspective: '1000px' }}
           >
-            {/* Ambient Tech Border for 3D Viewer */}
-            <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-b from-border-custom/50 to-transparent p-[1px]">
-              <div className="w-full h-full rounded-[2.5rem] overflow-hidden bg-surface-2/30 backdrop-blur-sm relative">
-                {/* 3D Component */}
-                <DishViewer3D primaryColor="#8B5CF6" height={600} />
-                
-                {/* Floating UI: Suggestion AI */}
-                <motion.div 
-                  animate={{ y: [0, -10, 0] }}
-                  transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                  className="absolute bottom-8 right-8 bg-surface/90 backdrop-blur-md border border-border-custom p-4 rounded-2xl shadow-2xl"
-                  dir="rtl"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg">
-                      AI
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-text-muted font-medium mb-0.5">توصية ذكية للزبون</p>
-                      <p className="font-bold text-sm text-text-primary">"نقترح إضافة بطاطس مقلية؟"</p>
-                    </div>
-                  </div>
-                </motion.div>
+            {/* Parallax Container */}
+            <motion.div 
+              animate={{ rotateY: [-2, 2, -2], rotateX: [1, -1, 1] }}
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="relative w-full max-w-[340px] aspect-[3/4] bg-[#222] p-2.5 rounded-[2.5rem] shadow-[0_0_50px_rgba(139,92,246,0.15)] border border-[#333] ring-1 ring-black/50 mx-auto"
+            >
+              {/* Tablet Camera */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rounded-full" />
+              
+              {/* Tablet Screen */}
+              <div className="w-full h-full bg-surface rounded-[2rem] overflow-hidden relative border border-white/5 flex flex-col">
+                 
+                 {/* App Header */}
+                 <div className="p-4 flex items-center justify-between border-b border-white/5 bg-surface-2/50 backdrop-blur-md z-10" dir="rtl">
+                   <div className="font-bold text-xs text-text-primary">القائمة الذكية</div>
+                   <div className="flex gap-1.5">
+                     <div className="w-2 h-2 rounded-full bg-border-custom" />
+                     <div className="w-2 h-2 rounded-full bg-border-custom" />
+                     <div className="w-2 h-2 rounded-full bg-border-custom" />
+                   </div>
+                 </div>
 
+                 {/* App Content - Interactive Placeholder */}
+                 <div className="flex-1 relative bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center group cursor-pointer overflow-hidden">
+                    {/* Placeholder Plate */}
+                    <motion.div 
+                       animate={{ rotate: 360 }}
+                       transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                       className="w-56 h-56 rounded-full border border-dashed border-indigo-500/20 flex items-center justify-center relative"
+                    >
+                      <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 backdrop-blur-3xl" />
+                      <div className="absolute inset-12 rounded-full bg-gradient-to-tr from-indigo-500/30 to-cyan-500/30 backdrop-blur-xl shadow-inner" />
+                    </motion.div>
+                    
+                    {/* Interactive Play Button */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                       <div className="bg-surface/90 backdrop-blur-xl text-white font-bold text-sm px-5 py-2.5 rounded-full border border-white/10 flex items-center gap-2 group-hover:scale-105 transition-transform shadow-xl">
+                         <Box size={16} className="text-indigo-400" />
+                         عرض 3D
+                       </div>
+                    </div>
+                 </div>
+                 
+                 {/* Floating UI: Suggestion AI */}
+                 <motion.div 
+                   animate={{ y: [0, -6, 0] }}
+                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                   className="absolute bottom-6 right-4 left-4 bg-surface/95 backdrop-blur-xl border border-white/10 p-3.5 rounded-2xl shadow-xl z-20"
+                   dir="rtl"
+                 >
+                   <div className="flex items-center gap-3">
+                     <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-[10px] text-white shadow-lg shrink-0">
+                       AI
+                     </div>
+                     <div>
+                       <p className="text-[9px] text-text-muted font-medium mb-0.5">توصية ذكية للزبون</p>
+                       <p className="font-bold text-xs text-text-primary">"نقترح إضافة بطاطس مقلية؟"</p>
+                     </div>
+                   </div>
+                 </motion.div>
               </div>
-            </div>
+            </motion.div>
           </motion.div>
 
         </div>

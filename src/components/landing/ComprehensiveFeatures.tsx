@@ -12,8 +12,24 @@ export const ComprehensiveFeatures = () => {
   const { isRtl } = useLanguage();
   const [activeTab, setActiveTab] = useState<'live' | 'roadmap'>('live');
 
+  const getBentoClass = (index: number): string => {
+    // Creates a dynamic bento-box grid pattern
+    const pattern = [
+      'md:col-span-2 lg:col-span-2', // Large feature
+      'col-span-1',                  // Standard
+      'col-span-1',                  // Standard
+      'md:col-span-2 lg:col-span-1', // Medium
+      'col-span-1',                  // Standard
+      'md:col-span-2 lg:col-span-2', // Large feature
+      'md:col-span-2 lg:col-span-3', // Full width banner
+    ];
+    return pattern[index % pattern.length] as string;
+  };
+
+  type Feature = { id: string; icon: JSX.Element; title: string; desc: string };
+
   // PART A: LIVE FEATURES
-  const liveFeatures = [
+  const liveFeatures: Feature[] = [
     {
       id: 'pos',
       icon: <Calculator size={20} />,
@@ -73,7 +89,7 @@ export const ComprehensiveFeatures = () => {
   ];
 
   // PART B: ROADMAP
-  const roadmapFeatures = [
+  const roadmapFeatures: Feature[] = [
     {
       id: 'loyalty',
       icon: <Gift size={20} />,
@@ -201,10 +217,10 @@ export const ComprehensiveFeatures = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min"
               >
                 {liveFeatures.map((feature, idx) => (
-                  <div key={idx} className="bg-gradient-to-br from-surface-2 to-surface border border-indigo-500/20 hover:border-indigo-500/50 transition-colors p-6 rounded-2xl relative overflow-hidden group">
+                  <div key={idx} className={`bg-gradient-to-br from-surface-2 to-surface border border-indigo-500/20 hover:border-indigo-500/50 transition-colors p-8 rounded-[2rem] relative overflow-hidden group ${getBentoClass(idx)}`}>
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
                     
                     <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 relative z-10">
@@ -230,10 +246,10 @@ export const ComprehensiveFeatures = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-min"
               >
                 {roadmapFeatures.map((feature, idx) => (
-                  <div key={idx} className="bg-surface-2/50 border border-border-custom p-6 rounded-2xl relative opacity-80 hover:opacity-100 transition-opacity">
+                  <div key={idx} className={`bg-surface-2/50 border border-border-custom p-8 rounded-[2rem] relative opacity-80 hover:opacity-100 transition-all hover:bg-surface-2 ${getBentoClass(idx)}`}>
                     <div className="w-12 h-12 rounded-xl bg-surface text-text-muted border border-border-custom flex items-center justify-center mb-6">
                       {feature.icon}
                     </div>

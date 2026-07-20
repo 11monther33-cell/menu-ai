@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import QRCode from 'qrcode';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -49,6 +50,17 @@ const requireAuth = async (req: any, res: any, next: any) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
+    
+    // Check if it's a custom device JWT
+    try {
+      const decoded = jwt.verify(token, process.env.VITE_SUPABASE_ANON_KEY || 'fallback') as any;
+      if (decoded && decoded.role === 'DEVICE') {
+        req.user = decoded;
+        return next();
+      }
+    } catch (e) {
+      // Not a valid device JWT, continue to Supabase auth
+    }
     
     if (!supabaseServer) {
       return res.status(503).json({ error: 'Server not configured' });
@@ -302,8 +314,147 @@ async function startServer() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: req.body.prompt }] }] })
       });
+      
+      // Track usage if restaurant_id is provided
+      if (req.body.restaurant_id && supabaseServer) {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+        await supabaseServer.rpc('increment_restaurant_usage', {
+          p_restaurant_id: req.body.restaurant_id,
+          p_metric_type: 'ai_chat_messages',
+          p_period_start: firstDay,
+          p_period_end: lastDay,
+          p_increment_amount: 1
+        });
+      }
+
       res.json(await response.json());
     } catch (err) { res.status(500).json({ error: 'AI Failed' }); }
+  });
+
+  // ═══════════════════════════════════════════
+  // 📱 iOS App Integration APIs
+  // ═══════════════════════════════════════════
+
+  // 1. GET /api/products?restaurantId=<uuid>
+  app.get('/api/products', requireAuth, async (req: any, res: any) => {
+    try {
+      if (!supabaseServer) return res.status(503).json({ error: 'Server not configured' });
+      const restaurantId = req.query.restaurantId;
+      if (!restaurantId) return res.status(400).json({ error: 'restaurantId is required' });
+
+      // Check ownership
+      let userRestaurantId = null;
+      if (req.user.role === 'DEVICE') {
+        userRestaurantId = req.user.restaurant_id;
+      } else {
+        const { data: userData } = await supabaseServer.from('profiles').select('restaurant_id').eq('id', req.user.id).single();
+        userRestaurantId = userData?.restaurant_id;
+      }
+      if (userRestaurantId !== restaurantId) return res.status(403).json({ error: 'Forbidden' });
+
+      const { data: dishes, error } = await supabaseServer
+        .from('dishes')
+        .select('id, name_en, name_ar, image_url, model_3d_url')
+        .eq('restaurant_id', restaurantId);
+
+      if (error) throw error;
+
+      const products = dishes.map(d => ({
+        id: d.id,
+        name: req.headers['accept-language']?.startsWith('ar') ? d.name_ar : d.name_en,
+        thumbnailUrl: d.image_url,
+        has3DModel: !!d.model_3d_url
+      }));
+
+      res.json(products);
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to fetch products' });
+    }
+  });
+
+  // 2. POST /api/products/:productId/3d-model
+  app.post('/api/products/:productId/3d-model', requireAuth, upload.single('model'), async (req: any, res: any) => {
+    try {
+      if (!req.file || !supabaseServer) return res.status(400).json({ error: 'Missing model file or server config' });
+      
+      const productId = req.params.productId;
+      const { data: dish } = await supabaseServer.from('dishes').select('restaurant_id').eq('id', productId).single();
+      if (!dish) return res.status(404).json({ error: 'Product not found' });
+
+      const { data: userData } = await supabaseServer.from('profiles').select('restaurant_id').eq('id', req.user.id).single();
+      if (userData?.restaurant_id !== dish.restaurant_id) return res.status(403).json({ error: 'Forbidden' });
+
+      // Save to R2
+      const key = `models/${dish.restaurant_id}/${productId}-${Date.now()}.usdz`;
+      await r2Client.send(new PutObjectCommand({
+        Bucket: R2_BUCKET,
+        Key: key,
+        Body: req.file.buffer,
+        ContentType: 'model/vnd.usdz+zip'
+      }));
+
+      const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+
+      // Insert into product_3d_models
+      const { data: newModel, error } = await supabaseServer.from('product_3d_models').insert({
+        product_id: productId,
+        usdz_url: publicUrl,
+        status: 'processing',
+        file_size_bytes: req.file.buffer.length,
+        created_by: req.user.id,
+        metadata: {
+          detailLevel: req.body.detailLevel,
+          capturedImageCount: req.body.capturedImageCount,
+          deviceModel: req.body.deviceModel,
+          appVersion: req.body.appVersion
+        }
+      }).select('id').single();
+
+      if (error) throw error;
+
+      // Update dishes.model_3d_status
+      await supabaseServer.from('dishes').update({ model_3d_status: 'PROCESSING' }).eq('id', productId);
+
+      res.status(202).json({
+        modelId: newModel.id,
+        status: 'processing',
+        usdzUrl: publicUrl
+      });
+    } catch (err: any) {
+      console.error('[iOS Upload Error]', err);
+      res.status(500).json({ error: 'Failed to upload 3D model' });
+    }
+  });
+
+  // 3. GET /api/products/:productId/3d-model/status
+  app.get('/api/products/:productId/3d-model/status', requireAuth, async (req: any, res: any) => {
+    try {
+      if (!supabaseServer) return res.status(503).json({ error: 'Server not configured' });
+      
+      const { data: model, error } = await supabaseServer
+        .from('product_3d_models')
+        .select('status, glb_url')
+        .eq('product_id', req.params.productId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error; 
+
+      if (!model) {
+        return res.status(404).json({ error: 'No model found for this product' });
+      }
+
+      res.json({
+        status: model.status,
+        glbUrl: model.glb_url,
+        error: model.status === 'failed' ? 'Conversion failed' : null
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Failed to check model status' });
+    }
   });
 
   // ═══════════════════════════════════════════
@@ -359,6 +510,18 @@ async function startServer() {
         .from('dishes')
         .update({ model_3d_status: 'PROCESSING' })
         .eq('id', dishId);
+
+      // Track usage for 3D Generation
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      await supabaseServer.rpc('increment_restaurant_usage', {
+        p_restaurant_id: userData.restaurant_id,
+        p_metric_type: '3d_models_generated',
+        p_period_start: firstDay,
+        p_period_end: lastDay,
+        p_increment_amount: 1
+      });
 
       // ── 3. Download the dish image ─────────────────────────
       const imgRes = await fetch(imageUrl);

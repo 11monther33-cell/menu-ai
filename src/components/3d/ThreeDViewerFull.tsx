@@ -12,6 +12,7 @@
 import { useRef, useState, useCallback, lazy, Suspense } from 'react';
 import { useThreeEngine, type ViewerMode } from '../../hooks/useThreeEngine';
 import { buildSnapCard } from '../../lib/snapCard';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../../context/LanguageContext';
 
 const ARLauncher = lazy(() => import('./ARLauncher'));

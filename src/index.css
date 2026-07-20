@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=Outfit:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "IBM Plex Sans", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
   
   /* Core Palette - Tech/3D Accent */
   --color-gold: #8B5CF6; /* Primary Violet/Purple */

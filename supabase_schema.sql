@@ -688,6 +688,19 @@ CREATE TABLE IF NOT EXISTS device_pairing_codes (
 ALTER TABLE product_3d_models ENABLE ROW LEVEL SECURITY;
 ALTER TABLE device_pairing_codes ENABLE ROW LEVEL SECURITY;
 
+-- 12. Admin Invites Table
+CREATE TABLE IF NOT EXISTS admin_invites (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  restaurant_id UUID REFERENCES restaurants(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE admin_invites ENABLE ROW LEVEL SECURITY;
+
 CREATE POLICY "Public read ready 3d models"
   ON product_3d_models FOR SELECT
   USING (status = 'ready');
@@ -701,3 +714,46 @@ CREATE POLICY "Owner manage pairing codes"
   ON device_pairing_codes FOR ALL
   USING (restaurant_id IN (SELECT get_my_restaurant_ids()))
   WITH CHECK (restaurant_id IN (SELECT get_my_restaurant_ids()));
+
+-- ═══════════════════════════════════════════
+-- X. Admin Activity Log
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS admin_activity_log (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  actor_type TEXT NOT NULL,        -- 'super_admin' | 'system'
+  actor_id UUID,
+  action TEXT NOT NULL,            -- e.g. 'restaurant_created', 'plan_changed', 'restaurant_approved'
+  target_type TEXT,                -- 'restaurant' | 'coupon' | 'pricing_rule' | 'system_setting'
+  target_id TEXT,                  -- Can be UUID or string key
+  details JSONB,                   -- { before: {}, after: {} }
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ═══════════════════════════════════════════
+-- Y. Restaurant Usage Metrics
+-- ═══════════════════════════════════════════
+CREATE TABLE IF NOT EXISTS restaurant_usage_metrics (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+  metric_type TEXT NOT NULL,       -- 'whatsapp_messages' | 'ai_chat_messages' | 'orders_count' | '3d_models_generated'
+  period_start DATE NOT NULL,
+  period_end DATE NOT NULL,
+  count INT NOT NULL DEFAULT 0,
+  UNIQUE (restaurant_id, metric_type, period_start)
+);
+
+-- Helper RPC to safely increment usage counters
+CREATE OR REPLACE FUNCTION increment_restaurant_usage(
+  p_restaurant_id UUID,
+  p_metric_type TEXT,
+  p_period_start DATE,
+  p_period_end DATE,
+  p_increment_amount INT DEFAULT 1
+) RETURNS void AS $$
+BEGIN
+  INSERT INTO restaurant_usage_metrics (restaurant_id, metric_type, period_start, period_end, count)
+  VALUES (p_restaurant_id, p_metric_type, p_period_start, p_period_end, p_increment_amount)
+  ON CONFLICT (restaurant_id, metric_type, period_start)
+  DO UPDATE SET count = restaurant_usage_metrics.count + p_increment_amount;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

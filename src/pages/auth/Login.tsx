@@ -78,7 +78,10 @@ export const Login = () => {
           .single();
 
         if (profileError || !profile) {
-          setError(isRtl ? 'ملف المستخدم غير موجود. تواصل مع الدعم.' : 'User profile not found. Contact support.');
+          setError(isRtl 
+            ? 'التسجيل غير مكتمل. يرجى الذهاب لصفحة "سجل مطعمك الآن" وإكمال الخطوات بنفس الإيميل وكلمة المرور.' 
+            : 'Registration incomplete. Please go to Register and complete the steps with the same email and password.');
+          await supabase.auth.signOut();
           return;
         }
 

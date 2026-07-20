@@ -264,6 +264,138 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json({ pairingCode, expiresAt });
     }
 
+    // ── Manual Restaurant Invite (Admin Only) ───────────────────
+    if (url === '/api/admin/create-restaurant' && method === 'POST') {
+      const { user, reason } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: `Auth failed: ${reason}` });
+
+      const { data: profile } = await sb.from('profiles').select('role').eq('id', user.id).single();
+      if (profile?.role !== 'SUPER_ADMIN') {
+        return res.status(403).json({ error: 'Forbidden: Super Admin access required' });
+      }
+
+      const { restaurantName, ownerEmail, subscriptionPlan } = req.body;
+      if (!restaurantName || !ownerEmail || !subscriptionPlan) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // 1. Check if email already used
+      const { data: existingUsers, error: userError } = await sb.auth.admin.listUsers();
+      if (userError) return res.status(500).json({ error: 'Failed to verify email uniqueness' });
+      
+      if (existingUsers?.users.find((u: any) => u.email?.toLowerCase() === ownerEmail.toLowerCase())) {
+        return res.status(409).json({ error: 'هذا البريد مستخدم بالفعل' });
+      }
+
+      // 2. Create placeholder auth user
+      const tempPassword = crypto.randomUUID() + 'A1!'; // Secure temp password
+      const { data: authData, error: authError } = await sb.auth.admin.createUser({
+        email: ownerEmail.toLowerCase(),
+        password: tempPassword,
+        email_confirm: true
+      });
+
+      if (authError || !authData.user) {
+        return res.status(500).json({ error: 'Failed to create owner account', detail: authError?.message });
+      }
+
+      const userId = authData.user.id;
+
+      // 3. Create the restaurant record
+      const { data: restaurant, error: restError } = await sb.from('restaurants').insert({
+        owner_id: userId,
+        name_ar: restaurantName,
+        name_en: restaurantName,
+        slug: restaurantName.toLowerCase().replace(/[\s_]+/g, '-'),
+        plan: subscriptionPlan
+      }).select().single();
+
+      if (restError) {
+        // Rollback user
+        await sb.auth.admin.deleteUser(userId);
+        // Handle slug collision gracefully
+        if (restError.code === '23505' && restError.message.includes('slug')) {
+          return res.status(409).json({ error: 'اسم المطعم مستخدم ومحجوز مسبقاً (رابط مكرر)' });
+        }
+        return res.status(500).json({ error: 'Failed to create restaurant', detail: restError.message });
+      }
+
+      // 3. Create one-time invite token
+      const inviteToken = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+
+      const { error: inviteError } = await sb.from('admin_invites').insert({
+        restaurant_id: restaurant.id,
+        email: ownerEmail.toLowerCase(),
+        token: inviteToken,
+        expires_at: expiresAt
+      });
+
+      if (inviteError) {
+        // Rollback restaurant
+        await sb.from('restaurants').delete().eq('id', restaurant.id);
+        return res.status(500).json({ error: 'Failed to generate invite token' });
+      }
+
+      // Determine public URL from request context or env
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'visiono.vercel.app';
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const origin = process.env.VITE_APP_URL || `${protocol}://${host}`;
+
+      const inviteLink = `${origin}/complete-signup?token=${inviteToken}`;
+      return res.status(201).json({ restaurantId: restaurant.id, inviteLink });
+    }
+
+    // ── Complete Signup via Invite (Public) ──────────────────────
+    if (url === '/api/auth/complete-invite' && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'Supabase missing' });
+      
+      const { token, password } = req.body;
+      if (!token || !password) return res.status(400).json({ error: 'Missing token or password' });
+
+      // 1. Validate token
+      const { data: invite } = await sb.from('admin_invites')
+        .select('*')
+        .eq('token', token)
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+        
+      if (!invite) return res.status(401).json({ error: 'Invalid or expired invite link. Please contact support.' });
+
+      // Get the restaurant to find the owner_id
+      const { data: restaurant } = await sb.from('restaurants').select('owner_id').eq('id', invite.restaurant_id).single();
+      if (!restaurant || !restaurant.owner_id) return res.status(500).json({ error: 'Restaurant data corrupted' });
+      const uid = restaurant.owner_id;
+
+      // 2. Update the auth user password securely via Admin API
+      const { error: authError } = await sb.auth.admin.updateUserById(uid, {
+        password: password
+      });
+
+      if (authError) {
+        return res.status(500).json({ error: 'Failed to set secure password', detail: authError.message });
+      }
+
+      // 3. Create Profile mapped to the restaurant
+      const { error: profileError } = await sb.from('profiles').insert({
+        id: uid,
+        email: invite.email,
+        name: 'Restaurant Owner', // Default name
+        restaurant_id: invite.restaurant_id,
+        // role is handled by DB triggers (defaults to RESTAURANT_OWNER)
+      });
+
+      if (profileError) {
+        return res.status(500).json({ error: 'Failed to create user profile' });
+      }
+
+      // 4. Mark invite as used
+      await sb.from('admin_invites').update({ used: true }).eq('token', token);
+
+      return res.json({ success: true, message: 'Account successfully configured.' });
+    }
+
     // ── Device Pairing (Auth) ────────────────────────────
     if (url === '/api/auth/device-pair' && method === 'POST') {
       if (!sb) return res.status(500).json({ error: 'Supabase missing' });

@@ -88,6 +88,9 @@ const translations = {
           name: 'Starter — البداية',
           price: '29',
           currency: '$',
+          target: 'المقاهي الصغيرة وعربات الطعام (Food Trucks)',
+          message: 'انتقل بعملياتك الأساسية من الورق إلى الرقمية',
+          highlight: 'كل ما تحتاجه للتخلي عن الورق والبدء في النمو',
           features: [
             'منيو رقمي تفاعلي',
             'مسح باركود (QR) غير محدود',
@@ -104,6 +107,9 @@ const translations = {
           price: '79',
           currency: '$',
           popular: true,
+          target: 'المطاعم المتكاملة والعلامات التجارية المتنامية',
+          message: 'تجربة VISIONO الكاملة مع الـ 3D والذكاء الاصطناعي',
+          highlight: 'خيارنا الأكثر طلباً لتجارب تناول الطعام الحديثة',
           features: [
             'كل شيء في البداية، بالإضافة لـ:',
             'قوائم ثلاثية الأبعاد (AR/3D)',
@@ -121,16 +127,19 @@ const translations = {
           name: 'Enterprise — المؤسسي',
           price: '199',
           currency: '$',
+          target: 'مجموعات المطاعم والامتيازات التجارية (Franchises)',
+          message: 'قوة لا محدودة مع دعم فني مخصص',
+          highlight: 'حل مخصص بالكامل للعمليات ذات الحجم الكبير',
           features: [
             'كل شيء في الاحترافي، وأيضاً:',
             'نظام نقاط الولاء والتسويق الآلي',
             'تكامل مع تطبيقات التوصيل',
             'فروع متعددة غير محدودة',
             'API Access للربط المخصص',
+            'مدير حساب مخصص (Dedicated Manager)',
+            'خدمة تصميم 3D مخصصة (White-glove)',
             'تحليلات بيانات وتقارير متقدمة',
-            'مدير حساب مخصص',
-            'خدمة تصميم الموديلات 3D',
-            'دعم فني خاص 24/7'
+            'دعم فني 24/7'
           ]
         }
       ]
@@ -446,6 +455,9 @@ const translations = {
           name: 'Starter',
           price: '29',
           currency: '$',
+          target: 'Small cafes or food trucks',
+          message: 'Digitally transform your basic operations.',
+          highlight: 'Everything you need to stop using paper and start growing.',
           features: [
             'Interactive Digital Menu',
             'Unlimited QR scans',
@@ -462,10 +474,13 @@ const translations = {
           price: '79',
           currency: '$',
           popular: true,
+          target: 'Full-service restaurants and scaling brands.',
+          message: 'The full VISIONO experience with 3D and AI.',
+          highlight: 'Our most popular choice for modern dining experiences.',
           features: [
             'Everything in Starter, plus:',
             'Interactive 3D / AR menus',
-            'WhatsApp AI (Automated reservations & support)',
+            'WhatsApp AI Assistant (Reservations & support)',
             'Kitchen Display System (KDS)',
             'Smart reviews management',
             'AI-powered dish recommendations',
@@ -479,16 +494,19 @@ const translations = {
           name: 'Enterprise',
           price: '199',
           currency: '$',
+          target: 'Restaurant groups and franchises.',
+          message: 'Unlimited power and dedicated support.',
+          highlight: 'A custom-fit solution for high-volume operations.',
           features: [
             'Everything in Pro, plus:',
-            'Automated loyalty & marketing system',
-            'Integration with food delivery apps',
+            'Loyalty points & automated marketing',
+            'Integration with delivery apps',
             'Unlimited branches',
-            'Full API access for custom integrations',
-            'Advanced data analytics & reports',
-            'Dedicated account manager',
-            '3D modeling service by our team',
-            '24/7 VIP support'
+            'API Access for custom integrations',
+            'Dedicated Account Manager',
+            'White-glove 3D design services',
+            'Advanced analytics & reporting',
+            '24/7 Dedicated support'
           ]
         }
       ]

@@ -9,6 +9,7 @@ import PublicMenu from './pages/PublicMenu';
 import LandingPage from './pages/LandingPage';
 import { Login } from './pages/auth/Login';
 import { Register } from './pages/auth/Register';
+import { CompleteSignup } from './pages/auth/CompleteSignup';
 import { TermsPage, PrivacyPage, RefundPage } from './pages/LegalPages';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -55,6 +56,7 @@ function App() {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/complete-signup" element={<CompleteSignup />} />
           
           {/* Public Menu Route */}
           <Route path="/menu/:restaurantId" element={<PublicMenu />} />

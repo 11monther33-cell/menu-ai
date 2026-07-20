@@ -71,16 +71,25 @@ export const PricingSection = () => {
                 </div>
               )}
 
-              <div className="mb-8">
-                <h3 className="text-lg font-display mb-4 tracking-wide">{plan.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-display">
+              <div className="mb-6 border-b border-border-custom pb-6">
+                <h3 className="text-xl font-display font-bold mb-1 tracking-wide text-text-primary">{plan.name}</h3>
+                {plan.target && <p className="text-[11px] text-text-muted mb-4 uppercase tracking-wider font-semibold">{plan.target}</p>}
+                
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-5xl font-display font-bold text-text-primary">
                     {plan.currency}
                     {isAnnual ? Math.floor(parseInt(plan.price) * 0.8 * 12) : plan.price}
                   </span>
-                  <span className="text-muted text-sm">/{isAnnual ? (isRtl ? 'سنوياً' : 'year') : (isRtl ? 'شهرياً' : 'month')}</span>
+                  <span className="text-text-muted text-sm font-medium">/{isAnnual ? (isRtl ? 'سنوياً' : 'year') : (isRtl ? 'شهرياً' : 'month')}</span>
                 </div>
-                <p className="text-indigo-400 text-xs mt-2 uppercase tracking-widest font-medium">3 {isRtl ? 'أيام مجاناً' : 'days free'}</p>
+                
+                {plan.message && <p className="text-sm text-text-secondary leading-relaxed font-medium mb-4">{plan.message}</p>}
+                
+                {plan.highlight && (
+                  <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs px-3 py-2.5 rounded-lg font-semibold leading-relaxed">
+                    {plan.highlight}
+                  </div>
+                )}
               </div>
 
               <ul className="space-y-4 mb-10">
@@ -104,6 +113,71 @@ export const PricingSection = () => {
               </button>
             </motion.div>
           ))}
+        </div>
+
+        {/* Deep Feature Comparison Table */}
+        <div className="mt-32 max-w-5xl mx-auto hidden md:block">
+          <div className="text-center mb-10">
+            <h3 className="text-3xl font-display font-bold text-text-primary">{isRtl ? 'مقارنة الميزات التفصيلية' : 'Detailed Feature Comparison'}</h3>
+            <p className="text-text-secondary mt-2">{isRtl ? 'كل ما تحتاجه لاتخاذ القرار الصحيح لمطعمك' : 'Everything you need to make the right choice for your business'}</p>
+          </div>
+          
+          <div className="bg-surface-2/30 border border-border-custom rounded-2xl overflow-hidden backdrop-blur-sm">
+            <table className="w-full text-left border-collapse" dir={isRtl ? "rtl" : "ltr"}>
+              <thead>
+                <tr className="border-b border-border-custom bg-surface/50">
+                  <th className="p-6 font-bold text-text-primary w-2/5">{isRtl ? 'الميزة' : 'Feature'}</th>
+                  <th className="p-6 font-bold text-text-primary text-center">Starter</th>
+                  <th className="p-6 font-bold text-indigo-400 text-center bg-indigo-500/5">Pro</th>
+                  <th className="p-6 font-bold text-text-primary text-center">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm text-text-secondary divide-y divide-border-custom/50">
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'نقاط بيع ومحاسبة سحابية (POS)' : 'Cloud POS & Accounting'}</td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                  <td className="p-5 text-center bg-indigo-500/5"><Check size={18} className="mx-auto text-indigo-400" /></td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'فروع مدعومة' : 'Supported Branches'}</td>
+                  <td className="p-5 text-center">1</td>
+                  <td className="p-5 text-center bg-indigo-500/5 font-bold text-indigo-400">Up to 3</td>
+                  <td className="p-5 text-center">Unlimited</td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'موديلات أطباق ثلاثية الأبعاد (AR/3D)' : '3D/AR Dish Models'}</td>
+                  <td className="p-5 text-center text-border-custom">-</td>
+                  <td className="p-5 text-center bg-indigo-500/5"><Check size={18} className="mx-auto text-indigo-400" /></td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'مساعد مبيعات ذكي عبر واتساب' : 'WhatsApp AI Sales Assistant'}</td>
+                  <td className="p-5 text-center text-border-custom">-</td>
+                  <td className="p-5 text-center bg-indigo-500/5"><Check size={18} className="mx-auto text-indigo-400" /></td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'برنامج ولاء وحملات تسويقية' : 'Loyalty & Marketing Campaigns'}</td>
+                  <td className="p-5 text-center text-border-custom">-</td>
+                  <td className="p-5 text-center text-border-custom bg-indigo-500/5">-</td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'تكامل مع واجهة برمجة التطبيقات (API)' : 'Custom API Access'}</td>
+                  <td className="p-5 text-center text-border-custom">-</td>
+                  <td className="p-5 text-center text-border-custom bg-indigo-500/5">-</td>
+                  <td className="p-5 text-center"><Check size={18} className="mx-auto text-text-muted" /></td>
+                </tr>
+                <tr className="hover:bg-surface-2/50 transition-colors">
+                  <td className="p-5 font-medium">{isRtl ? 'مستوى الدعم الفني' : 'Support Level'}</td>
+                  <td className="p-5 text-center">{isRtl ? 'أوقات العمل' : 'Standard'}</td>
+                  <td className="p-5 text-center bg-indigo-500/5 font-medium text-indigo-300">{isRtl ? 'أولوية' : 'Priority'}</td>
+                  <td className="p-5 text-center font-bold">{isRtl ? 'مدير حساب مخصص 24/7' : '24/7 Dedicated Manager'}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* FAQ Preview */}
