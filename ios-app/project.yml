@@ -31,7 +31,7 @@ targets:
           - CFBundleURLSchemes: [arcodecapture]
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.yourrestaurant.arcodecapture
+        PRODUCT_BUNDLE_IDENTIFIER: com.abdullahalrashdi.arcodecapture
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: $(APPLE_TEAM_ID)
     dependencies: []   # لا حاجة لأي مكتبة خارجية - RealityKit/ARKit/SwiftUI مدمجة بالنظام
