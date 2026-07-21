@@ -59,7 +59,7 @@ BEGIN
     COALESCE(NEW.description_en, NEW.description_ar),
     NEW.image_url,
     NEW.id,
-    COALESCE(NEW.is_available, true)
+    COALESCE(NEW.available, true)
   )
   ON CONFLICT (source_dish_id) DO UPDATE SET
     name          = EXCLUDED.name,

@@ -23,7 +23,7 @@ SELECT
   COALESCE(d.description_en, d.description_ar),
   d.image_url, 
   d.id, 
-  COALESCE(d.is_available, true)
+  COALESCE(d.available, true)
 FROM dishes d
 JOIN pos_branches pb ON pb.restaurant_id = d.restaurant_id AND pb.is_default = true
 WHERE NOT EXISTS (SELECT 1 FROM pos_products WHERE source_dish_id = d.id);
