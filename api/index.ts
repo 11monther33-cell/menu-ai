@@ -597,7 +597,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // POST /api/import-menu-pdf — AI-powered PDF menu extraction
     // ═══════════════════════════════════════════════════════════
     if (url === '/api/import-menu-pdf' && req.method === 'POST') {
-      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+      const authHeader = req.headers.authorization;
+      if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
+      
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await sb.auth.getUser(token);
+      
+      if (authError || !user) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
 
       // Read raw body as buffer (PDF file from FormData)
       const chunks: Buffer[] = [];
