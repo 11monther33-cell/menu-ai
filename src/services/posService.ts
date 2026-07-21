@@ -31,6 +31,9 @@ export interface POSProduct {
   sku?: string;
   selling_price: number;
   cost_price?: number;
+  description?: string;
+  image_url?: string;
+  source_dish_id?: string;
   is_active: boolean;
   created_at: string;
   category_name?: string;

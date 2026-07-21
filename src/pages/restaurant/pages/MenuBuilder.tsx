@@ -8,11 +8,12 @@ import {
   Plus, Search, Filter, ArrowUpDown, 
   LayoutGrid, List, MoreVertical, Edit2, 
   Trash2, Eye, EyeOff, GripVertical,
-  CheckCircle2, AlertCircle, Star, ClipboardList, Utensils, Box, X
+  CheckCircle2, AlertCircle, Star, ClipboardList, Utensils, Box, X, Upload
 } from 'lucide-react';
 import { ThreeViewer } from '../../../components/ThreeViewer';
 import toast from 'react-hot-toast';
 import { DishModal } from '../../../components/DishModal';
+import { MenuImportModal } from '../../../components/menu/MenuImportModal';
 
 export const MenuBuilder = () => {
   const { isRtl, t } = useLanguage();
@@ -27,6 +28,7 @@ export const MenuBuilder = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDish, setEditingDish] = useState<any>(null);
   const [previewDish, setPreviewDish] = useState<any>(null);
+  const [isImportOpen, setIsImportOpen] = useState(false);
 
   useEffect(() => {
     if (!user?.restaurantId || user.restaurantId === 'undefined') return;
@@ -181,6 +183,13 @@ export const MenuBuilder = () => {
                 <List size={18} />
               </button>
             </div>
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="px-4 py-2.5 bg-card border border-border-custom text-text-secondary font-bold rounded-xl flex items-center gap-2 hover:bg-white/5 hover:text-gold transition-all"
+            >
+              <Upload size={18} />
+              {isRtl ? 'استيراد' : 'Import'}
+            </button>
             <button 
               onClick={() => {
                 if (categories.length === 0) {
@@ -410,6 +419,24 @@ export const MenuBuilder = () => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Import Modal */}
+      <MenuImportModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        restaurantId={user?.restaurantId || ''}
+        onImportComplete={async () => {
+          // Refresh dishes list after import
+          if (user?.restaurantId) {
+            const { data } = await supabase
+              .from('dishes')
+              .select('*')
+              .eq('restaurant_id', user.restaurantId)
+              .order('created_at', { ascending: false });
+            if (data) setDishes(data);
+          }
+        }}
+      />
     </div>
   );
 };

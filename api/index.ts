@@ -593,6 +593,137 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // POST /api/import-menu-pdf — AI-powered PDF menu extraction
+    // ═══════════════════════════════════════════════════════════
+    if (url === '/api/import-menu-pdf' && req.method === 'POST') {
+      if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+      // Read raw body as buffer (PDF file from FormData)
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      }
+      const body = Buffer.concat(chunks);
+
+      // Extract file from multipart (simplified: find PDF content)
+      // Find the PDF data between boundaries
+      const bodyStr = body.toString('latin1');
+      const contentTypeHeader = req.headers['content-type'] || '';
+      const boundaryMatch = contentTypeHeader.match(/boundary=(.+)/);
+      
+      if (!boundaryMatch) {
+        return res.status(400).json({ error: 'Missing multipart boundary' });
+      }
+
+      const boundary = boundaryMatch[1];
+      const parts = bodyStr.split(`--${boundary}`);
+      let pdfBuffer: Buffer | null = null;
+
+      for (const part of parts) {
+        if (part.includes('application/pdf') || part.includes('.pdf')) {
+          const headerEnd = part.indexOf('\r\n\r\n');
+          if (headerEnd !== -1) {
+            const dataStr = part.substring(headerEnd + 4);
+            // Remove trailing boundary markers
+            const cleanData = dataStr.replace(/\r\n--.*$/, '').replace(/\r\n$/, '');
+            pdfBuffer = Buffer.from(cleanData, 'latin1');
+          }
+        }
+      }
+
+      if (!pdfBuffer || pdfBuffer.length === 0) {
+        return res.status(400).json({ error: 'No PDF file found in request' });
+      }
+
+      // Convert to base64 for Gemini
+      const pdfBase64 = pdfBuffer.toString('base64');
+
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (!geminiKey) {
+        return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+      }
+
+      // Call Gemini with the PDF
+      const geminiResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: 'application/pdf',
+                    data: pdfBase64
+                  }
+                },
+                {
+                  text: `You are a restaurant menu parser. Extract ALL dishes/items from this menu PDF.
+
+For each dish, extract:
+- name_ar: Arabic name (if present)
+- name_en: English name (if present)  
+- price: numeric price (just the number, no currency symbols)
+- category: the category/section this dish belongs to
+- description_ar: Arabic description (if present)
+- description_en: English description (if present)
+
+Return ONLY valid JSON in this exact format, no markdown, no explanation:
+{
+  "dishes": [
+    {
+      "name_ar": "...",
+      "name_en": "...",
+      "price": 12.5,
+      "category": "...",
+      "description_ar": "...",
+      "description_en": "..."
+    }
+  ]
+}
+
+Rules:
+- Extract EVERY dish you can find, do not skip any
+- If the menu is only in Arabic, put the name in name_ar and leave name_en empty
+- If the menu is only in English, put the name in name_en and leave name_ar empty
+- Price must be a number (e.g. 12.5 not "12.5 OMR")
+- If no price is visible for a dish, set price to 0
+- Category should be the section heading the dish appears under`
+                }
+              ]
+            }],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 8192
+            }
+          })
+        }
+      );
+
+      if (!geminiResp.ok) {
+        const errText = await geminiResp.text();
+        console.error('[Gemini PDF Error]', errText);
+        return res.status(500).json({ error: 'Gemini extraction failed' });
+      }
+
+      const geminiData = await geminiResp.json();
+      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      // Parse JSON from response (strip markdown code fences if present)
+      let parsed;
+      try {
+        const jsonStr = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        parsed = JSON.parse(jsonStr);
+      } catch (parseErr) {
+        console.error('[Gemini Parse Error]', rawText);
+        return res.status(500).json({ error: 'Failed to parse Gemini response', raw: rawText.substring(0, 500) });
+      }
+
+      return res.json(parsed);
+    }
+
     // ── 404 ──────────────────────────────────────────────
     return res.status(404).json({ error: 'API route not found', url });
 
