@@ -132,7 +132,7 @@ export const Categories = () => {
               <h4 className="font-bold text-text-primary truncate">{isRtl ? cat.name_ar : cat.name_en}</h4>
               <p className="text-xs text-text-secondary">{isRtl ? cat.name_en : cat.name_ar}</p>
             </div>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex gap-2 transition-opacity">
               <button 
                 onClick={() => {
                   setEditingCategory(cat);
