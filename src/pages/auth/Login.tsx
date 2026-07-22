@@ -40,7 +40,6 @@ export const Login = () => {
       // 🔒 Generic error message
       setError(isRtl ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.');
     } finally {
-    } finally {
       setResendLoading(false);
     }
   };
