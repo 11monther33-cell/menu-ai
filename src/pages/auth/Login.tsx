@@ -223,6 +223,7 @@ export const Login = () => {
               </button>
             </form>
           ) : (
+            <>
             <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-muted mb-2">{isRtl ? 'البريد الإلكتروني' : 'Email Address'}</label>
@@ -306,6 +307,7 @@ export const Login = () => {
               </Link>
             </p>
           </div>
+            </>
           )}
         </div>
       </motion.div>
