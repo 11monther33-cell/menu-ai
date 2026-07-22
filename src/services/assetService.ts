@@ -111,6 +111,11 @@ export const assetService = {
     // Convert file to base64
     const base64Data = await blobToBase64(processedFile);
 
+    let finalName = processedFile.name || 'image.jpg';
+    if (!finalName.includes('.')) {
+      finalName += processedFile.type.includes('png') ? '.png' : '.jpg';
+    }
+
     // Upload through OUR server (no CORS!)
     const response = await fetch('/api/upload', {
       method: 'POST',
@@ -119,7 +124,7 @@ export const assetService = {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        filename: processedFile.name,
+        filename: finalName,
         contentType: processedFile.type || 'application/octet-stream',
         data: base64Data,
       }),
