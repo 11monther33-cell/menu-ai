@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { motion } from 'motion/react';
-import { Lock, Mail, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 // 🔒 SECURITY: Admin email is NOT hardcoded — role is determined server-side via RLS
@@ -18,6 +18,9 @@ export const Login = () => {
   const [error, setError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [mfaChallenge, setMfaChallenge] = useState<{ factorId: string } | null>(null);
+  const [mfaCode, setMfaCode] = useState('');
+  const [verifyingMfa, setVerifyingMfa] = useState(false);
 
   const handleResendConfirmation = async () => {
     if (!email) {
@@ -37,7 +40,66 @@ export const Login = () => {
       // 🔒 Generic error message
       setError(isRtl ? 'حدث خطأ. حاول مرة أخرى.' : 'An error occurred. Please try again.');
     } finally {
+    } finally {
       setResendLoading(false);
+    }
+  };
+
+  const finalizeLogin = async (user: any) => {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !profile) {
+      setError(isRtl 
+        ? 'التسجيل غير مكتمل. يرجى الذهاب لصفحة "سجل مطعمك الآن" وإكمال الخطوات بنفس الإيميل وكلمة المرور.' 
+        : 'Registration incomplete. Please go to Register and complete the steps with the same email and password.');
+      await supabase.auth.signOut();
+      return;
+    }
+
+    if (!profile.is_active) {
+      setError(isRtl ? 'حسابك معلق. تواصل مع الدعم.' : 'Your account is suspended. Contact support.');
+      await supabase.auth.signOut();
+      return;
+    }
+
+    if (profile.role === 'SUPER_ADMIN') {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleVerifyMfa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mfaChallenge || mfaCode.length !== 6) return;
+    
+    setVerifyingMfa(true);
+    setError('');
+    
+    try {
+      const challenge = await supabase.auth.mfa.challenge({ factorId: mfaChallenge.factorId });
+      if (challenge.error) throw challenge.error;
+
+      const verify = await supabase.auth.mfa.verify({
+        factorId: mfaChallenge.factorId,
+        challengeId: challenge.data.id,
+        code: mfaCode,
+      });
+
+      if (verify.error) throw verify.error;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await finalizeLogin(user);
+      }
+    } catch (err: any) {
+      setError(isRtl ? 'رمز التحقق غير صحيح' : 'Invalid verification code');
+    } finally {
+      setVerifyingMfa(false);
     }
   };
 
@@ -70,34 +132,18 @@ export const Login = () => {
       }
 
       if (data.user) {
-        // Check profile exists and get role
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role, is_active')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          setError(isRtl 
-            ? 'التسجيل غير مكتمل. يرجى الذهاب لصفحة "سجل مطعمك الآن" وإكمال الخطوات بنفس الإيميل وكلمة المرور.' 
-            : 'Registration incomplete. Please go to Register and complete the steps with the same email and password.');
-          await supabase.auth.signOut();
-          return;
+        const { data: authLevel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (authLevel?.nextLevel === 'aal2' && authLevel?.currentLevel === 'aal1') {
+          const { data: factors } = await supabase.auth.mfa.listFactors();
+          const totpFactor = factors?.totp[0];
+          if (totpFactor) {
+            setMfaChallenge({ factorId: totpFactor.id });
+            setLoading(false);
+            return;
+          }
         }
-
-        // 🔒 Check if account is active
-        if (!profile.is_active) {
-          setError(isRtl ? 'حسابك معلق. تواصل مع الدعم.' : 'Your account is suspended. Contact support.');
-          await supabase.auth.signOut();
-          return;
-        }
-
-        // Redirect based on role (role comes from server-side DB, not client)
-        if (profile.role === 'SUPER_ADMIN') {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
-        }
+        
+        await finalizeLogin(data.user);
       }
     } catch (err: any) {
       setError(isRtl ? 'حدث خطأ غير متوقع' : 'An unexpected error occurred');
@@ -131,7 +177,54 @@ export const Login = () => {
             <p className="text-muted/80">{isRtl ? 'سجّل الدخول إلى لوحة تحكم VISIONO' : 'Sign in to your VISIONO dashboard'}</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          {mfaChallenge ? (
+            <form onSubmit={handleVerifyMfa} className="space-y-6">
+              <div className="text-center mb-6">
+                <ShieldCheck size={48} className="mx-auto text-gold mb-4" />
+                <h3 className="text-xl font-bold text-text-primary mb-2">
+                  {isRtl ? 'التحقق بخطوتين' : 'Two-Factor Authentication'}
+                </h3>
+                <p className="text-text-secondary text-sm">
+                  {isRtl ? 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك.' : 'Enter the 6-digit code from your authenticator app.'}
+                </p>
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-surface-2 border border-white/5 rounded-lg py-4 text-center text-2xl tracking-[0.5em] text-text focus:border-gold outline-none transition-colors font-mono"
+                  placeholder="123456"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="p-4 border bg-red-500/10 border-red-500/20 text-red-500 text-sm rounded-xl text-center">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={verifyingMfa || mfaCode.length !== 6}
+                className="w-full bg-gold hover:bg-gold-light text-main font-semibold py-3.5 rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {verifyingMfa ? (isRtl ? 'جاري التحقق...' : 'Verifying...') : (isRtl ? 'تأكيد الرمز' : 'Verify Code')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setMfaChallenge(null); setMfaCode(''); setError(''); }}
+                className="w-full text-sm text-text-secondary hover:text-white mt-4"
+              >
+                {isRtl ? 'العودة لتسجيل الدخول' : 'Back to Login'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-muted mb-2">{isRtl ? 'البريد الإلكتروني' : 'Email Address'}</label>
               <div className="relative">
@@ -214,6 +307,7 @@ export const Login = () => {
               </Link>
             </p>
           </div>
+          )}
         </div>
       </motion.div>
     </div>
