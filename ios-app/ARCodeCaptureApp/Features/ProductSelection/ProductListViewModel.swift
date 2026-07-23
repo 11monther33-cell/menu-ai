@@ -15,7 +15,7 @@ class ProductListViewModel: ObservableObject {
     
     private let apiClient = APIClient.shared
     private let keychain = KeychainService.shared
-    private unowned let appState: AppState
+    private let appState: AppState
     
     init(appState: AppState) {
         self.appState = appState
@@ -53,6 +53,6 @@ class ProductListViewModel: ObservableObject {
     
     func selectProduct(_ product: ProductDTO) {
         appState.selectedProductId = product.id
-        appState.currentFlowState = .objectDetection
+        appState.currentFlowState = .activeCapture
     }
 }

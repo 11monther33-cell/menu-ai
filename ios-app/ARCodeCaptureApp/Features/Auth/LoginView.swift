@@ -61,6 +61,24 @@ struct LoginView: View {
             .padding(.horizontal, 40)
             
             Spacer()
+            
+            // Social Media Icons
+            HStack(spacing: 30) {
+                // X (Twitter) Icon
+                Button(action: {
+                    // Action for X
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.black)
+                            .frame(width: 50, height: 50)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+            .padding(.bottom, 40)
         }
     }
 }
@@ -68,3 +86,4 @@ struct LoginView: View {
 #Preview {
     LoginView(appState: AppState())
 }
+

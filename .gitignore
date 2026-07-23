@@ -9,3 +9,6 @@ coverage/
 
 .vercel
 .env*.local
+ios-app/ARCodeCaptureApp_BACKUP*
+ios-app/xcodegen*
+ios-app/*.xcodeproj

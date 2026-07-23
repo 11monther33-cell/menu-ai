@@ -34,6 +34,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.abdullahalrashdi.arcodecapture
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: $(APPLE_TEAM_ID)
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies: []   # لا حاجة لأي مكتبة خارجية - RealityKit/ARKit/SwiftUI مدمجة بالنظام
 
 schemes:

@@ -2,6 +2,13 @@ import SwiftUI
 
 struct CaptureRootView: View {
     @StateObject private var appState = AppState()
+    @StateObject private var captureViewModel: CaptureViewModel
+    
+    init() {
+        let state = AppState()
+        _appState = StateObject(wrappedValue: state)
+        _captureViewModel = StateObject(wrappedValue: CaptureViewModel(appState: state))
+    }
     
     var body: some View {
         ZStack {
@@ -12,26 +19,20 @@ struct CaptureRootView: View {
                 ProductListView(appState: appState)
             case .cameraPermissionRequired:
                 Text("Camera Permission Required")
-            case .objectDetection:
-                ObjectDetectionView(appState: appState)
-            case .boundingBoxAdjustment:
-                BoundingBoxView(appState: appState)
-            case .capturing(let count, let recommended):
-                CapturingView(appState: appState, count: count, recommended: recommended)
-            case .flipWarning:
-                FlipWarningView(appState: appState)
-            case .reconstructing(let progress, let eta):
-                ReconstructionProgressView(appState: appState, progress: progress, eta: eta)
+            case .activeCapture:
+                ActiveCaptureView(appState: appState, viewModel: captureViewModel)
+            case .reconstructing:
+                ReconstructionProgressView(appState: appState)
             case .completed(let localUrl):
                 ModelCompletedView(appState: appState, modelURL: localUrl)
             case .uploading(let progress):
-                Text("Uploading... \(Int(progress * 100))%")
+                UploadingView(appState: appState, progress: progress)
             case .uploadSucceeded(let remoteId):
-                Text("Upload Succeeded! ID: \(remoteId)")
+                UploadSucceededView(appState: appState, remoteId: remoteId)
             case .uploadFailed(let error, _):
-                Text("Upload Failed: \(error)")
-            case .captureFailed(let reason):
-                Text("Capture Failed")
+                UploadFailedView(appState: appState, error: error)
+            case .captureFailed(_):
+                CaptureFailedView(appState: appState)
             }
         }
         .environmentObject(appState)

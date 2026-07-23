@@ -1,21 +1,16 @@
 import SwiftUI
 
 struct ReconstructionProgressView: View {
-    @StateObject private var appState: AppState
-    let progress: Double
-    let eta: Int?
-    
-    init(appState: AppState, progress: Double, eta: Int?) {
-        _appState = StateObject(wrappedValue: appState)
-        self.progress = progress
-        self.eta = eta
-    }
+    @ObservedObject var appState: AppState
+    @StateObject private var reconstructionManager = ReconstructionManager()
     
     var body: some View {
         VStack(spacing: 30) {
+            // Animated cube icon
             Image(systemName: "cube.transparent")
                 .font(.system(size: 80))
                 .foregroundColor(.blue)
+                .symbolEffect(.pulse, isActive: reconstructionManager.isProcessing)
             
             Text("جاري بناء المجسم ثلاثي الأبعاد...")
                 .font(.title2)
@@ -23,38 +18,58 @@ struct ReconstructionProgressView: View {
                 .multilineTextAlignment(.center)
             
             VStack(spacing: 10) {
-                ProgressView(value: progress, total: 1.0)
+                ProgressView(value: reconstructionManager.progress, total: 1.0)
                     .progressViewStyle(LinearProgressViewStyle(tint: .blue))
                     .frame(width: 250)
                 
-                Text("\(Int(progress * 100))%")
+                Text("\(Int(reconstructionManager.progress * 100))%")
                     .font(.headline)
-                
-                if let eta = eta {
-                    Text("الوقت المتبقي: \(Int(eta)) ثانية")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                    .monospacedDigit()
             }
             
-            Text("الرجاء عدم إغلاق التطبيق أثناء عملية البناء.")
+            if let error = reconstructionManager.errorMessage {
+                Text(error)
+                    .foregroundColor(.red)
+                    .font(.footnote)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            
+            Text("الرجاء عدم إغلاق التطبيق أثناء عملية البناء.\nهذه العملية قد تستغرق من 1 إلى 5 دقائق.")
                 .font(.footnote)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
                 .padding(.top, 20)
+            
+            // Cancel button
+            Button(action: {
+                appState.currentFlowState = .selectingProduct
+                appState.selectedProductId = nil
+            }) {
+                Text("إلغاء")
+                    .foregroundColor(.red)
+            }
+            .padding(.top, 10)
         }
         .padding()
         .onAppear {
-            // Simulated reconstruction for this version until full PhotogrammetrySession is integrated
-            simulateReconstruction()
+            startReconstruction()
         }
     }
     
-    private func simulateReconstruction() {
-        // Since we are running on device, actual PhotogrammetrySession requires macOS or high-end iPad.
-        // For standard iPhones, reconstruction is usually done via cloud API.
-        // This is a placeholder for uploading images to the cloud API.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            appState.currentFlowState = .uploading(progress: 0.1)
+    private func startReconstruction() {
+        guard let productId = appState.selectedProductId else {
+            appState.currentFlowState = .captureFailed(reason: .unknown("لم يتم تحديد منتج"))
+            return
+        }
+        
+        Task {
+            if let modelURL = await reconstructionManager.reconstruct(productId: productId) {
+                // Model created successfully! Start upload automatically
+                appState.currentFlowState = .uploading(localModelURL: modelURL)
+            } else if let error = reconstructionManager.errorMessage {
+                appState.currentFlowState = .captureFailed(reason: .unknown(error))
+            }
         }
     }
 }

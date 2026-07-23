@@ -5,13 +5,10 @@ enum CaptureFlowState: Equatable {
     case authenticating
     case selectingProduct
     case cameraPermissionRequired
-    case objectDetection          // Screen 1
-    case boundingBoxAdjustment    // Screen 2
-    case capturing(imageCount: Int, totalRecommended: Int)  // Screen 3/5
-    case flipWarning              // Screen 4 (modal overlay)
-    case reconstructing(progress: Double, etaSeconds: Int?) // Screen 6
+    case activeCapture
+    case reconstructing
     case completed(localModelURL: URL)  // Screen 7
-    case uploading(progress: Double)
+    case uploading(localModelURL: URL)
     case uploadSucceeded(remoteModelId: String)
     case uploadFailed(error: String, retryAvailable: Bool)
     case captureFailed(reason: CaptureFailureReason)

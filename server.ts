@@ -238,13 +238,16 @@ async function startServer() {
     try {
       if (!supabaseServer) return res.status(503).json({ error: 'Server not configured' });
 
+      const ext = req.body.extension === 'usdz' ? 'usdz' : 'glb';
+      const contentType = ext === 'usdz' ? 'model/vnd.usdz+zip' : 'model/gltf-binary';
+      
       const { data: userData } = await supabaseServer.from('users').select('restaurant_id').eq('id', req.user.id).single();
-      const key = `models/${userData?.restaurant_id || 'unknown'}/${req.params.id}-${Date.now()}.glb`;
+      const key = `models/${userData?.restaurant_id || 'unknown'}/${req.params.id}-${Date.now()}.${ext}`;
 
       const command = new PutObjectCommand({
         Bucket: R2_BUCKET,
         Key: key,
-        ContentType: 'model/gltf-binary',
+        ContentType: contentType,
       });
 
       const signedUrl = await getSignedUrl(r2Client, command, { expiresIn: 600 });
@@ -500,7 +503,7 @@ async function startServer() {
         return res.status(404).json({ error: 'Dish not found' });
       }
 
-      const imageUrl = dish.image_url || (dish.images && dish.images[0]);
+      const imageUrl = req.body.imageUrl || dish.image_url || (dish.images && dish.images[0]);
       if (!imageUrl) {
         return res.status(400).json({ error: 'Upload at least one dish image first' });
       }

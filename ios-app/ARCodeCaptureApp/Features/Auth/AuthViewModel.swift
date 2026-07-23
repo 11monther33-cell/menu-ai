@@ -9,7 +9,7 @@ class AuthViewModel: ObservableObject {
     
     private let apiClient = APIClient.shared
     private let keychain = KeychainService.shared
-    private unowned let appState: AppState
+    private let appState: AppState
     
     init(appState: AppState) {
         self.appState = appState
@@ -19,8 +19,10 @@ class AuthViewModel: ObservableObject {
     func checkExistingSession() {
         if let _ = keychain.getToken() {
             // Assume token is valid for v1. In a real scenario, we'd validate it via API or decode JWT expiry.
-            appState.isAuthenticated = true
-            appState.currentFlowState = .selectingProduct
+            Task { @MainActor in
+                appState.isAuthenticated = true
+                appState.currentFlowState = .selectingProduct
+            }
         }
     }
     

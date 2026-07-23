@@ -8,16 +8,18 @@ class CaptureViewModel: ObservableObject {
     @Published var session: ObjectCaptureSession?
     @Published var errorMessage: String? = nil
     
-    private unowned let appState: AppState
+    private let appState: AppState
     private let fileManager = CaptureFileManager.shared
-    
-    private var cancellables = Set<AnyCancellable>()
     
     init(appState: AppState) {
         self.appState = appState
     }
     
     func startNewCapture(for productId: String) {
+        // Cancel any existing session first
+        session?.cancel()
+        session = nil
+        
         // Clear previous local data for this product to ensure a fresh capture
         fileManager.clearCaptureData(for: productId)
         
@@ -43,31 +45,21 @@ class CaptureViewModel: ObservableObject {
     }
     
     private func observeSession(_ session: ObjectCaptureSession) {
-        // Observe State
-        Task {
+        Task { [weak self] in
             for await state in session.stateUpdates {
-                handleStateChange(state)
+                guard let self = self else { return }
+                self.handleStateChange(state)
             }
         }
     }
     
     private func handleStateChange(_ state: ObjectCaptureSession.CaptureState) {
         switch state {
-        case .initializing, .ready, .detecting:
-            appState.currentFlowState = .objectDetection
-        case .capturing:
-            let captured = session?.numberOfShotsTaken ?? 0
-            // Assuming 30 is the recommended minimum for medium quality
-            appState.currentFlowState = .capturing(imageCount: captured, totalRecommended: 30)
-        case .finishing:
-            // Prepare for reconstruction
-            appState.currentFlowState = .reconstructing(progress: 0.0, etaSeconds: nil)
-        case .completed:
-            // ObjectCaptureSession finished taking photos, move to reconstruction phase
-            appState.currentFlowState = .reconstructing(progress: 0.0, etaSeconds: nil)
+        case .finishing, .completed:
+            appState.currentFlowState = .reconstructing
         case .failed(let error):
             appState.currentFlowState = .captureFailed(reason: .unknown(error.localizedDescription))
-        @unknown default:
+        default:
             break
         }
     }
@@ -75,7 +67,6 @@ class CaptureViewModel: ObservableObject {
     func resetSession() {
         session?.cancel()
         session = nil
-        appState.currentFlowState = .objectDetection
         if let productId = appState.selectedProductId {
             startNewCapture(for: productId)
         }
@@ -86,24 +77,12 @@ class CaptureViewModel: ObservableObject {
     }
     
     func finishCapturing() {
-        guard let session = session else { return }
-        
-        let captured = session.numberOfShotsTaken
-        if captured < 20 {
-            // Need more images
-            errorMessage = "Please capture more images (at least 20) for a usable model."
-        } else {
-            session.finish()
-        }
-    }
-    
-    func skipFlipAndContinue() {
-        // In Object Capture, we can just finish the session to proceed without flipping
-        finishCapturing()
+        session?.finish()
     }
     
     func cancelCapture() {
         session?.cancel()
+        session = nil
         if let productId = appState.selectedProductId {
             fileManager.clearCaptureData(for: productId)
         }
