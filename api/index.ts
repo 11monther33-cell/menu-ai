@@ -1219,9 +1219,6 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       return res.json(data || []);
     }
 
-      return res.json(parsed);
-    }
-
     // ── 404 ──────────────────────────────────────────────
     return res.status(404).json({ error: 'API route not found', url });
 
