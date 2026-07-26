@@ -11,7 +11,7 @@ import {
   ChevronLeft, ChevronRight, Menu, X,
   Layers, Zap, MessageSquare, Camera,
   Palette, MapPin, CreditCard, Globe, RefreshCw, Shield,
-  Calculator, FileText, Package, TrendingDown
+  Calculator, FileText, Package, TrendingDown, Bot
 } from 'lucide-react';
 import { DashboardHome } from './pages/DashboardHome';
 import { MenuBuilder } from './pages/MenuBuilder';
@@ -23,6 +23,7 @@ import { Subscription } from './pages/Subscription';
 import { DishFormPage } from './pages/DishFormPage';
 import { AppConnection } from './pages/AppConnection';
 import { SecuritySettings } from './pages/SecuritySettings';
+import { WhatsAppSalesAgent } from './pages/WhatsAppSalesAgent';
 
 // POS & Accounting Pages
 import { POSScreen } from './pages/POSScreen';
@@ -90,6 +91,7 @@ export const RestaurantDashboard = () => {
         { id: 'analytics', icon: <BarChart3 size={20} />, label: t('restaurant.nav.analytics') || (isRtl ? 'التحليلات' : 'Analytics'), path: '/dashboard/analytics' },
         { id: 'branding', icon: <Palette size={20} />, label: t('restaurant.nav.branding') || (isRtl ? 'الهوية البصرية' : 'Branding'), path: '/dashboard/branding' },
         { id: 'branches', icon: <MapPin size={20} />, label: t('restaurant.nav.branches') || (isRtl ? 'الفروع' : 'Branches'), path: '/dashboard/branches' },
+        { id: 'whatsapp-sales-agent', icon: <Bot size={20} />, label: isRtl ? 'موظف مبيعات (واتساب)' : 'WhatsApp AI Sales Agent', path: '/dashboard/whatsapp-sales-agent', badge: 'AI' },
         { id: 'security', icon: <Shield size={20} />, label: isRtl ? 'الأمان و 2FA' : 'Security & 2FA', path: '/dashboard/security' },
         { id: 'settings', icon: <Settings size={20} />, label: t('restaurant.nav.settings') || (isRtl ? 'الإعدادات' : 'Settings'), path: '/dashboard/settings' },
         { id: 'subscription', icon: <CreditCard size={20} />, label: t('restaurant.nav.subscription') || (isRtl ? 'الاشتراك' : 'Subscription'), path: '/dashboard/subscription' },
@@ -308,6 +310,7 @@ export const RestaurantDashboard = () => {
                 <Route path="/pos-settings" element={<POSSettings />} />
                 <Route path="/subscription" element={<Subscription />} />
                 <Route path="/security" element={<SecuritySettings />} />
+                <Route path="/whatsapp-sales-agent" element={<WhatsAppSalesAgent />} />
               </Routes>
             </motion.div>
           </AnimatePresence>

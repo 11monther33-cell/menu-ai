@@ -4,6 +4,45 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
+import crypto from 'crypto';
+
+// ── Encryption Helper for WhatsApp Access Tokens ──────────
+const ENCRYPTION_KEY = process.env.WHATSAPP_TOKEN_ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'visiono_secure_default_key_32b!';
+function getSecretKey() {
+  return crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
+}
+
+function encryptToken(token: string): string {
+  if (!token) return '';
+  try {
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv('aes-256-gcm', getSecretKey(), iv);
+    let encrypted = cipher.update(token, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    const authTag = cipher.getAuthTag().toString('hex');
+    return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+  } catch (err) {
+    return token;
+  }
+}
+
+function decryptToken(encryptedData: string): string {
+  if (!encryptedData) return '';
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) return encryptedData;
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encryptedText = parts[2];
+    const decipher = crypto.createDecipheriv('aes-256-gcm', getSecretKey(), iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    return encryptedData;
+  }
+}
 
 // ── Vercel config: allow up to 5MB request body ─────────
 export const config = {
@@ -728,6 +767,457 @@ Rules:
         console.error('[Gemini Parse Error]', rawText);
         return res.status(500).json({ error: 'Failed to parse Gemini response', raw: rawText.substring(0, 500) });
       }
+
+      return res.json(parsed);
+    }
+
+    // ══════════════════════════════════════════════════════
+    // WHATSAPP SALES AGENT & META QR API ROUTES
+    // ══════════════════════════════════════════════════════
+
+    // ── Meta Webhook Verification (GET) ─────────────────
+    if (url.startsWith('/api/whatsapp/webhook') && method === 'GET') {
+      const query = new URLSearchParams(url.split('?')[1] || '');
+      const mode = query.get('hub.mode');
+      const token = query.get('hub.verify_token');
+      const challenge = query.get('hub.challenge');
+
+      const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN || 'visiono_wa_verify_token';
+
+      if (mode === 'subscribe' && token === expectedToken) {
+        return res.status(200).send(challenge);
+      }
+      return res.status(403).json({ error: 'Verification failed' });
+    }
+
+    // ── Meta Webhook Receiver (POST) ─────────────────────
+    if (url.startsWith('/api/whatsapp/webhook') && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'Supabase client missing' });
+
+      const body = req.body;
+      const entry = body?.entry?.[0];
+      const change = entry?.changes?.[0];
+      const value = change?.value;
+      const message = value?.messages?.[0];
+
+      if (!message) {
+        return res.status(200).json({ status: 'ok', detail: 'No message payload' });
+      }
+
+      const metaPhoneNumberId = value?.metadata?.phone_number_id;
+      const customerPhone = message.from;
+      const customerName = value?.contacts?.[0]?.profile?.name || customerPhone;
+      const messageText = message.text?.body || '';
+      const metaMessageId = message.id;
+
+      if (!messageText || !metaPhoneNumberId) {
+        return res.status(200).json({ status: 'ok', detail: 'Missing text or phone number ID' });
+      }
+
+      // Find branch matching whatsapp_phone_number_id
+      const { data: branch } = await sb
+        .from('pos_branches')
+        .select('id, restaurant_id, whatsapp_phone_number_id, whatsapp_access_token, whatsapp_enabled')
+        .eq('whatsapp_phone_number_id', metaPhoneNumberId)
+        .maybeSingle();
+
+      if (!branch || !branch.whatsapp_enabled) {
+        return res.status(200).json({ status: 'ignored', reason: 'Branch not connected or AI disabled' });
+      }
+
+      const decryptedToken = decryptToken(branch.whatsapp_access_token);
+
+      // Find or create conversation
+      let { data: conv } = await sb
+        .from('whatsapp_conversations')
+        .select('id')
+        .eq('branch_id', branch.id)
+        .eq('customer_phone', customerPhone)
+        .maybeSingle();
+
+      if (!conv) {
+        const { data: newConv } = await sb
+          .from('whatsapp_conversations')
+          .insert({
+            branch_id: branch.id,
+            customer_phone: customerPhone,
+            customer_name: customerName,
+            last_message_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+        conv = newConv;
+      } else {
+        await sb
+          .from('whatsapp_conversations')
+          .update({
+            last_message_at: new Date().toISOString(),
+            customer_name: customerName,
+          })
+          .eq('id', conv.id);
+      }
+
+      // Save customer message
+      await sb.from('whatsapp_messages').insert({
+        conversation_id: conv.id,
+        sender_type: 'customer',
+        message_text: messageText,
+        meta_message_id: metaMessageId,
+      });
+
+      // Grounding Data: Fetch dishes & products
+      const { data: dishes } = await sb
+        .from('dishes')
+        .select('name_ar, name_en, price, description_ar, description_en, available')
+        .eq('restaurant_id', branch.restaurant_id)
+        .eq('available', true);
+
+      const { data: products } = await sb
+        .from('pos_products')
+        .select('name, selling_price, description, is_active')
+        .eq('branch_id', branch.id)
+        .eq('is_active', true);
+
+      // Grounding Data: Fetch FAQs
+      const { data: faqs } = await sb
+        .from('pos_branch_faq')
+        .select('question, answer')
+        .eq('branch_id', branch.id)
+        .eq('is_active', true);
+
+      const menuSummary = [
+        ...(dishes || []).map(d => `- ${d.name_ar || d.name_en} (${d.price} OMR/SAR): ${d.description_ar || d.description_en || 'لا يوجد وصف'}`),
+        ...(products || []).map(p => `- ${p.name} (${p.selling_price} OMR/SAR): ${p.description || ''}`)
+      ].join('\n');
+
+      const faqSummary = (faqs || []).map(f => `س: ${f.question}\nج: ${f.answer}`).join('\n\n');
+
+      // Call Gemini for grounded AI reply
+      const geminiKey = process.env.GEMINI_API_KEY;
+      let aiReplyText = "شكراً لتواصلك معنا! يسعدنا خدمتك في مطعمنا.";
+
+      if (geminiKey) {
+        try {
+          const aiPrompt = `أنت موظف مبيعات وخدمة عملاء ذكي، مهذب، وسريع الاستجابة لمطعم عبر الواتساب.
+استخدم البيانات الحقيقية فقط المذكورة أدناه للرد على الزبون.
+
+قائمة الطعام المتاحة حالياً:
+${menuSummary || 'لا تتوفر أصناف حالياً'}
+
+الأسئلة الشائعة ومعلومات الفرع:
+${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
+
+قواعد صارمة:
+1. تجنب الهلوسة نهائياً: إذا سأل الزبون عن طبق أو خدمة غير موجودة في المنيو أو الأسئلة الشائعة، قل له بكل صراحة ولباقة أن هذا الصنف غير متوفر حالياً لدينا.
+2. أسعار المنيو والخدمات ومكونات الأطباق يجب أن تكون دقيقة 100% حسب البيانات المرفقة.
+3. إذا أبدى الزبون رغبته الصريحة في الطلب (مثال: "أبي 2 برجر لحم وعصير")، رحب بطلبه وأكد له الأطباق والسعر الإجمالي واطلب منه تأكيد الطلب.
+4. حافظ على نبرة ترحيبية قصيرة ومناسبة لمحادثات الواتساب باللغة العربية.
+
+رسالة الزبون الحالية: "${messageText}"`;
+
+          const aiResp = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: aiPrompt }] }],
+                generationConfig: { temperature: 0.2, maxOutputTokens: 500 }
+              })
+            }
+          );
+          if (aiResp.ok) {
+            const aiData = await aiResp.json();
+            const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) aiReplyText = text.trim();
+          }
+        } catch (err) {
+          console.error('[WhatsApp AI Error]', err);
+        }
+      }
+
+      // Order Intent Check & Order Request Creation
+      const orderIntentKeywords = ['أطلب', 'طلب', 'أبي', 'اريد', 'أريد', 'احجز', 'اشتري'];
+      const containsOrderKeyword = orderIntentKeywords.some(kw => messageText.includes(kw));
+
+      if (containsOrderKeyword) {
+        await sb.from('pos_order_requests').insert({
+          branch_id: branch.id,
+          customer_phone: customerPhone,
+          customer_name: customerName,
+          order_summary: messageText,
+          status: 'pending',
+        });
+      }
+
+      // Send response back to Meta Messages API
+      if (decryptedToken) {
+        try {
+          await fetch(`https://graph.facebook.com/v24.0/${metaPhoneNumberId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${decryptedToken}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              messaging_product: 'whatsapp',
+              to: customerPhone,
+              text: { body: aiReplyText },
+            }),
+          });
+        } catch (sendErr) {
+          console.error('[Meta Message Send Error]', sendErr);
+        }
+      }
+
+      // Save AI reply to database
+      await sb.from('whatsapp_messages').insert({
+        conversation_id: conv.id,
+        sender_type: 'ai',
+        message_text: aiReplyText,
+      });
+
+      return res.status(200).json({ status: 'success', reply: aiReplyText });
+    }
+
+    // ── Save WhatsApp Connection Settings ────────────────
+    if (url === '/api/whatsapp/connection' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { branchId, whatsappPhoneNumberId, whatsappAccessToken, whatsappNumber, whatsappEnabled } = req.body;
+      if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      const updateData: any = {
+        whatsapp_phone_number_id: whatsappPhoneNumberId,
+        whatsapp_number: whatsappNumber,
+        whatsapp_enabled: !!whatsappEnabled,
+      };
+
+      if (whatsappAccessToken) {
+        updateData.whatsapp_access_token = encryptToken(whatsappAccessToken);
+      }
+
+      const { data, error } = await sb
+        .from('pos_branches')
+        .update(updateData)
+        .eq('id', branchId)
+        .select('id, whatsapp_phone_number_id, whatsapp_number, whatsapp_enabled, whatsapp_access_token')
+        .single();
+
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.json({
+        success: true,
+        branch: {
+          id: data.id,
+          whatsappPhoneNumberId: data.whatsapp_phone_number_id,
+          whatsappNumber: data.whatsapp_number,
+          whatsappEnabled: data.whatsapp_enabled,
+          hasToken: !!data.whatsapp_access_token,
+        }
+      });
+    }
+
+    // ── Get WhatsApp Connection Status ────────────────────
+    if (url.startsWith('/api/whatsapp/connection') && method === 'GET') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const query = new URLSearchParams(url.split('?')[1] || '');
+      const branchId = query.get('branchId');
+      if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      const { data, error } = await sb
+        .from('pos_branches')
+        .select('id, whatsapp_phone_number_id, whatsapp_number, whatsapp_enabled, whatsapp_access_token')
+        .eq('id', branchId)
+        .maybeSingle();
+
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.json({
+        branchId: data?.id,
+        whatsappPhoneNumberId: data?.whatsapp_phone_number_id || '',
+        whatsappNumber: data?.whatsapp_number || '',
+        whatsappEnabled: !!data?.whatsapp_enabled,
+        hasToken: !!data?.whatsapp_access_token,
+      });
+    }
+
+    // ── Generate Meta Official QR Code ────────────────────
+    if (url === '/api/whatsapp/generate-qr' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { branchId, prefilledMessage } = req.body;
+      if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      const { data: branch } = await sb
+        .from('pos_branches')
+        .select('whatsapp_phone_number_id, whatsapp_access_token')
+        .eq('id', branchId)
+        .maybeSingle();
+
+      if (!branch?.whatsapp_phone_number_id || !branch?.whatsapp_access_token) {
+        return res.status(400).json({ error: 'لم يتم ربط رقم واتساب لهـذا الفرع بعد' });
+      }
+
+      const decryptedToken = decryptToken(branch.whatsapp_access_token);
+
+      const metaResp = await fetch(
+        `https://graph.facebook.com/v24.0/${branch.whatsapp_phone_number_id}/message_qrdls`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${decryptedToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prefilled_message: prefilledMessage || 'مرحباً',
+            generate_qr_image: 'SVG',
+          }),
+        }
+      );
+
+      const metaData = await metaResp.json();
+      if (!metaResp.ok) {
+        return res.status(metaResp.status).json({ error: metaData.error?.message || 'فشل توليد الكود من Meta' });
+      }
+
+      const qrRecord = metaData.data?.[0];
+      if (!qrRecord) {
+        return res.status(500).json({ error: 'لم يتم إرجاع بيانات الرمز من Meta' });
+      }
+
+      const { data: inserted, error: dbErr } = await sb
+        .from('whatsapp_qr_codes')
+        .insert({
+          branch_id: branchId,
+          meta_qr_code_id: qrRecord.code,
+          deep_link_url: qrRecord.deep_link_url,
+          prefilled_message: qrRecord.prefilled_message,
+          qr_image_url: qrRecord.qr_image_url || null,
+        })
+        .select()
+        .single();
+
+      if (dbErr) return res.status(500).json({ error: dbErr.message });
+
+      return res.status(201).json(inserted);
+    }
+
+    // ── Update Meta QR Code Prefilled Message ─────────────
+    if (url === '/api/whatsapp/update-qr' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { branchId, qrCodeId, metaQrCodeId, prefilledMessage } = req.body;
+      if (!branchId || !metaQrCodeId) return res.status(400).json({ error: 'Missing parameters' });
+
+      const { data: branch } = await sb
+        .from('pos_branches')
+        .select('whatsapp_phone_number_id, whatsapp_access_token')
+        .eq('id', branchId)
+        .maybeSingle();
+
+      if (!branch?.whatsapp_phone_number_id || !branch?.whatsapp_access_token) {
+        return res.status(400).json({ error: 'لم يتم ربط رقم واتساب لهـذا الفرع بعد' });
+      }
+
+      const decryptedToken = decryptToken(branch.whatsapp_access_token);
+
+      const metaResp = await fetch(
+        `https://graph.facebook.com/v24.0/${branch.whatsapp_phone_number_id}/message_qrdls`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${decryptedToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            code: metaQrCodeId,
+            prefilled_message: prefilledMessage || 'مرحباً',
+            generate_qr_image: 'SVG',
+          }),
+        }
+      );
+
+      const metaData = await metaResp.json();
+      if (!metaResp.ok) {
+        return res.status(metaResp.status).json({ error: metaData.error?.message || 'فشل تحديث الكود في Meta' });
+      }
+
+      const updatedQrRecord = metaData.data?.[0];
+
+      const { data: updated, error: dbErr } = await sb
+        .from('whatsapp_qr_codes')
+        .update({
+          prefilled_message: prefilledMessage,
+          deep_link_url: updatedQrRecord?.deep_link_url || undefined,
+          qr_image_url: updatedQrRecord?.qr_image_url || undefined,
+        })
+        .eq('id', qrCodeId)
+        .select()
+        .single();
+
+      if (dbErr) return res.status(500).json({ error: dbErr.message });
+
+      return res.json(updated);
+    }
+
+    // ── Delete Meta QR Code ──────────────────────────────
+    if (url === '/api/whatsapp/delete-qr' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { branchId, qrCodeId, metaQrCodeId } = req.body;
+      if (!branchId || !qrCodeId || !metaQrCodeId) return res.status(400).json({ error: 'Missing parameters' });
+
+      const { data: branch } = await sb
+        .from('pos_branches')
+        .select('whatsapp_phone_number_id, whatsapp_access_token')
+        .eq('id', branchId)
+        .maybeSingle();
+
+      if (branch?.whatsapp_phone_number_id && branch?.whatsapp_access_token) {
+        const decryptedToken = decryptToken(branch.whatsapp_access_token);
+        try {
+          await fetch(
+            `https://graph.facebook.com/v24.0/${branch.whatsapp_phone_number_id}/message_qrdls?code=${metaQrCodeId}`,
+            {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${decryptedToken}` },
+            }
+          );
+        } catch (e) {
+          console.error('[Meta Delete QR Error]', e);
+        }
+      }
+
+      await sb.from('whatsapp_qr_codes').delete().eq('id', qrCodeId);
+      return res.json({ success: true });
+    }
+
+    // ── List Active Meta QR Codes for Branch ──────────────
+    if (url.startsWith('/api/whatsapp/qr-codes') && method === 'GET') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const query = new URLSearchParams(url.split('?')[1] || '');
+      const branchId = query.get('branchId');
+      if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      const { data, error } = await sb
+        .from('whatsapp_qr_codes')
+        .select('*')
+        .eq('branch_id', branchId)
+        .order('created_at', { ascending: false });
+
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.json(data || []);
+    }
 
       return res.json(parsed);
     }
