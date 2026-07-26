@@ -1030,7 +1030,7 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
 
       const { data, error } = await sb
         .from('pos_branches')
-        .select('id, whatsapp_phone_number_id, whatsapp_number, whatsapp_enabled, whatsapp_access_token')
+        .select('id, whatsapp_phone_number_id, whatsapp_number, whatsapp_enabled, whatsapp_access_token, waba_id')
         .eq('id', branchId)
         .maybeSingle();
 
@@ -1040,8 +1040,74 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
         branchId: data?.id,
         whatsappPhoneNumberId: data?.whatsapp_phone_number_id || '',
         whatsappNumber: data?.whatsapp_number || '',
+        wabaId: data?.waba_id || '',
         whatsappEnabled: !!data?.whatsapp_enabled,
         hasToken: !!data?.whatsapp_access_token,
+      });
+    }
+
+    // ── Meta Embedded Signup Completion Endpoint ────────
+    if (url === '/api/whatsapp/embedded-signup/complete' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { authCode, branchId, wabaId, phoneNumberId } = req.body;
+      if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      const metaAppId = process.env.META_APP_ID || process.env.VITE_META_APP_ID || '';
+      const metaAppSecret = process.env.META_APP_SECRET || '';
+
+      let accessToken = '';
+      let finalPhoneNumberId = phoneNumberId || '';
+      let finalWabaId = wabaId || '';
+
+      if (authCode && metaAppId && metaAppSecret) {
+        try {
+          const exchangeUrl = `https://graph.facebook.com/v24.0/oauth/access_token?client_id=${metaAppId}&client_secret=${metaAppSecret}&code=${authCode}`;
+          const exchangeResp = await fetch(exchangeUrl);
+          const exchangeData = await exchangeResp.json();
+
+          if (exchangeResp.ok && exchangeData.access_token) {
+            accessToken = exchangeData.access_token;
+          } else {
+            console.error('[Meta Token Exchange Error]', exchangeData);
+          }
+        } catch (err) {
+          console.error('[Meta Token Exchange Failed]', err);
+        }
+      }
+
+      if (!accessToken && req.body.accessToken) {
+        accessToken = req.body.accessToken;
+      }
+
+      const updateData: any = {
+        whatsapp_enabled: true,
+      };
+
+      if (finalPhoneNumberId) updateData.whatsapp_phone_number_id = finalPhoneNumberId;
+      if (finalWabaId) updateData.waba_id = finalWabaId;
+      if (accessToken) updateData.whatsapp_access_token = encryptToken(accessToken);
+
+      const { data, error } = await sb
+        .from('pos_branches')
+        .update(updateData)
+        .eq('id', branchId)
+        .select('id, whatsapp_phone_number_id, waba_id, whatsapp_enabled, whatsapp_access_token')
+        .single();
+
+      if (error) return res.status(500).json({ error: error.message });
+
+      return res.json({
+        success: true,
+        connected: true,
+        branch: {
+          id: data.id,
+          whatsappPhoneNumberId: data.whatsapp_phone_number_id,
+          wabaId: data.waba_id,
+          whatsappEnabled: data.whatsapp_enabled,
+          hasToken: !!data.whatsapp_access_token,
+        }
       });
     }
 

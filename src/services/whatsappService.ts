@@ -96,6 +96,29 @@ export const whatsappService = {
     return res.json();
   },
 
+  async completeEmbeddedSignup(data: {
+    branchId: string;
+    authCode?: string;
+    wabaId?: string;
+    phoneNumberId?: string;
+    accessToken?: string;
+  }) {
+    const token = await getAuthToken();
+    const res = await fetch('/api/whatsapp/embedded-signup/complete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'فشل إكمال الربط عبر Meta Embedded Signup');
+    }
+    return res.json();
+  },
+
   // ── Meta Official QR Codes ──────────────────────────────
   async getQRCodes(branchId: string): Promise<MetaQRCode[]> {
     const token = await getAuthToken();

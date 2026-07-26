@@ -3,11 +3,12 @@
 -- "موظف مبيعات واتساب"
 -- ====================================================================
 
--- 1. Extend pos_branches for WhatsApp Connection
+-- 1. Extend pos_branches for WhatsApp Connection & Embedded Signup
 ALTER TABLE pos_branches ADD COLUMN IF NOT EXISTS whatsapp_phone_number_id TEXT;
 ALTER TABLE pos_branches ADD COLUMN IF NOT EXISTS whatsapp_access_token TEXT; -- Stored encrypted at app level
 ALTER TABLE pos_branches ADD COLUMN IF NOT EXISTS whatsapp_number TEXT;
 ALTER TABLE pos_branches ADD COLUMN IF NOT EXISTS whatsapp_enabled BOOLEAN DEFAULT false;
+ALTER TABLE pos_branches ADD COLUMN IF NOT EXISTS waba_id TEXT;
 
 -- 2. Official Meta QR Codes Table
 CREATE TABLE IF NOT EXISTS whatsapp_qr_codes (
