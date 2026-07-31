@@ -5,6 +5,35 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
+import mammoth from 'mammoth';
+import { createRequire } from 'module';
+import * as cheerio from 'cheerio';
+
+async function checkRobotsTxt(urlStr: string): Promise<boolean> {
+  try {
+    const parsedUrl = new URL(urlStr);
+    const robotsUrl = `${parsedUrl.protocol}//${parsedUrl.host}/robots.txt`;
+    const resp = await fetch(robotsUrl, { signal: AbortSignal.timeout(5000) });
+    if (!resp.ok) return true;
+    const text = await resp.text();
+    if (text.includes('User-agent: VISIONO-MenuImportBot/1.0') && text.includes('Disallow: /')) {
+      return false;
+    }
+    return true;
+  } catch (err) {
+    return true;
+  }
+}
+
+// Polyfills for pdf-parse in Vercel serverless environment
+if (typeof global !== 'undefined') {
+  if (!global.DOMMatrix) global.DOMMatrix = class DOMMatrix {} as any;
+  if (!global.ImageData) global.ImageData = class ImageData {} as any;
+  if (!global.Path2D) global.Path2D = class Path2D {} as any;
+}
+
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 // ── Encryption Helper for WhatsApp Access Tokens ──────────
 const ENCRYPTION_KEY = process.env.WHATSAPP_TOKEN_ENCRYPTION_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || 'visiono_secure_default_key_32b!';
@@ -173,6 +202,163 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         r2: r2 ? 'connected' : `error: ${r2InitError}`,
         supabase: sb ? 'connected' : 'missing keys',
       });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // GOOGLE MAPS RATING CACHE
+    // ══════════════════════════════════════════════════════
+    if (url.startsWith('/api/google/rating') && method === 'GET') {
+      const urlParams = new URL(req.url || '', `http://${req.headers.host}`);
+      const branchId = urlParams.searchParams.get('branchId');
+      
+      if (!branchId || !sb) return res.status(400).json({ error: 'Missing branchId or DB' });
+
+      const { data: branch } = await sb.from('pos_branches').select('google_place_id, google_rating, google_rating_count, google_rating_updated_at').eq('id', branchId).single();
+      
+      if (!branch || !branch.google_place_id) {
+        return res.json({ rating: null, reviewCount: null });
+      }
+
+      const now = new Date();
+      const lastUpdated = branch.google_rating_updated_at ? new Date(branch.google_rating_updated_at) : null;
+      
+      // Cache for 24 hours
+      if (lastUpdated && (now.getTime() - lastUpdated.getTime()) < 24 * 60 * 60 * 1000) {
+        return res.json({ rating: branch.google_rating, reviewCount: branch.google_rating_count, placeId: branch.google_place_id });
+      }
+
+      // Fetch from Google
+      try {
+        const GOOGLE_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
+        if (!GOOGLE_API_KEY) return res.json({ rating: branch.google_rating, reviewCount: branch.google_rating_count, placeId: branch.google_place_id });
+
+        const googleRes = await fetch(`https://maps.googleapis.com/maps/api/place/details/json?place_id=${branch.google_place_id}&fields=rating,user_ratings_total&key=${GOOGLE_API_KEY}`);
+        const googleData = await googleRes.json();
+
+        if (googleData.result) {
+          const rating = googleData.result.rating;
+          const reviewCount = googleData.result.user_ratings_total;
+          
+          await sb.from('pos_branches').update({
+            google_rating: rating,
+            google_rating_count: reviewCount,
+            google_rating_updated_at: now.toISOString()
+          }).eq('id', branchId);
+
+          return res.json({ rating, reviewCount, placeId: branch.google_place_id });
+        }
+      } catch (err) {
+        console.error('Google API Error:', err);
+      }
+
+      return res.json({ rating: branch.google_rating, reviewCount: branch.google_rating_count, placeId: branch.google_place_id });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // PAYMOB ONLINE ORDERING
+    // ══════════════════════════════════════════════════════
+
+    // 1. Create Payment Intent (from checkout page)
+    if (url === '/api/paymob/intent' && method === 'POST') {
+      const { branchId, orderItems, deliveryAddress, customerPhone, customerName, fulfillmentType } = req.body;
+      if (!sb) return res.status(500).json({ error: 'DB not connected' });
+
+      // Calculate total securely from DB
+      let calculatedTotal = 0;
+      for (const item of orderItems) {
+        const { data: dish } = await sb.from('dishes').select('price').eq('id', item.id).single();
+        if (dish) {
+          calculatedTotal += dish.price * item.quantity;
+        }
+      }
+
+      if (calculatedTotal === 0) return res.status(400).json({ error: 'Empty or invalid cart' });
+
+      // Create local order
+      const { data: order, error: orderErr } = await sb.from('pos_orders').insert({
+        branch_id: branchId,
+        status: 'open',
+        subtotal: calculatedTotal,
+        total: calculatedTotal,
+        currency_code: 'OMR',
+        fulfillment_type: fulfillmentType || 'pickup',
+        delivery_address: deliveryAddress,
+        customer_phone: customerPhone,
+        customer_name: customerName,
+        source: 'online'
+      }).select('id').single();
+
+      if (orderErr || !order) {
+        return res.status(500).json({ error: 'Failed to create order' });
+      }
+
+      // Fetch Paymob keys for branch
+      const { data: branch } = await sb.from('pos_branches').select('paymob_api_key, paymob_integration_id').eq('id', branchId).single();
+      
+      // In a real implementation, you would call Paymob's APIs here:
+      // 1. Auth token
+      // 2. Order Registration
+      // 3. Payment Key Request
+      
+      // Returning mock for testing UI flow until keys are provided
+      return res.json({
+        success: true,
+        orderId: order.id,
+        amount: calculatedTotal,
+        paymobUrl: `https://accept.paymob.com/api/acceptance/iframes/dummy?payment_token=mock_token_${order.id}`
+      });
+    }
+
+    // 2. Webhook Handler
+    if (url.startsWith('/api/paymob/webhook') && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'DB not connected' });
+      
+      const { obj } = req.body;
+      if (!obj) return res.status(400).send('Invalid payload');
+      
+      const paymobTransactionId = obj.id;
+      const amount_cents = obj.amount_cents;
+      const success = obj.success;
+      const paymobOrderId = obj.order?.id || obj.order;
+      
+      const localOrderId = obj.order?.merchant_order_id || req.query.order_id;
+      if (!localOrderId) return res.status(400).send('No merchant_order_id');
+
+      const { data: existing } = await sb.from('paymob_transactions').select('id').eq('paymob_transaction_id', paymobTransactionId.toString());
+      if (existing && existing.length > 0) {
+        return res.status(200).send('Already processed');
+      }
+
+      const { data: localOrder } = await sb.from('pos_orders').select('*').eq('id', localOrderId).single();
+      if (!localOrder) {
+        return res.status(404).send('Order not found');
+      }
+
+      // Hardened Amount Check
+      const expectedAmount = localOrder.total;
+      const receivedAmountOMR = amount_cents / 1000;
+      if (Math.abs(receivedAmountOMR - expectedAmount) > 0.001) {
+        console.error(`Amount mismatch: expected ${expectedAmount}, got ${receivedAmountOMR}`);
+        await sb.from('pos_orders').update({ status: 'flagged_amount_mismatch' }).eq('id', localOrder.id);
+        return res.status(200).send('Flagged for review');
+      }
+
+      await sb.from('paymob_transactions').insert({
+        order_id: localOrder.id,
+        paymob_transaction_id: paymobTransactionId.toString(),
+        amount: receivedAmountOMR,
+        status: success ? 'success' : 'failed',
+        raw_webhook_payload: req.body
+      });
+
+      if (success) {
+        await sb.from('pos_orders').update({ 
+          status: 'paid', 
+          closed_at: new Date().toISOString() 
+        }).eq('id', localOrder.id);
+      }
+
+      return res.status(200).send('OK');
     }
 
     // ══════════════════════════════════════════════════════
@@ -635,7 +821,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ═══════════════════════════════════════════════════════════
     // POST /api/import-menu-pdf — AI-powered PDF menu extraction
     // ═══════════════════════════════════════════════════════════
-    if (url === '/api/import-menu-pdf' && req.method === 'POST') {
+    if ((url === '/api/import-menu-pdf' || url === '/api/import-menu') && req.method === 'POST') {
       const authHeader = req.headers.authorization;
       if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
       
@@ -646,15 +832,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Read raw body as buffer (PDF file from FormData)
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) {
-        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      // Read raw body as buffer (file from FormData)
+      let body: Buffer;
+      if (Buffer.isBuffer(req.body)) {
+        body = req.body;
+      } else if (typeof req.body === 'string') {
+        body = Buffer.from(req.body, 'latin1');
+      } else {
+        const chunks: Buffer[] = [];
+        for await (const chunk of req) {
+          chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+        }
+        body = Buffer.concat(chunks);
       }
-      const body = Buffer.concat(chunks);
 
-      // Extract file from multipart (simplified: find PDF content)
-      // Find the PDF data between boundaries
+      // Extract file from multipart
       const bodyStr = body.toString('latin1');
       const contentTypeHeader = req.headers['content-type'] || '';
       const boundaryMatch = contentTypeHeader.match(/boundary=(.+)/);
@@ -665,110 +857,369 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const boundary = boundaryMatch[1];
       const parts = bodyStr.split(`--${boundary}`);
-      let pdfBuffer: Buffer | null = null;
+      let fileBuffer: Buffer | null = null;
+      let detectedMimeType = '';
+      let detectedFilename = '';
+      let inputUrl = '';
 
       for (const part of parts) {
+        if (part.includes('name="url"')) {
+           const headerEnd = part.indexOf('\r\n\r\n');
+           if (headerEnd !== -1) {
+             const dataStr = part.substring(headerEnd + 4);
+             inputUrl = dataStr.replace(/\r\n--.*$/, '').replace(/\r\n$/, '').trim();
+           }
+        }
+
+        // Detect filename from Content-Disposition header
+        const filenameMatch = part.match(/filename="?([^";\r\n]+)"?/i);
+        if (filenameMatch) {
+          detectedFilename = filenameMatch[1].trim().toLowerCase();
+        }
+
         if (part.includes('application/pdf') || part.includes('.pdf')) {
+          detectedMimeType = 'application/pdf';
+        } else if (
+          part.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+          part.includes('.docx') ||
+          detectedFilename.endsWith('.docx')
+        ) {
+          detectedMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        } else if (
+          part.includes('application/msword') ||
+          part.includes('.doc') ||
+          detectedFilename.endsWith('.doc')
+        ) {
+          detectedMimeType = 'application/msword';
+        }
+
+        if (detectedMimeType || filenameMatch) {
           const headerEnd = part.indexOf('\r\n\r\n');
           if (headerEnd !== -1) {
             const dataStr = part.substring(headerEnd + 4);
-            // Remove trailing boundary markers
             const cleanData = dataStr.replace(/\r\n--.*$/, '').replace(/\r\n$/, '');
-            pdfBuffer = Buffer.from(cleanData, 'latin1');
+            fileBuffer = Buffer.from(cleanData, 'latin1');
           }
         }
       }
 
-      if (!pdfBuffer || pdfBuffer.length === 0) {
-        return res.status(400).json({ error: 'No PDF file found in request' });
+      // Fallback: detect from filename if mime wasn't caught
+      if (!detectedMimeType && detectedFilename) {
+        if (detectedFilename.endsWith('.pdf')) detectedMimeType = 'application/pdf';
+        else if (detectedFilename.endsWith('.docx')) detectedMimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+        else if (detectedFilename.endsWith('.doc')) detectedMimeType = 'application/msword';
       }
 
-      // Convert to base64 for Gemini
-      const pdfBase64 = pdfBuffer.toString('base64');
+      let extractedHtmlText = '';
+
+      if (inputUrl) {
+        try {
+          const robotsAllowed = await checkRobotsTxt(inputUrl);
+          if (!robotsAllowed) {
+             return res.status(400).json({ error: 'هذا الموقع لا يسمح بالوصول الآلي لمحتواه (robots.txt). يرجى استخدام رفع ملف بدلاً من ذلك.' });
+          }
+
+          const urlResp = await fetch(inputUrl, {
+            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://visiono.vercel.app/bot-info)' },
+            signal: AbortSignal.timeout(15000),
+          });
+          
+          if (!urlResp.ok) {
+            return res.status(400).json({ error: 'تعذر الوصول إلى الرابط. الموقع لم يستجب أو الرابط غير صحيح.' });
+          }
+
+          const contentType = urlResp.headers.get('content-type') || '';
+          
+          if (contentType.includes('application/pdf')) {
+            const arr = await urlResp.arrayBuffer();
+            fileBuffer = Buffer.from(arr);
+            detectedMimeType = 'application/pdf';
+            detectedFilename = 'url-download.pdf';
+          } else if (contentType.includes('text/html')) {
+            const jinaUrl = 'https://r.jina.ai/' + encodeURIComponent(inputUrl);
+            const jinaResp = await fetch(jinaUrl, {
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+              signal: AbortSignal.timeout(25000)
+            });
+            
+            if (!jinaResp.ok) {
+              return res.status(400).json({ error: 'تعذر معالجة الصفحة التفاعلية.' });
+            }
+            
+            const visibleText = await jinaResp.text();
+            
+            if (visibleText.length < 150) {
+              return res.status(400).json({
+                error: 'هذا الموقع يعرض القائمة بطريقة تفاعلية لا يمكن قراءتها مباشرة. جرب تنزيل القائمة كـ PDF من الموقع ورفعها هنا، أو أدخل الأطباق يدوياً.',
+                requiresManualFallback: true
+              });
+            }
+            extractedHtmlText = visibleText.substring(0, 40000);
+            detectedMimeType = 'text/html';
+          } else {
+            return res.status(400).json({ error: 'نوع الملف بهذا الرابط غير مدعوم. جرب رفع الملف مباشرة (PDF أو Word) بدلاً من الرابط.' });
+          }
+        } catch (err) {
+            return res.status(400).json({ error: 'الموقع لم يستجب في الوقت المناسب أو تعذر قراءته.' });
+        }
+      }
+
+      if (!inputUrl && (!fileBuffer || fileBuffer.length === 0)) {
+        return res.status(400).json({ error: 'No file or URL found in request' });
+      }
 
       const geminiKey = process.env.GEMINI_API_KEY;
       if (!geminiKey) {
         return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
       }
 
-      // Call Gemini with the PDF
-      const geminiResp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                {
-                  inlineData: {
-                    mimeType: 'application/pdf',
-                    data: pdfBase64
-                  }
-                },
-                {
-                  text: `You are a restaurant menu parser. Extract ALL dishes/items from this menu PDF.
+      // ── Shared Gemini extraction prompt ──
+      const extractionPrompt = `You are a restaurant menu parser. Extract ALL dishes/items from this menu.
 
 For each dish, extract:
-- name_ar: Arabic name (if present)
-- name_en: English name (if present)  
-- price: numeric price (just the number, no currency symbols)
-- category: the category/section this dish belongs to
-- description_ar: Arabic description (if present)
-- description_en: English description (if present)
+- name_ar: Arabic name. If only English is present, you MUST translate it to Arabic.
+- name_en: English name. If only Arabic is present, you MUST translate it to English.
+- price: numeric price (number only, no currency symbols). If no price is visible, set null.
+- category_ar: the Arabic section heading. If only English is present, MUST translate to Arabic.
+- category_en: the English section heading. If only Arabic is present, MUST translate to English.
+- description_ar: Arabic description. If only English is present, translate to Arabic.
+- description_en: English description. If only Arabic is present, translate to English.
+- flag: set to a short note if you are uncertain about any field, else null.
 
-Return ONLY valid JSON in this exact format, no markdown, no explanation:
+IMPORTANT RULES:
+- TRANSLATION IS MANDATORY: You must ensure every dish has both Arabic and English names, descriptions (if any exist), and categories. Translate accurately if one language is missing.
+- OMANI CURRENCY PRICING: Prices in Oman use 3 decimal places (e.g., 3.800 means 3.8 OMR, NOT 3800). 1.500 means 1.5. Do NOT treat the decimal point as a thousands separator. Extract the exact correct float value (e.g. 3.8).
+- Do NOT attempt to extract, reference, or describe images — text fields only.
+- EXTRACT EVERY SINGLE DISH YOU CAN FIND, DO NOT STOP UNTIL THE ENTIRE MENU IS EXTRACTED.
+- DO NOT hallucinate. Do not repeat the restaurant name as an item. Extract actual food items.
+
+Example Input:
+المقبلات
+حمص OMR 1.700
+سلطة يونانية OMR 1.900
+
+Example Output:
 {
   "dishes": [
-    {
-      "name_ar": "...",
-      "name_en": "...",
-      "price": 12.5,
-      "category": "...",
-      "description_ar": "...",
-      "description_en": "..."
-    }
+    { "name_ar": "حمص", "name_en": "Hummus", "price": 1.7, "category_ar": "المقبلات", "category_en": "Appetizers", "description_ar": null, "description_en": null, "flag": null },
+    { "name_ar": "سلطة يونانية", "name_en": "Greek Salad", "price": 1.9, "category_ar": "المقبلات", "category_en": "Appetizers", "description_ar": null, "description_en": null, "flag": null }
   ]
 }
 
-Rules:
-- Extract EVERY dish you can find, do not skip any
-- If the menu is only in Arabic, put the name in name_ar and leave name_en empty
-- If the menu is only in English, put the name in name_en and leave name_ar empty
-- Price must be a number (e.g. 12.5 not "12.5 OMR")
-- If no price is visible for a dish, set price to 0
-- Category should be the section heading the dish appears under`
-                }
-              ]
-            }],
-            generationConfig: {
-              temperature: 0.1,
-              maxOutputTokens: 8192
+Return ONLY valid JSON, no markdown code fences, no explanation.`;
+
+      const responseSchema = {
+        type: 'OBJECT',
+        properties: {
+          dishes: {
+            type: 'ARRAY',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                name_ar: { type: 'STRING' },
+                name_en: { type: 'STRING' },
+                price: { type: 'NUMBER' },
+                category_ar: { type: 'STRING' },
+                category_en: { type: 'STRING' },
+                description_ar: { type: 'STRING' },
+                description_en: { type: 'STRING' },
+                flag: { type: 'STRING' }
+              }
             }
-          })
+          }
         }
-      );
+      };
 
-      if (!geminiResp.ok) {
-        const errText = await geminiResp.text();
-        console.error('[Gemini PDF Error]', errText);
-        return res.status(500).json({ error: 'Gemini extraction failed' });
+      let extractedText = extractedHtmlText;
+      let geminiRequestBody: any;
+
+      if (detectedMimeType === 'application/pdf' && fileBuffer) {
+        try {
+           const pdfParseLib = await import('pdf-parse');
+           const parsePDF = (pdfParseLib as any).default || pdfParseLib;
+           const pdfData = await parsePDF(fileBuffer);
+           extractedText = pdfData.text || '';
+        } catch (pdfErr) {
+           console.warn('[PDF Parse Warning] Could not extract text for Groq, will rely on Gemini Vision', pdfErr);
+        }
+        
+        // Prepare Gemini fallback body with inlineData
+        const pdfBase64 = fileBuffer.toString('base64');
+        geminiRequestBody = {
+          contents: [{
+            parts: [
+              { inlineData: { mimeType: 'application/pdf', data: pdfBase64 } },
+              { text: extractionPrompt }
+            ]
+          }],
+          generationConfig: { 
+            responseMimeType: 'application/json',
+            responseSchema,
+            temperature: 0.1
+          }
+        };
+
+        try {
+          const pdfData = await pdfParse(fileBuffer);
+          extractedText = pdfData.text;
+        } catch (pdfErr) {
+          console.warn('[PDF Parse Warning]', pdfErr);
+        }
+      } else if (
+        detectedMimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+        detectedMimeType === 'application/msword'
+      ) {
+        try {
+          const result = await mammoth.extractRawText({ buffer: fileBuffer });
+          extractedText = result.value;
+        } catch (mammothErr: any) {
+          console.error('[Mammoth Error]', mammothErr);
+          return res.status(400).json({ error: 'Failed to read Word document. Ensure it is a valid .docx file.' });
+        }
+
+        if (!extractedText || extractedText.trim().length < 10) {
+          return res.status(400).json({ error: 'Word document appears empty or contains no readable text' });
+        }
+
+        geminiRequestBody = {
+          contents: [{
+            parts: [
+              { text: `Here is the full text content of a restaurant menu document:\n\n---\n${extractedText}\n---\n\n${extractionPrompt}` }
+            ]
+          }],
+          generationConfig: { 
+            responseMimeType: 'application/json',
+            responseSchema,
+            temperature: 0.1
+          }
+        };
+      } else if (detectedMimeType === 'text/html') {
+        if (!extractedText || extractedText.trim().length < 10) {
+          return res.status(400).json({ error: 'لم يتم العثور على نصوص كافية في هذا الرابط.' });
+        }
+        geminiRequestBody = {
+          contents: [{
+            parts: [
+              { text: `Here is the full text content of a restaurant menu from a website:\n\n---\n${extractedText}\n---\n\n${extractionPrompt}` }
+            ]
+          }],
+          generationConfig: { 
+            responseMimeType: 'application/json',
+            responseSchema,
+            temperature: 0.1
+          }
+        };
+      } else {
+        return res.status(400).json({ error: `Unsupported file type: ${detectedMimeType || 'unknown'}. Use PDF or Word (.docx).` });
       }
 
-      const geminiData = await geminiResp.json();
-      const rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      // ── Call AI (Primary: Groq llama-3.3-70b-versatile -> Fallback: Gemini 1.5-flash) ──
+      let rawText = '';
+      const groqKey = process.env.GROQ_API_KEY;
+
+      // Only call Groq if we successfully extracted text (for both Word and text-based PDFs)
+      if (groqKey && extractedText && extractedText.trim().length > 10) {
+        try {
+          const groqResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [{ role: 'user', content: `Here is the full text content of a restaurant menu document:\n\n---\n${extractedText}\n---\n\n${extractionPrompt}` }],
+              temperature: 0.1,
+              response_format: { type: 'json_object' }
+            })
+          });
+
+          if (groqResp.ok) {
+            const groqData = await groqResp.json();
+            rawText = groqData.choices?.[0]?.message?.content || '';
+          } else {
+            console.warn('[Groq Failed, falling back to Gemini]', await groqResp.text());
+          }
+        } catch (groqErr) {
+          console.warn('[Groq Exception, falling back to Gemini]', groqErr);
+        }
+      }
+
+      // Fallback or PDF direct execution via Gemini
+      if (!rawText && geminiKey) {
+        let geminiResp = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(geminiRequestBody)
+          }
+        );
+
+        if (!geminiResp.ok) {
+          const errText = await geminiResp.text();
+          console.error('[Gemini 1.5-flash Extraction Error]', errText);
+          return res.status(500).json({ 
+            error: `فشل استدعاء Gemini (رمز خطأ: ${geminiResp.status})`, 
+            raw: errText.substring(0, 400) 
+          });
+        }
+
+        const geminiData = await geminiResp.json();
+        rawText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        const finishReason = geminiData.candidates?.[0]?.finishReason;
+        
+        if (finishReason && finishReason !== 'STOP') {
+          console.error('[Gemini Finish Reason]', finishReason, rawText.substring(0, 500));
+          if (finishReason === 'MAX_TOKENS') {
+            return res.status(500).json({ error: 'الملف طويل جداً ولم نتمكن من معالجته بالكامل (MAX_TOKENS).' });
+          } else if (finishReason === 'SAFETY' || finishReason === 'RECITATION') {
+            return res.status(500).json({ error: 'محتوى الملف مرفوض لسياسات الأمان أو غير مدعوم للمعالجة.' });
+          } else {
+            return res.status(500).json({ error: 'توقف استخراج البيانات بسبب: ' + finishReason });
+          }
+        }
+      }
+
+      if (!rawText) {
+        return res.status(500).json({ error: 'No response from AI models' });
+      }
       
-      // Parse JSON from response (strip markdown code fences if present)
-      let parsed;
+      // ── Robust JSON Extractor & Parser ──
+      let parsed: any;
       try {
-        const jsonStr = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        parsed = JSON.parse(jsonStr);
+        // Strip code fences
+        let cleaned = rawText.replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1').trim();
+        
+        // Extract json object or array substring
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+        if (jsonMatch) {
+          cleaned = jsonMatch[0];
+        }
+
+        // Clean trailing commas and raw newlines inside JSON
+        try {
+          parsed = JSON.parse(cleaned);
+        } catch {
+          const sanitized = cleaned
+            .replace(/,\s*([\}\]])/g, '$1')
+            .replace(/\t/g, ' ');
+          parsed = JSON.parse(sanitized);
+        }
       } catch (parseErr) {
-        console.error('[Gemini Parse Error]', rawText);
-        return res.status(500).json({ error: 'Failed to parse Gemini response', raw: rawText.substring(0, 500) });
+        console.error('[AI Parse Error]', parseErr, 'Raw Text:', rawText.substring(0, 1000));
+        return res.status(500).json({ error: `فشل تحليل رد الذكاء الاصطناعي. المحتوى الخام: ${rawText.substring(0, 400)}` });
       }
 
-      return res.json(parsed);
+      // Normalize dishes array (supports { dishes: [...] }, [{ ... }], { items: [...] }, etc.)
+      let dishes: any[] = [];
+      if (Array.isArray(parsed)) {
+        dishes = parsed;
+      } else if (parsed && typeof parsed === 'object') {
+        dishes = parsed.dishes || parsed.items || parsed.menu || parsed.dishes_list || Object.values(parsed).find(v => Array.isArray(v)) || [];
+      }
+
+      return res.json({ dishes });
     }
 
     // ══════════════════════════════════════════════════════
@@ -915,21 +1366,58 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
 
 رسالة الزبون الحالية: "${messageText}"`;
 
-          const aiResp = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ parts: [{ text: aiPrompt }] }],
-                generationConfig: { temperature: 0.2, maxOutputTokens: 500 }
-              })
+          // ── Call AI (Primary: Groq llama-3.1-8b-instant [14,400 req/day] -> Fallback: Gemini 3.6-flash) ──
+          const groqKey = process.env.GROQ_API_KEY;
+
+          if (groqKey) {
+            try {
+              const groqResp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${groqKey}`
+                },
+                body: JSON.stringify({
+                  model: 'llama-3.1-8b-instant',
+                  messages: [{ role: 'user', content: aiPrompt }],
+                  temperature: 0.2,
+                  max_tokens: 500
+                })
+              });
+
+              if (groqResp.ok) {
+                const groqData = await groqResp.json();
+                const reply = groqData.choices?.[0]?.message?.content;
+                if (reply) aiReplyText = reply.trim();
+              } else {
+                console.warn('[Groq WhatsApp AI failed, falling back to Gemini]');
+              }
+            } catch (groqErr) {
+              console.warn('[Groq WhatsApp AI exception, falling back to Gemini]', groqErr);
             }
-          );
-          if (aiResp.ok) {
-            const aiData = await aiResp.json();
-            const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) aiReplyText = text.trim();
+          }
+
+          if (!aiReplyText && geminiKey) {
+            // Attempt fallback to Gemini Flash Latest
+            const geminiResp = await fetch(
+              `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${geminiKey}`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  contents: [{ parts: [{ text: aiPrompt }] }],
+                  generationConfig: { temperature: 0.2, maxOutputTokens: 500 }
+                })
+              }
+            );
+            if (!geminiResp.ok) {
+              console.warn('[Gemini 1.5-flash failed in AI reply]', await geminiResp.text());
+            }
+            if (geminiResp.ok) {
+              const aiData = await geminiResp.json();
+              const text = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) aiReplyText = text.trim();
+            }
           }
         } catch (err) {
           console.error('[WhatsApp AI Error]', err);
@@ -1036,13 +1524,27 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
 
       if (error) return res.status(500).json({ error: error.message });
 
+      let phoneId = data?.whatsapp_phone_number_id || '';
+      let hasToken = !!data?.whatsapp_access_token;
+      
+      // Auto-clear leaked dummy data (e.g. user email saved in phone ID field)
+      if (phoneId.includes('@')) {
+        await sb.from('pos_branches').update({ 
+          whatsapp_phone_number_id: null, 
+          whatsapp_access_token: null, 
+          waba_id: null 
+        }).eq('id', branchId);
+        phoneId = '';
+        hasToken = false;
+      }
+
       return res.json({
         branchId: data?.id,
-        whatsappPhoneNumberId: data?.whatsapp_phone_number_id || '',
+        whatsappPhoneNumberId: phoneId,
         whatsappNumber: data?.whatsapp_number || '',
         wabaId: data?.waba_id || '',
         whatsappEnabled: !!data?.whatsapp_enabled,
-        hasToken: !!data?.whatsapp_access_token,
+        hasToken,
       });
     }
 

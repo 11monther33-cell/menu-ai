@@ -260,7 +260,7 @@ export const MenuBuilder = () => {
                   <div className="p-5">
                     <div className="flex justify-between items-start mb-2">
                       <h4 className="font-bold text-lg text-text-primary">{isRtl ? dish.name_ar : dish.name_en}</h4>
-                      <span className="text-gold font-bold">{dish.price} $</span>
+                      <span className="text-gold font-bold">{dish.price} {isRtl ? 'ر.ع.' : 'OMR'}</span>
                     </div>
                     <p className="text-xs text-text-secondary line-clamp-2 mb-4 h-8">
                       {isRtl ? dish.description_ar : dish.description_en}
@@ -325,7 +325,7 @@ export const MenuBuilder = () => {
                           <span className="font-bold text-sm text-text-primary">{isRtl ? dish.name_ar : dish.name_en}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-gold">{dish.price} $</td>
+                      <td className="px-6 py-4 text-sm font-bold text-gold">{dish.price} {isRtl ? 'ر.ع.' : 'OMR'}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-1 rounded-md text-[10px] font-bold ${dish.is_available ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                           {dish.is_available ? 'AVAILABLE' : 'OUT OF STOCK'}

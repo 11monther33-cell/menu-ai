@@ -1,0 +1,9 @@
+
+Menu
+SALADS
+Caesar Salad 5.00
+Greek Salad 4.50
+
+MAIN COURSES
+Beef Steak 15.00
+Grilled Chicken 12.00

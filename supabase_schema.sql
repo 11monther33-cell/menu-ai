@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS dishes (
   description_ar TEXT,
   description_en TEXT,
   price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-  currency TEXT DEFAULT 'USD',
+  currency TEXT DEFAULT 'OMR',
   
   -- Media
   image_url TEXT,

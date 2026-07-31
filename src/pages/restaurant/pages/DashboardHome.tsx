@@ -248,22 +248,36 @@ export const DashboardHome = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button className="flex-1 md:flex-none px-4 py-2.5 bg-gold text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-gold/20 hover:bg-gold/90 transition-all">
+          <Link 
+            to="/dashboard/menu?action=new"
+            className="flex-1 md:flex-none px-4 py-2.5 bg-gold text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-gold/20 hover:bg-gold/90 transition-all"
+          >
             <Plus size={18} />
             {t('restaurant.dashboard.quickActions.addDish')}
-          </button>
-          <button className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all">
+          </Link>
+          <Link 
+            to="/dashboard/qr-codes"
+            className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all"
+          >
             <QrCode size={18} />
             {t('restaurant.dashboard.quickActions.printQr')}
-          </button>
-          <button className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all">
+          </Link>
+          <Link 
+            to="/dashboard/orders"
+            className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all"
+          >
             <ClipboardList size={18} />
             {t('restaurant.dashboard.quickActions.liveOrders')}
-          </button>
-          <button className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all">
+          </Link>
+          <Link 
+            to={`/menu/${user?.restaurantId}`} 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 md:flex-none px-4 py-2.5 bg-card text-text-primary border border-border-custom font-bold rounded-xl flex items-center justify-center gap-2 hover:bg-sidebar transition-all"
+          >
             <ExternalLink size={18} />
             {t('restaurant.dashboard.quickActions.previewMenu')}
-          </button>
+          </Link>
         </div>
       </div>
 

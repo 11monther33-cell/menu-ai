@@ -11,6 +11,7 @@ export interface MenuItem {
   currency: string;
   category: string;
   image: string;
+  video?: string;
   images?: string[];
   model3D?: string;
   model3dStatus?: 'NONE' | 'UPLOADING' | 'PROCESSING' | 'READY' | 'ERROR' | 'REQUESTED';

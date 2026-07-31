@@ -43,7 +43,7 @@ const MenuBuilderPage = () => {
     descriptionAr: '',
     descriptionEn: '',
     price: 0,
-    currency: 'USD' as const,
+    currency: 'OMR' as const,
     image: '',
     model3D: '',
     available: true
@@ -90,7 +90,7 @@ const MenuBuilderPage = () => {
         descriptionAr: '',
         descriptionEn: '',
         price: 0,
-        currency: 'USD',
+        currency: 'OMR',
         image: '',
         model3D: '',
         available: true

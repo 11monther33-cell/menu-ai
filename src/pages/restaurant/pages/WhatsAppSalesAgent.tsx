@@ -53,26 +53,17 @@ export const WhatsAppSalesAgent = () => {
   const { currentBranch, setBranch } = usePOSStore();
 
   const [activeTab, setActiveTab] = useState<'connection' | 'qr' | 'monitor'>('connection');
-  const [connectionMethod, setConnectionMethod] = useState<'embedded' | 'manual'>('embedded');
   const [monitorSubTab, setMonitorSubTab] = useState<'conversations' | 'orders' | 'faqs'>('conversations');
 
   // Connection State
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState('');
-  const [whatsappAccessToken, setWhatsappAccessToken] = useState('');
-  const [wabaId, setWabaId] = useState('');
   const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [wabaId, setWabaId] = useState('');
   const [whatsappEnabled, setWhatsappEnabled] = useState(false);
   const [hasToken, setHasToken] = useState(false);
-  const [showTokenInput, setShowTokenInput] = useState(false);
   const [loadingConnection, setLoadingConnection] = useState(false);
-  const [savingConnection, setSavingConnection] = useState(false);
   const [connectingEmbedded, setConnectingEmbedded] = useState(false);
   const [showGuideModal, setShowGuideModal] = useState(false);
-
-  // Meta Developer Credentials (for Embedded Signup)
-  const [metaAppId, setMetaAppId] = useState(import.meta.env.VITE_META_APP_ID || '');
-  const [metaConfigId, setMetaConfigId] = useState(import.meta.env.VITE_META_CONFIG_ID || '');
-  const [showMetaAppConfig, setShowMetaAppConfig] = useState(false);
 
   // Meta QR Codes State
   const [qrCodes, setQrCodes] = useState<MetaQRCode[]>([]);
@@ -104,7 +95,8 @@ export const WhatsAppSalesAgent = () => {
   const [submittingFaq, setSubmittingFaq] = useState(false);
 
   // Initialize Facebook JS SDK for Meta Embedded Signup dynamically
-  const initFacebookSdk = (appId: string) => {
+  const initFacebookSdk = () => {
+    const appId = import.meta.env.VITE_META_APP_ID;
     if (!appId || appId === '123456789') return;
     if (!document.getElementById('facebook-jssdk')) {
       const script = document.createElement('script');
@@ -137,10 +129,8 @@ export const WhatsAppSalesAgent = () => {
   };
 
   useEffect(() => {
-    if (metaAppId) {
-      initFacebookSdk(metaAppId);
-    }
-  }, [metaAppId]);
+    initFacebookSdk();
+  }, []);
 
   // Initialize Branch Context
   useEffect(() => {
@@ -241,13 +231,15 @@ export const WhatsAppSalesAgent = () => {
   const launchEmbeddedSignup = () => {
     if (!currentBranch?.id) return;
 
-    if (!metaAppId || metaAppId === '123456789') {
-      setShowMetaAppConfig(true);
-      toast(isRtl ? 'يرجى إدخال Meta App ID الخاص بك أولاً، أو استخدام الربط المباشر' : 'Please provide Meta App ID or use direct credentials connection.', { icon: 'ℹ️' });
+    const appId = import.meta.env.VITE_META_APP_ID;
+    const configId = import.meta.env.VITE_META_CONFIG_ID;
+
+    if (!appId || appId === '123456789') {
+      toast(isRtl ? 'الخدمة قيد الإعداد من قبل الإدارة حالياً.' : 'Service is being configured by administration.', { icon: 'ℹ️' });
       return;
     }
 
-    initFacebookSdk(metaAppId);
+    initFacebookSdk();
     setConnectingEmbedded(true);
 
     if (window.FB) {
@@ -260,13 +252,13 @@ export const WhatsAppSalesAgent = () => {
           toast.error(isRtl ? 'تم إلغاء عملية التسجيل عبر Meta' : 'Meta signup cancelled');
         }
       }, {
-        config_id: metaConfigId || '1234567890',
+        config_id: configId || '1234567890',
         response_type: 'code',
         override_default_response_type: true,
         extras: { feature: 'whatsapp_embedded_signup' }
       });
     } else {
-      toast.error(isRtl ? 'تعذر جلب Facebook SDK. يمكنك استخدام خيار "الربط المباشر المتقدم"' : 'FB SDK unavailable. Use Direct Credentials Entry option.');
+      toast.error(isRtl ? 'تعذر جلب Facebook SDK. تأكد من إيقاف مانع الإعلانات.' : 'FB SDK unavailable. Disable adblocker.');
       setConnectingEmbedded(false);
     }
   };
@@ -290,35 +282,6 @@ export const WhatsAppSalesAgent = () => {
     }
   };
 
-  // Direct Credentials Save Handler (Manual Mode)
-  const handleSaveManualConnection = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentBranch?.id) return;
-    if (!whatsappPhoneNumberId) {
-      toast.error(isRtl ? 'يرجى إدخال معرّف رقم الهاتف (Phone Number ID)' : 'Please enter Phone Number ID');
-      return;
-    }
-
-    setSavingConnection(true);
-    try {
-      const res = await whatsappService.saveConnection({
-        branchId: currentBranch.id,
-        whatsappPhoneNumberId,
-        whatsappAccessToken: whatsappAccessToken || undefined,
-        whatsappNumber,
-        whatsappEnabled: true,
-      });
-      toast.success(isRtl ? 'تم حفظ بيانات الربط المباشرة بنجاح!' : 'Direct WhatsApp credentials saved!');
-      setHasToken(res.branch.hasToken);
-      setWhatsappEnabled(true);
-      setWhatsappAccessToken('');
-      setShowTokenInput(false);
-    } catch (err: any) {
-      toast.error(err.message || 'فشل حفظ البيانات');
-    } finally {
-      setSavingConnection(false);
-    }
-  };
 
   // Toggle AI Sales Agent Active State
   const handleToggleAi = async (enabled: boolean) => {
@@ -542,36 +505,11 @@ export const WhatsAppSalesAgent = () => {
                   </p>
                 </div>
 
-                {/* Connection Mode Switcher */}
-                <div className="flex bg-main p-1 rounded-2xl border border-white/10">
-                  <button
-                    onClick={() => setConnectionMethod('embedded')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      connectionMethod === 'embedded'
-                        ? 'bg-gold text-main shadow-md'
-                        : 'text-muted hover:text-text'
-                    }`}
-                  >
-                    <Globe size={14} />
-                    {isRtl ? 'التسجيل المدمج Meta' : 'Meta Embedded'}
-                  </button>
-
-                  <button
-                    onClick={() => setConnectionMethod('manual')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
-                      connectionMethod === 'manual'
-                        ? 'bg-gold text-main shadow-md'
-                        : 'text-muted hover:text-text'
-                    }`}
-                  >
-                    <Key size={14} />
-                    {isRtl ? 'الربط المباشر (Manual)' : 'Direct Credentials'}
-                  </button>
                 </div>
               </div>
 
               {/* Connected Status Card */}
-              {(hasToken || whatsappPhoneNumberId) && (
+              {hasToken && (
                 <div className="bg-main border border-emerald-500/20 rounded-3xl p-6 space-y-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -599,7 +537,7 @@ export const WhatsAppSalesAgent = () => {
                         {isRtl ? 'معرف رقم الهاتف (Phone Number ID)' : 'Phone Number ID'}
                       </span>
                       <span className="text-text font-bold dir-ltr block mt-1">
-                        {whatsappPhoneNumberId || '104820492849204'}
+                        {whatsappPhoneNumberId}
                       </span>
                     </div>
 
@@ -608,17 +546,14 @@ export const WhatsAppSalesAgent = () => {
                         {isRtl ? 'معرّف حساب الواتساب (WABA ID)' : 'WhatsApp Business Account ID'}
                       </span>
                       <span className="text-text font-bold dir-ltr block mt-1">
-                        {wabaId || '928402849204918'}
+                        {wabaId}
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-2">
                     <button
-                      onClick={() => {
-                        if (connectionMethod === 'embedded') launchEmbeddedSignup();
-                        else setShowTokenInput(true);
-                      }}
+                      onClick={launchEmbeddedSignup}
                       className="px-6 py-2.5 bg-white/5 hover:bg-white/10 text-gold border border-gold/30 rounded-2xl text-xs font-bold transition-all flex items-center gap-2"
                     >
                       <LogIn size={16} />
@@ -636,8 +571,7 @@ export const WhatsAppSalesAgent = () => {
               )}
 
               {/* METHOD 1: META EMBEDDED SIGNUP FLOW */}
-              {connectionMethod === 'embedded' && (
-                <div className="space-y-6">
+              <div className="space-y-6">
                   <div className="bg-gradient-to-br from-main via-surface-2 to-main border border-gold/20 rounded-3xl p-8 text-center space-y-6 shadow-xl">
                     <div className="w-16 h-16 rounded-3xl bg-gold/10 border border-gold/30 text-gold mx-auto flex items-center justify-center shadow-lg shadow-gold/10">
                       <Globe size={32} />
@@ -668,142 +602,8 @@ export const WhatsAppSalesAgent = () => {
                         <span>{isRtl ? 'ربط حساب واتساب عبر Meta Popup' : 'Connect WhatsApp via Meta'}</span>
                       </button>
 
-                      <button
-                        onClick={() => setShowMetaAppConfig(!showMetaAppConfig)}
-                        className="px-4 py-3 bg-white/5 hover:bg-white/10 text-muted hover:text-text rounded-2xl text-xs font-semibold transition-all flex items-center gap-1.5"
-                      >
-                        <SlidersHorizontal size={14} />
-                        {isRtl ? 'إعدادات Meta App ID' : 'Meta App Settings'}
-                      </button>
                     </div>
-                  </div>
-
-                  {/* Configurable Meta App ID Section */}
-                  {showMetaAppConfig && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      className="bg-main border border-white/10 rounded-2xl p-6 space-y-4"
-                    >
-                      <h4 className="text-xs font-bold text-gold uppercase tracking-wider flex items-center gap-2">
-                        <Key size={14} />
-                        {isRtl ? 'إعدادات معرّف التطبيق (Meta Developer App Credentials)' : 'Meta Developer App Credentials'}
-                      </h4>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs text-muted mb-1 font-semibold">Meta App ID</label>
-                          <input
-                            type="text"
-                            value={metaAppId}
-                            onChange={e => setMetaAppId(e.target.value)}
-                            placeholder="e.g. 948204829104"
-                            className="w-full bg-surface-2 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-text dir-ltr font-mono focus:border-gold outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs text-muted mb-1 font-semibold">Meta Configuration ID</label>
-                          <input
-                            type="text"
-                            value={metaConfigId}
-                            onChange={e => setMetaConfigId(e.target.value)}
-                            placeholder="e.g. 19284019284"
-                            className="w-full bg-surface-2 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-text dir-ltr font-mono focus:border-gold outline-none"
-                          />
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
                 </div>
-              )}
-
-              {/* METHOD 2: DIRECT MANUAL CREDENTIALS FORM */}
-              {connectionMethod === 'manual' && (
-                <form onSubmit={handleSaveManualConnection} className="space-y-6 bg-main/40 border border-white/5 rounded-3xl p-6">
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
-                    <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
-                    <p className="text-xs text-amber-200 leading-relaxed">
-                      {isRtl
-                        ? 'الربط المباشر يتيح لك إدخال Phone Number ID والـ Access Token الخاص بحسابك من Meta Developers Console مباشرة دون الحاجة لـ App Review.'
-                        : 'Direct credentials connection allows pasting your Phone Number ID and Access Token directly from Meta Developers Console.'}
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">
-                      {isRtl ? 'رقم الواتساب الخاص بالمطعم' : 'Restaurant WhatsApp Phone Number'}
-                    </label>
-                    <input
-                      type="text"
-                      value={whatsappNumber}
-                      onChange={e => setWhatsappNumber(e.target.value)}
-                      placeholder="+96890000000 / +966500000000"
-                      className="w-full bg-surface-2 border border-white/10 rounded-2xl px-4 py-3.5 text-text focus:border-gold outline-none dir-ltr font-mono text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-muted mb-2 uppercase tracking-wider">
-                      {isRtl ? 'معرّف رقم الهاتف (WhatsApp Phone Number ID)' : 'WhatsApp Phone Number ID'}
-                    </label>
-                    <input
-                      type="text"
-                      value={whatsappPhoneNumberId}
-                      onChange={e => setWhatsappPhoneNumberId(e.target.value)}
-                      placeholder="e.g. 104820492849204"
-                      className="w-full bg-surface-2 border border-white/10 rounded-2xl px-4 py-3.5 text-text focus:border-gold outline-none dir-ltr font-mono text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="block text-xs font-semibold text-muted uppercase tracking-wider">
-                        {isRtl ? 'رمز الوصول الدائم (Permanent Access Token)' : 'Permanent Access Token'}
-                      </label>
-                      {hasToken && (
-                        <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full flex items-center gap-1 font-semibold">
-                          <ShieldCheck size={12} />
-                          {isRtl ? 'التوكن مشفر (AES-256)' : 'AES-256 Encrypted'}
-                        </span>
-                      )}
-                    </div>
-
-                    {!showTokenInput && hasToken ? (
-                      <div className="flex items-center justify-between bg-surface-2 border border-white/10 rounded-2xl p-4">
-                        <span className="text-xs text-muted font-mono tracking-widest">••••••••••••••••••••••••••••••••</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowTokenInput(true)}
-                          className="text-xs text-gold font-bold hover:underline"
-                        >
-                          {isRtl ? 'تحديث التوكن' : 'Update Token'}
-                        </button>
-                      </div>
-                    ) : (
-                      <input
-                        type="password"
-                        value={whatsappAccessToken}
-                        onChange={e => setWhatsappAccessToken(e.target.value)}
-                        placeholder="EAAG..."
-                        className="w-full bg-surface-2 border border-white/10 rounded-2xl px-4 py-3.5 text-text focus:border-gold outline-none dir-ltr font-mono text-sm"
-                      />
-                    )}
-                  </div>
-
-                  <div className="pt-4 flex justify-end">
-                    <button
-                      type="submit"
-                      disabled={savingConnection}
-                      className="px-8 py-3.5 bg-gold text-main font-bold rounded-2xl hover:bg-gold-light transition-all shadow-lg shadow-gold/20 flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {savingConnection && <RefreshCw size={16} className="animate-spin" />}
-                      {isRtl ? 'حفظ بيانات الربط المباشرة' : 'Save Direct Credentials'}
-                    </button>
-                  </div>
-                </form>
-              )}
 
               {/* AI Activation Toggle */}
               <div className="bg-main/50 border border-white/5 rounded-2xl p-5 flex items-center justify-between">
@@ -1491,7 +1291,7 @@ export const WhatsAppSalesAgent = () => {
             <div className="space-y-4 text-xs text-muted leading-relaxed">
               <div className="p-4 bg-main border border-white/5 rounded-2xl space-y-2">
                 <span className="font-bold text-gold block text-sm">1. التسجيل المدمج التلقائي (Meta Embedded Signup)</span>
-                <p>يتطلب إدخال Meta App ID الخاص بتطبيقك في خانة الإعدادات ليقوم بفتح نافذة Meta الرسمية وتوليد الرقم وتخزينه تلقائياً.</p>
+                <p>يتيح لك النظام ربط رقم واتساب المطعم مباشرة عبر التسجيل بحساب فيسبوك بضغطة زر وتوليد التوكن تلقائياً.</p>
               </div>
 
               <div className="p-4 bg-main border border-white/5 rounded-2xl space-y-2">

@@ -1,17 +1,24 @@
-import * as dotenv from 'dotenv';
-import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
+import dotenv from 'dotenv';
+
 dotenv.config();
 
-const url = process.env.VITE_SUPABASE_URL + '/rest/v1/?apikey=' + process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL!,
+  process.env.VITE_SUPABASE_ANON_KEY!
+);
 
-fetch(url)
-  .then(res => res.json())
-  .then(data => {
-    fs.writeFileSync('schema.json', JSON.stringify(data, null, 2));
-    const dishes = data.definitions ? data.definitions.dishes : data.components?.schemas?.dishes;
-    if (dishes) {
-      console.log("Dishes columns:", Object.keys(dishes.properties));
+async function checkSchema() {
+  const { data, error } = await supabase.from('dishes').select('*').limit(1);
+  if (error) {
+    console.error("Select failed:", error);
+  } else {
+    if (data.length > 0) {
+      console.log("Columns:", Object.keys(data[0]));
     } else {
-      console.log("Dishes definition not found");
+      console.log("No data, but query succeeded");
     }
-  });
+  }
+}
+
+checkSchema();

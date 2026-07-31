@@ -29,7 +29,7 @@ export const DishModal: React.FC<DishModalProps> = ({ isOpen, onClose, onSave, d
     description_ar: '',
     description_en: '',
     price: '',
-    currency: 'USD',
+    currency: 'OMR',
     image_url: '',
     model_3d_url: '',
     calories: '',
@@ -477,7 +477,7 @@ export const DishModal: React.FC<DishModalProps> = ({ isOpen, onClose, onSave, d
           modelUrl={formData.model_3d_url}
           dishName={isRtl ? formData.name_ar : formData.name_en}
           dishNameAr={formData.name_ar}
-          price={formData.price ? `${formData.price} $` : ''}
+          price={formData.price ? `${formData.price} ${isRtl ? 'ر.ع.' : 'OMR'}` : ''}
           onClose={() => setShow3DFull(false)}
         />
       )}

@@ -1,13 +1,15 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Upload, FileSpreadsheet, FileText, Check, AlertTriangle, 
-  XCircle, Loader2, Sparkles, ArrowRight, Edit3, Trash2 
+  XCircle, Loader2, Sparkles, ArrowRight, Edit3, Trash2,
+  FileType2, History, Undo2, Copy, ArrowLeftRight, Globe
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { supabase } from '../../lib/supabase';
 import { cn } from '../../lib/utils';
 import toast from 'react-hot-toast';
+import stringSimilarity from 'string-similarity';
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -17,12 +19,22 @@ interface ImportRow {
   name_ar: string;
   name_en: string;
   price: number;
-  category_name?: string;
+  category_name_ar?: string;
+  category_name_en?: string;
   description_ar?: string;
   description_en?: string;
   image_url?: string;
-  status: 'ready' | 'warning' | 'error';
+  flag?: string | null;
+  status: 'ready' | 'warning' | 'error' | 'duplicate';
   statusMessage?: string;
+  // Duplicate detection
+  duplicateWarning?: string;
+  duplicateMatchId?: string;
+  duplicateAction?: 'skip' | 'update';
+  // Category matching
+  matchedCategoryId?: string;
+  matchedCategoryName?: string;
+  isNewCategory?: boolean;
 }
 
 interface MenuImportModalProps {
@@ -33,7 +45,7 @@ interface MenuImportModalProps {
 }
 
 type ImportStep = 'upload' | 'processing' | 'preview' | 'importing';
-type FileType = 'excel' | 'pdf';
+type FileType = 'excel' | 'pdf' | 'word' | 'url';
 
 // ═══════════════════════════════════════════════════════════════
 // Component
@@ -50,9 +62,11 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
 
   const [step, setStep] = useState<ImportStep>('upload');
   const [fileType, setFileType] = useState<FileType>('excel');
+  const [inputUrl, setInputUrl] = useState('');
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [editingRow, setEditingRow] = useState<number | null>(null);
   const [importProgress, setImportProgress] = useState(0);
+  const [importHistory, setImportHistory] = useState<{batchId: string, count: number, date: string}[]>([]);
 
   // ── Reset state ─────────────────────────────────────────────
   const resetState = useCallback(() => {
@@ -60,11 +74,160 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
     setRows([]);
     setEditingRow(null);
     setImportProgress(0);
+    loadImportHistory();
   }, []);
 
   const handleClose = () => {
     resetState();
     onClose();
+  };
+
+  // ── History Management ──────────────────────────────────────
+  const loadImportHistory = async () => {
+    if (!restaurantId) return;
+    try {
+      const { data, error } = await supabase
+        .from('dishes')
+        .select('import_batch_id, created_at')
+        .eq('restaurant_id', restaurantId)
+        .not('import_batch_id', 'is', null);
+
+      if (error) throw error;
+
+      if (data) {
+        const groups = data.reduce((acc: any, curr: any) => {
+          if (!acc[curr.import_batch_id]) {
+            acc[curr.import_batch_id] = { count: 0, minDate: curr.created_at };
+          }
+          acc[curr.import_batch_id].count++;
+          if (new Date(curr.created_at) < new Date(acc[curr.import_batch_id].minDate)) {
+            acc[curr.import_batch_id].minDate = curr.created_at;
+          }
+          return acc;
+        }, {});
+
+        const historyArray = Object.entries(groups).map(([id, val]: any) => ({
+          batchId: id,
+          count: val.count,
+          date: val.minDate
+        })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+        setImportHistory(historyArray);
+      }
+    } catch (error) {
+      console.error('Error loading history:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen && step === 'upload') {
+      loadImportHistory();
+    }
+  }, [isOpen, step, restaurantId]);
+
+  const handleUndo = async (batchId: string) => {
+    try {
+      const { error } = await supabase
+        .from('dishes')
+        .update({ is_available: false })
+        .eq('import_batch_id', batchId)
+        .eq('restaurant_id', restaurantId);
+
+      if (error) throw error;
+
+      toast.success(isRtl ? 'تم إلغاء تنشيط الأطباق المستوردة بنجاح' : 'Imported dishes deactivated successfully');
+      loadImportHistory();
+      onImportComplete();
+    } catch (error) {
+      console.error('Undo error:', error);
+      toast.error(isRtl ? 'خطأ في التراجع' : 'Error undoing import');
+    }
+  };
+
+  // ── Data Processing (Matching) ──────────────────────────────
+  const processParsedData = async (parsed: ImportRow[]) => {
+    try {
+      const [{ data: existingCategories }, { data: existingDishes }] = await Promise.all([
+        supabase.from('categories').select('id, name_ar, name_en').eq('restaurant_id', restaurantId),
+        supabase.from('dishes').select('id, name_ar, name_en').eq('restaurant_id', restaurantId)
+      ]);
+
+      const dishes = existingDishes || [];
+      const categories = existingCategories || [];
+
+      const dishNamesAr = dishes.map(d => d.name_ar || '').filter(Boolean);
+      const dishNamesEn = dishes.map(d => d.name_en || '').filter(Boolean);
+      
+      const categoryNamesAr = categories.map(c => c.name_ar || '').filter(Boolean);
+      const categoryNamesEn = categories.map(c => c.name_en || '').filter(Boolean);
+
+      const processedRows = parsed.map(row => {
+        const newRow = { ...row };
+
+        // 1. Category Matching
+        const searchCategoryAr = newRow.category_name_ar;
+        const searchCategoryEn = newRow.category_name_en || newRow.category_name_ar;
+        
+        if (searchCategoryAr || searchCategoryEn) {
+          let bestCatMatch = { rating: 0, target: '' };
+          
+          if (searchCategoryAr && categoryNamesAr.length) {
+            const match = stringSimilarity.findBestMatch(searchCategoryAr, categoryNamesAr).bestMatch;
+            if (match.rating > bestCatMatch.rating) bestCatMatch = match;
+          }
+          if (searchCategoryEn && categoryNamesEn.length) {
+            const match = stringSimilarity.findBestMatch(searchCategoryEn, categoryNamesEn).bestMatch;
+            if (match.rating > bestCatMatch.rating) bestCatMatch = match;
+          }
+
+          if (bestCatMatch.rating > 0.75) {
+            const matchedCat = categories.find(c => c.name_ar === bestCatMatch.target || c.name_en === bestCatMatch.target);
+            if (matchedCat) {
+              newRow.matchedCategoryId = matchedCat.id;
+              newRow.matchedCategoryName = matchedCat.name_ar || matchedCat.name_en || '';
+            }
+          } else {
+            newRow.isNewCategory = true;
+          }
+        }
+
+        // 2. Duplicate Dish Matching
+        const searchName = newRow.name_ar || newRow.name_en;
+        if (searchName) {
+          let bestDishMatch = { rating: 0, target: '' };
+          
+          if (dishNamesAr.length) {
+            const match = stringSimilarity.findBestMatch(searchName, dishNamesAr).bestMatch;
+            if (match.rating > bestDishMatch.rating) bestDishMatch = match;
+          }
+          if (dishNamesEn.length) {
+            const match = stringSimilarity.findBestMatch(searchName, dishNamesEn).bestMatch;
+            if (match.rating > bestDishMatch.rating) bestDishMatch = match;
+          }
+
+          if (bestDishMatch.rating > 0.75) {
+            const matchedDish = dishes.find(d => d.name_ar === bestDishMatch.target || d.name_en === bestDishMatch.target);
+            if (matchedDish) {
+              newRow.status = 'duplicate';
+              newRow.duplicateMatchId = matchedDish.id;
+              newRow.duplicateWarning = isRtl 
+                ? `يشبه "${matchedDish.name_ar || matchedDish.name_en}" الموجود مسبقاً` 
+                : `Similar to existing "${matchedDish.name_en || matchedDish.name_ar}"`;
+              newRow.duplicateAction = 'skip';
+            }
+          }
+        }
+
+        return newRow;
+      });
+
+      setRows(processedRows);
+      setStep('preview');
+    } catch (error) {
+      console.error('Error processing data:', error);
+      toast.error(isRtl ? 'خطأ في مطابقة البيانات' : 'Error matching data');
+      setStep('upload');
+    }
   };
 
   // ── Excel/CSV Parsing ───────────────────────────────────────
@@ -137,7 +300,8 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
           name_ar: name,
           name_en: nameEn,
           price,
-          category_name: category,
+          category_name_ar: category,
+          category_name_en: category,
           description_ar: desc,
           description_en: descEn,
           image_url: img,
@@ -146,8 +310,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
         });
       }
 
-      setRows(parsed);
-      setStep('preview');
+      await processParsedData(parsed);
     } catch (err) {
       console.error('CSV parse error:', err);
       toast.error(isRtl ? 'خطأ في قراءة الملف' : 'Error reading file');
@@ -155,8 +318,18 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
     }
   };
 
-  // ── PDF AI Extraction ───────────────────────────────────────
-  const parsePDF = async (file: File) => {
+  // ── AI Extraction (PDF/Word/URL) ───────────────────────
+  const handleAIImport = async (source: File | string) => {
+    if (typeof source === 'string') {
+      const blocklist = ['talabat.com', 'ubereats.com', 'zomato.com', 'deliveroo', 'hungerstation.com'];
+      if (blocklist.some(domain => source.toLowerCase().includes(domain))) {
+        toast.error(isRtl 
+          ? 'لا يمكن الاستيراد من منصات التوصيل الخارجية (مثل طلبات أو أوبر إيتس) لأن بياناتها تخص المنصة نفسها، مو موقعكم. يرجى استخدام موقع مطعمكم الخاص، أو تصدير القائمة كملف PDF/Word ورفعه مباشرة.' 
+          : 'Cannot import from delivery platforms. Please use your own website or upload a PDF.', { duration: 8000 });
+        return;
+      }
+    }
+
     setStep('processing');
 
     try {
@@ -164,9 +337,14 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
       if (!token) throw new Error('Not authenticated');
 
       const formData = new FormData();
-      formData.append('file', file);
+      if (typeof source === 'string') {
+        formData.append('url', source);
+      } else {
+        formData.append('file', source);
+      }
 
-      const resp = await fetch('/api/import-menu-pdf', {
+      // The backend handles PDF, Word, and URL at this endpoint
+      const resp = await fetch('/api/import-menu', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -174,13 +352,22 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
 
       if (!resp.ok) {
         const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.error || 'PDF extraction failed');
+        let errorMessage = errData.error || 'Extraction failed';
+        if (errData.raw) {
+          errorMessage += ` | المحتوى الخام: ${errData.raw}`;
+        }
+        if (errData.requiresManualFallback) {
+          toast.error(errorMessage, { duration: 10000 });
+          setStep('upload');
+          return;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await resp.json();
       
       if (!data.dishes || !Array.isArray(data.dishes) || data.dishes.length === 0) {
-        toast.error(isRtl ? 'لم يتم استخراج أي أطباق من الملف' : 'No dishes extracted from PDF');
+        toast.error(isRtl ? 'لم يتم استخراج أي أطباق من الملف' : 'No dishes extracted from document');
         setStep('upload');
         return;
       }
@@ -209,7 +396,8 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
           name_ar: name,
           name_en: nameEn,
           price,
-          category_name: dish.category || '',
+          category_name_ar: dish.category_ar || dish.category || '',
+          category_name_en: dish.category_en || dish.category || '',
           description_ar: dish.description_ar || dish.description || '',
           description_en: dish.description_en || dish.description || '',
           image_url: '',
@@ -218,10 +406,9 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
         };
       });
 
-      setRows(parsed);
-      setStep('preview');
+      await processParsedData(parsed);
     } catch (err: any) {
-      console.error('PDF extraction error:', err);
+      console.error('Document extraction error:', err);
       toast.error(err.message || (isRtl ? 'خطأ في استخراج البيانات' : 'Extraction error'));
       setStep('upload');
     }
@@ -236,15 +423,14 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
     
     if (['csv', 'tsv', 'xlsx', 'xls'].includes(ext || '')) {
       if (ext === 'xlsx' || ext === 'xls') {
-        // For Excel files, read as CSV fallback (simplified — in production use SheetJS)
         toast.error(isRtl ? 'يرجى حفظ الملف بصيغة CSV أولاً' : 'Please save as CSV first');
         return;
       }
       await parseExcelCSV(file);
-    } else if (ext === 'pdf') {
-      await parsePDF(file);
+    } else if (ext === 'pdf' || ext === 'doc' || ext === 'docx') {
+      await handleAIImport(file);
     } else {
-      toast.error(isRtl ? 'صيغة غير مدعومة. استخدم CSV أو PDF' : 'Unsupported format. Use CSV or PDF');
+      toast.error(isRtl ? 'صيغة غير مدعومة' : 'Unsupported format');
     }
 
     // Reset file input
@@ -253,7 +439,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
 
   // ── Confirm Import ──────────────────────────────────────────
   const handleConfirmImport = async () => {
-    const validRows = rows.filter(r => r.status !== 'error');
+    const validRows = rows.filter(r => r.status !== 'error' && r.duplicateAction !== 'skip');
     if (validRows.length === 0) {
       toast.error(isRtl ? 'لا توجد أطباق صالحة للاستيراد' : 'No valid dishes to import');
       return;
@@ -261,48 +447,42 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
 
     setStep('importing');
     let imported = 0;
+    const batchId = crypto.randomUUID();
 
     try {
-      // Fetch existing categories for matching
-      const { data: existingCategories } = await supabase
-        .from('categories')
-        .select('id, name_ar, name_en')
-        .eq('restaurant_id', restaurantId);
-
-      const categoryMap = new Map<string, string>();
-      (existingCategories || []).forEach((cat: any) => {
-        categoryMap.set(cat.name_ar?.toLowerCase(), cat.id);
-        categoryMap.set(cat.name_en?.toLowerCase(), cat.id);
-      });
+      const newCategoryMap = new Map<string, string>();
+      const { count: catCount } = await supabase.from('categories').select('*', { count: 'exact', head: true }).eq('restaurant_id', restaurantId);
+      let currentCatSortOrder = catCount || 0;
 
       for (const row of validRows) {
-        // Try to match category by name
-        let categoryId: string | null = null;
-        if (row.category_name) {
-          categoryId = categoryMap.get(row.category_name.toLowerCase()) || null;
-          
-          // Auto-create category if not found
-          if (!categoryId) {
+        let categoryId: string | null = row.matchedCategoryId || null;
+
+        const searchCategoryForNew = row.category_name_ar || row.category_name_en;
+        if (!categoryId && row.isNewCategory && searchCategoryForNew) {
+          const catKey = searchCategoryForNew.toLowerCase();
+          if (newCategoryMap.has(catKey)) {
+            categoryId = newCategoryMap.get(catKey)!;
+          } else {
             const { data: newCat } = await supabase
               .from('categories')
               .insert({
                 restaurant_id: restaurantId,
-                name_ar: row.category_name,
-                name_en: row.category_name,
-                sort_order: categoryMap.size
+                name_ar: row.category_name_ar || row.category_name_en,
+                name_en: row.category_name_en || row.category_name_ar,
+                sort_order: currentCatSortOrder
               })
               .select()
               .single();
             
             if (newCat) {
               categoryId = newCat.id;
-              categoryMap.set(row.category_name.toLowerCase(), newCat.id);
+              newCategoryMap.set(catKey, newCat.id);
+              currentCatSortOrder++;
             }
           }
         }
 
-        // Insert into dishes (the sync trigger will handle pos_products)
-        const { error } = await supabase.from('dishes').insert({
+        const dishPayload = {
           restaurant_id: restaurantId,
           category_id: categoryId,
           name_ar: row.name_ar || row.name_en,
@@ -310,16 +490,29 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
           description_ar: row.description_ar || null,
           description_en: row.description_en || null,
           price: row.price,
-          currency: 'USD',
+          currency: 'OMR',
           image_url: row.image_url || null,
-          is_available: true,
-          sort_order: imported
-        });
+          available: true,
+          import_batch_id: batchId,
+        };
 
-        if (!error) {
-          imported++;
+        if (row.duplicateAction === 'update' && row.duplicateMatchId) {
+          const { error } = await supabase.from('dishes').update(dishPayload).eq('id', row.duplicateMatchId);
+          if (!error) {
+            imported++;
+          } else {
+            console.error('Failed to update dish:', row.name_ar, error);
+          }
         } else {
-          console.error('Failed to import dish:', row.name_ar, error);
+          const { error } = await supabase.from('dishes').insert({
+            ...dishPayload,
+            sort_order: imported
+          });
+          if (!error) {
+            imported++;
+          } else {
+            console.error('Failed to import dish:', row.name_ar, error);
+          }
         }
 
         setImportProgress(Math.round((imported / validRows.length) * 100));
@@ -327,8 +520,8 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
 
       toast.success(
         isRtl 
-          ? `تم استيراد ${imported} طبق بنجاح!` 
-          : `Successfully imported ${imported} dishes!`
+          ? `تم استيراد/تحديث ${imported} طبق بنجاح!` 
+          : `Successfully imported/updated ${imported} dishes!`
       );
       
       onImportComplete();
@@ -346,6 +539,8 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
       if (i !== index) return r;
       const updated = { ...r, [field]: value };
       
+      if (field === 'duplicateAction') return updated;
+
       // Re-validate
       if (!updated.name_ar && !updated.name_en) {
         updated.status = 'error';
@@ -356,6 +551,9 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
       } else if (!updated.description_ar && !updated.image_url) {
         updated.status = 'warning';
         updated.statusMessage = isRtl ? 'لا يوجد وصف أو صورة' : 'No description or image';
+      } else if (updated.duplicateMatchId) {
+        updated.status = 'duplicate';
+        updated.statusMessage = '';
       } else {
         updated.status = 'ready';
         updated.statusMessage = '';
@@ -372,9 +570,10 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
   // ── Render ──────────────────────────────────────────────────
   if (!isOpen) return null;
 
-  const readyCount = rows.filter(r => r.status === 'ready').length;
+  const readyCount = rows.filter(r => (r.status === 'ready') || (r.status === 'duplicate' && r.duplicateAction === 'update')).length;
   const warningCount = rows.filter(r => r.status === 'warning').length;
   const errorCount = rows.filter(r => r.status === 'error').length;
+  const skippedCount = rows.filter(r => r.status === 'duplicate' && r.duplicateAction === 'skip').length;
 
   return (
     <AnimatePresence>
@@ -403,7 +602,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                   {isRtl ? 'استيراد المنيو' : 'Import Menu'}
                 </h3>
                 <p className="text-xs text-text-muted">
-                  {isRtl ? 'استورد الأطباق من ملف CSV أو PDF' : 'Import dishes from CSV or PDF file'}
+                  {isRtl ? 'استورد الأطباق من ملف CSV أو PDF أو Word' : 'Import dishes from CSV, PDF, or Word file'}
                 </p>
               </div>
             </div>
@@ -418,11 +617,11 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
             {step === 'upload' && (
               <div className="space-y-6">
                 {/* File type tabs */}
-                <div className="flex gap-3 p-1 bg-card rounded-xl border border-border-custom">
+                <div className="flex gap-3 p-1 bg-card rounded-xl border border-border-custom flex-wrap">
                   <button
                     onClick={() => setFileType('excel')}
                     className={cn(
-                      "flex-1 py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
+                      "flex-1 min-w-[120px] py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
                       fileType === 'excel'
                         ? "bg-gold text-black shadow-lg"
                         : "text-text-secondary hover:text-white"
@@ -434,7 +633,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                   <button
                     onClick={() => setFileType('pdf')}
                     className={cn(
-                      "flex-1 py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
+                      "flex-1 min-w-[120px] py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
                       fileType === 'pdf'
                         ? "bg-gold text-black shadow-lg"
                         : "text-text-secondary hover:text-white"
@@ -443,30 +642,93 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                     <FileText size={18} />
                     {isRtl ? 'ملف PDF' : 'PDF File'}
                   </button>
+                  <button
+                    onClick={() => setFileType('word')}
+                    className={cn(
+                      "flex-1 min-w-[120px] py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
+                      fileType === 'word'
+                        ? "bg-gold text-black shadow-lg"
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    <FileType2 size={18} />
+                    {isRtl ? 'ملف Word' : 'Word File'}
+                  </button>
+                  <button
+                    onClick={() => setFileType('url')}
+                    className={cn(
+                      "flex-1 min-w-[120px] py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2",
+                      fileType === 'url'
+                        ? "bg-gold text-black shadow-lg"
+                        : "text-text-secondary hover:text-white"
+                    )}
+                  >
+                    <Globe size={18} />
+                    {isRtl ? 'رابط موقع' : 'Website URL'}
+                  </button>
                 </div>
 
                 {/* Upload zone */}
-                <label className="block cursor-pointer">
-                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center hover:border-gold/30 transition-all group">
-                    <Upload size={48} className="mx-auto text-text-muted group-hover:text-gold transition-colors mb-4" />
-                    <p className="text-lg font-bold text-text mb-2">
-                      {isRtl ? 'اسحب الملف هنا أو اضغط للاختيار' : 'Drop file here or click to browse'}
-                    </p>
-                    <p className="text-sm text-text-muted">
-                      {fileType === 'excel'
-                        ? (isRtl ? 'صيغ مدعومة: CSV, TSV' : 'Supported: CSV, TSV')
-                        : (isRtl ? 'صيغة مدعومة: PDF (منيو مطعم)' : 'Supported: PDF (restaurant menu)')
-                      }
-                    </p>
+                {fileType === 'url' ? (
+                  <div className="border-2 border-dashed border-white/10 rounded-2xl p-8 hover:border-gold/30 transition-all">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3 text-gold mb-2">
+                        <Globe size={24} />
+                        <h4 className="font-bold text-lg">{isRtl ? 'استيراد من رابط الموقع' : 'Import from Website URL'}</h4>
+                      </div>
+                      <p className="text-sm text-text-muted">
+                        {isRtl 
+                          ? 'أدخل رابط صفحة المنيو في موقع مطعمك. سيقوم النظام بقراءة المحتوى واستخراج الأطباق تلقائياً.' 
+                          : 'Enter your restaurant menu page URL. The system will read the content and extract dishes automatically.'}
+                      </p>
+                      <div className="flex gap-3">
+                        <input
+                          type="url"
+                          value={inputUrl}
+                          onChange={(e) => setInputUrl(e.target.value)}
+                          placeholder="https://your-restaurant.com/menu"
+                          className="flex-1 bg-background border border-border-custom rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors"
+                          dir="ltr"
+                        />
+                        <button
+                          onClick={() => inputUrl && handleAIImport(inputUrl)}
+                          disabled={!inputUrl}
+                          className="bg-gold text-black px-6 py-3 rounded-xl font-bold hover:bg-gold/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                        >
+                          {isRtl ? 'جلب المنيو' : 'Fetch Menu'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    accept={fileType === 'excel' ? '.csv,.tsv' : '.pdf'}
-                    onChange={handleFileSelect}
-                  />
-                </label>
+                ) : (
+                  <label className="block cursor-pointer">
+                    <div className="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center hover:border-gold/30 transition-all group">
+                      <Upload size={48} className="mx-auto text-text-muted group-hover:text-gold transition-colors mb-4" />
+                      <p className="text-lg font-bold text-text mb-2">
+                        {isRtl ? 'اسحب الملف هنا أو اضغط للاختيار' : 'Drop file here or click to browse'}
+                      </p>
+                      <p className="text-sm text-text-muted">
+                        {fileType === 'excel'
+                          ? (isRtl ? 'صيغ مدعومة: CSV, TSV' : 'Supported: CSV, TSV')
+                          : fileType === 'word'
+                          ? (isRtl ? 'صيغ مدعومة: DOC, DOCX' : 'Supported: DOC, DOCX')
+                          : (isRtl ? 'صيغة مدعومة: PDF (منيو مطعم)' : 'Supported: PDF (restaurant menu)')
+                        }
+                      </p>
+                    </div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept={
+                        fileType === 'excel' ? '.csv,.tsv' : 
+                        fileType === 'word' ? '.doc,.docx' : 
+                        '.pdf'
+                      }
+                      onChange={handleFileSelect}
+                    />
+                  </label>
+                )}
 
                 {/* CSV Template Info */}
                 {fileType === 'excel' && (
@@ -480,8 +742,8 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                   </div>
                 )}
 
-                {/* PDF Info */}
-                {fileType === 'pdf' && (
+                {/* Document (PDF/Word) Info */}
+                {(fileType === 'pdf' || fileType === 'word') && (
                   <div className="bg-purple-500/5 border border-purple-500/10 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles size={14} className="text-purple-400" />
@@ -497,6 +759,37 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                     </p>
                   </div>
                 )}
+
+                {/* Import History */}
+                {importHistory.length > 0 && (
+                  <div className="mt-8 pt-6 border-t border-white/5">
+                    <h4 className="text-lg font-bold text-text mb-4 flex items-center gap-2">
+                      <History size={20} className="text-gold" />
+                      {isRtl ? 'سجل الاستيراد السابق' : 'Import History'}
+                    </h4>
+                    <div className="space-y-3">
+                      {importHistory.map((history) => (
+                        <div key={history.batchId} className="flex items-center justify-between bg-card border border-border-custom rounded-xl p-4">
+                          <div>
+                            <p className="text-sm font-bold text-text">
+                              {isRtl ? `${history.count} طبق` : `${history.count} dishes`}
+                            </p>
+                            <p className="text-xs text-text-muted mt-1">
+                              {new Date(history.date).toLocaleString(isRtl ? 'ar-SA' : 'en-US')}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleUndo(history.batchId)}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors text-sm font-medium"
+                          >
+                            <Undo2 size={16} />
+                            {isRtl ? 'تراجع' : 'Undo'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -509,7 +802,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                 </div>
                 <div className="text-center">
                   <p className="text-lg font-bold text-text">
-                    {fileType === 'pdf'
+                    {(fileType === 'pdf' || fileType === 'word')
                       ? (isRtl ? 'يتم استخراج الأطباق بالذكاء الاصطناعي...' : 'AI is extracting dishes...')
                       : (isRtl ? 'يتم تحليل الملف...' : 'Parsing file...')
                     }
@@ -540,6 +833,12 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                     <div className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-xl">
                       <XCircle size={16} className="text-red-400" />
                       <span className="text-sm font-bold text-red-400">{errorCount} {isRtl ? 'خطأ' : 'Error'}</span>
+                    </div>
+                  )}
+                  {skippedCount > 0 && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-500/10 border border-gray-500/20 rounded-xl">
+                      <ArrowLeftRight size={16} className="text-gray-400" />
+                      <span className="text-sm font-bold text-gray-400">{skippedCount} {isRtl ? 'متخطى' : 'Skipped'}</span>
                     </div>
                   )}
                 </div>
@@ -576,14 +875,16 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                           <tr key={i} className={cn(
                             "border-b border-white/5 transition-colors",
                             row.status === 'error' ? "bg-red-500/5" : 
-                            row.status === 'warning' ? "bg-amber-500/5" : "hover:bg-white/2"
+                            row.status === 'warning' ? "bg-amber-500/5" : 
+                            row.status === 'duplicate' ? "bg-orange-500/5" : "hover:bg-white/2"
                           )}>
                             <td className="px-4 py-3 text-text-muted">{i + 1}</td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               <div className="flex items-center gap-1.5" title={row.statusMessage}>
                                 {row.status === 'ready' && <Check size={16} className="text-emerald-400" />}
                                 {row.status === 'warning' && <AlertTriangle size={16} className="text-amber-400" />}
                                 {row.status === 'error' && <XCircle size={16} className="text-red-400" />}
+                                {row.status === 'duplicate' && <Copy size={16} className="text-orange-400" />}
                                 {row.statusMessage && (
                                   <span className="text-xs text-text-muted truncate max-w-[120px]">
                                     {row.statusMessage}
@@ -591,7 +892,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               {editingRow === i ? (
                                 <input
                                   value={row.name_ar}
@@ -599,10 +900,18 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                                   className="bg-card border border-border-custom rounded px-2 py-1 text-sm w-full text-text"
                                 />
                               ) : (
-                                <span className="text-text font-medium">{row.name_ar || '—'}</span>
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-text font-medium">{row.name_ar || '—'}</span>
+                                  {row.status === 'duplicate' && row.duplicateWarning && (
+                                    <span className="text-xs text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded w-fit mt-1 flex items-center gap-1">
+                                      <Copy size={12} />
+                                      {row.duplicateWarning}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               {editingRow === i ? (
                                 <input
                                   value={row.name_en}
@@ -613,7 +922,7 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                                 <span className="text-text">{row.name_en || '—'}</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               {editingRow === i ? (
                                 <input
                                   type="number"
@@ -625,18 +934,40 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                                 <span className="text-gold font-bold">{row.price.toFixed(2)}</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               {editingRow === i ? (
-                                <input
-                                  value={row.category_name || ''}
-                                  onChange={e => updateRow(i, 'category_name', e.target.value)}
-                                  className="bg-card border border-border-custom rounded px-2 py-1 text-sm w-full text-text"
-                                />
-                              ) : (
-                                <span className="text-text-muted">{row.category_name || '—'}</span>
+                                  <div className="flex flex-col gap-2">
+                                    <input
+                                      value={row.category_name_ar || ''}
+                                      onChange={e => updateRow(i, 'category_name_ar', e.target.value)}
+                                      className="bg-card border border-border-custom rounded px-2 py-1 text-sm w-full text-text"
+                                      placeholder="Category (AR)"
+                                    />
+                                    <input
+                                      value={row.category_name_en || ''}
+                                      onChange={e => updateRow(i, 'category_name_en', e.target.value)}
+                                      className="bg-card border border-border-custom rounded px-2 py-1 text-sm w-full text-text"
+                                      placeholder="Category (EN)"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col gap-1">
+                                    <span className="text-text">{row.category_name_ar || '—'}</span>
+                                    <span className="text-text-muted text-xs">{row.category_name_en || '—'}</span>
+                                  {row.matchedCategoryName && (
+                                     <span className="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded w-fit">
+                                       {isRtl ? `سيتم ربطه: ${row.matchedCategoryName}` : `Matches: ${row.matchedCategoryName}`}
+                                     </span>
+                                  )}
+                                  {row.isNewCategory && (
+                                     <span className="text-[10px] text-gold bg-gold/10 px-1.5 py-0.5 rounded w-fit">
+                                       {isRtl ? 'تصنيف جديد' : 'New Category'}
+                                     </span>
+                                  )}
+                                </div>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-3 align-top">
                               <div className="flex items-center gap-1">
                                 <button
                                   onClick={() => setEditingRow(editingRow === i ? null : i)}
@@ -651,6 +982,24 @@ export const MenuImportModal: React.FC<MenuImportModalProps> = ({
                                   <Trash2 size={14} className="text-text-muted hover:text-red-400" />
                                 </button>
                               </div>
+                              {row.status === 'duplicate' && (
+                                <div className="mt-2 flex flex-col gap-1">
+                                  <button
+                                    onClick={() => updateRow(i, 'duplicateAction', 'skip')}
+                                    className={cn("px-2 py-1 text-[10px] font-medium rounded transition-colors text-start", 
+                                      row.duplicateAction === 'skip' ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" : "bg-card text-text-muted hover:bg-white/5 border border-transparent")}
+                                  >
+                                    {isRtl ? 'تخطي' : 'Skip'}
+                                  </button>
+                                  <button
+                                    onClick={() => updateRow(i, 'duplicateAction', 'update')}
+                                    className={cn("px-2 py-1 text-[10px] font-medium rounded transition-colors text-start", 
+                                      row.duplicateAction === 'update' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-card text-text-muted hover:bg-white/5 border border-transparent")}
+                                  >
+                                    {isRtl ? 'تحديث الموجود' : 'Update Existing'}
+                                  </button>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         ))}

@@ -17,7 +17,7 @@ const dishSchema = z.object({
   nameEn: z.string().min(2, 'English name required').max(80),
   categoryId: z.string().min(1, 'اختر تصنيفاً'),
   price: z.number({ error: 'أدخل السعر' }).min(0, 'السعر يجب أن يكون 0 أو أكثر'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('OMR'),
   prepTimeMin: z.number().min(1).max(120).default(15),
 
   descriptionAr: z.string().max(500).optional(),
@@ -71,7 +71,7 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
       nameEn: '',
       categoryId: '',
       price: 0,
-      currency: 'USD',
+      currency: 'OMR',
       prepTimeMin: 15,
       images: [],
       allergens: [],
