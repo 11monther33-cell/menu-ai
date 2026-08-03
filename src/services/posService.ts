@@ -13,6 +13,7 @@ export interface POSBranch {
   vat_registration_number?: string;
   address?: string;
   is_default: boolean;
+  is_active?: boolean;
 }
 
 export interface POSMenuCategory {
@@ -212,6 +213,79 @@ export async function updateBranch(branchId: string, updates: Partial<POSBranch>
 
   if (error) throw error;
   return data as POSBranch;
+}
+
+export async function getBranches(restaurantId: string): Promise<POSBranch[]> {
+  const { data, error } = await supabase
+    .from('pos_branches')
+    .select('*')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return data as POSBranch[];
+}
+
+export async function createBranch(restaurantId: string, branchData: Partial<POSBranch>): Promise<POSBranch> {
+  const { data, error } = await supabase
+    .from('pos_branches')
+    .insert([{ restaurant_id: restaurantId, ...branchData }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as POSBranch;
+}
+
+export async function deleteBranch(branchId: string): Promise<void> {
+  // We don't hard delete to preserve historical order data, we just deactivate
+  const { error } = await supabase
+    .from('pos_branches')
+    .update({ is_active: false })
+    .eq('id', branchId);
+
+  if (error) throw error;
+}
+
+export async function getCrossBranchReport(restaurantId: string, startDate: string, endDate: string) {
+  // We use SQL RPC for the aggregate report, or we can fetch orders for all branches and group them here.
+  // Since we don't have a specific RPC created for this yet, we will fetch orders for the restaurant and group in JS.
+  const { data: branches, error: bError } = await supabase
+    .from('pos_branches')
+    .select('id, name')
+    .eq('restaurant_id', restaurantId);
+
+  if (bError) throw bError;
+
+  const branchIds = branches.map((b) => b.id);
+  
+  if (branchIds.length === 0) return [];
+
+  const { data: orders, error: oError } = await supabase
+    .from('pos_orders')
+    .select('branch_id, total, status')
+    .in('branch_id', branchIds)
+    .eq('status', 'paid')
+    .gte('closed_at', startDate)
+    .lte('closed_at', endDate);
+
+  if (oError) throw oError;
+
+  const report = branches.map((branch) => {
+    const branchOrders = orders.filter((o) => o.branch_id === branch.id);
+    const total_revenue = branchOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const order_count = branchOrders.length;
+    const avg_order_value = order_count > 0 ? total_revenue / order_count : 0;
+    
+    return {
+      branch_name: branch.name,
+      total_revenue,
+      order_count,
+      avg_order_value
+    };
+  });
+
+  return report.sort((a, b) => b.total_revenue - a.total_revenue);
 }
 
 // ═══════════════════════════════════════════

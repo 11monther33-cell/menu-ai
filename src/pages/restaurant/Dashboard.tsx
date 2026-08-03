@@ -24,6 +24,7 @@ import { DishFormPage } from './pages/DishFormPage';
 import { AppConnection } from './pages/AppConnection';
 import { SecuritySettings } from './pages/SecuritySettings';
 import { WhatsAppSalesAgent } from './pages/WhatsAppSalesAgent';
+import { POSBranches } from './pages/POSBranches';
 
 // POS & Accounting Pages
 import { POSScreen } from './pages/POSScreen';
@@ -33,6 +34,7 @@ import { POSExpenses } from './pages/POSExpenses';
 import { POSInvoices } from './pages/POSInvoices';
 import { POSReports } from './pages/POSReports';
 import { POSSettings } from './pages/POSSettings';
+import { BranchSwitcher } from '../../components/dashboard/BranchSwitcher';
 
 // Global POS Store & Service
 import { getOrCreateBranch } from '../../services/posService';
@@ -245,7 +247,7 @@ export const RestaurantDashboard = () => {
               <Utensils size={14} className="text-gold" />
               <span className="text-xs font-semibold text-text tracking-wider">{user?.restaurantName || 'Restaurant Name'}</span>
               <span className="w-1 h-1 bg-white/10 rounded-full" />
-              <span className="text-[10px] text-muted uppercase tracking-widest font-medium">Main Branch</span>
+              <BranchSwitcher />
             </div>
           </div>
 

@@ -15,11 +15,12 @@ import { toast } from 'react-hot-toast';
 import {
   Plus, RefreshCw, AlertTriangle, ArrowUpDown, History, X, Save, TrendingUp
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSInventory = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch, setLowStockAlerts } = usePOSStore();
+  const { currentBranch, setLowStockAlerts, isAllBranches } = usePOSStore();
   const [items, setItems] = useState<POSInventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -120,6 +121,10 @@ export const POSInventory = () => {
       setLoadingHistory(false);
     }
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="space-y-8">

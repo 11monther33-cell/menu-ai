@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { Menu, X, Globe, User } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export const Navbar = () => {
@@ -52,6 +51,7 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             <button 
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
               className="flex items-center gap-2 text-muted/80 hover:text-text transition-colors px-3 py-2 rounded-lg hover:bg-surface-2 text-sm uppercase tracking-wider font-medium"
             >
               <Globe size={16} />
@@ -78,12 +78,14 @@ export const Navbar = () => {
           <div className="md:hidden flex items-center gap-4">
             <button 
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
+              aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
               className="p-2 text-muted/80"
             >
               <Globe size={20} />
             </button>
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               className="p-2 text-text"
             >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
@@ -92,50 +94,46 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-surface-2 border-b border-white/5 overflow-hidden"
+      {/* Mobile Menu — CSS transition instead of framer-motion */}
+      <div 
+        className={`md:hidden bg-surface-2 border-b border-white/5 overflow-hidden transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="px-4 pt-2 pb-6 space-y-2">
+          {navLinks.map((link, i) => (
+            <a 
+              key={`mobile-nav-link-${i}-${link.name}`} 
+              href={link.href}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="block px-4 py-3 text-sm uppercase tracking-wider font-medium text-muted/80 hover:text-gold hover:bg-surface rounded-lg transition-colors"
+            >
+              {link.name}
+            </a>
+          ))}
+          
+          <Link 
+            to="/login"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="block px-4 py-3 text-sm uppercase tracking-wider font-medium text-muted/80 hover:text-gold hover:bg-surface rounded-lg transition-colors"
           >
-            <div className="px-4 pt-2 pb-6 space-y-2">
-              {navLinks.map((link, i) => (
-                <a 
-                  key={`mobile-nav-link-${i}-${link.name}`} 
-                  href={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-4 py-3 text-sm uppercase tracking-wider font-medium text-muted/80 hover:text-gold hover:bg-surface rounded-lg transition-colors"
-                >
-                  {link.name}
-                </a>
-              ))}
-              
-              <Link 
-                to="/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block px-4 py-3 text-sm uppercase tracking-wider font-medium text-muted/80 hover:text-gold hover:bg-surface rounded-lg transition-colors"
-              >
-                {lang === 'ar' ? 'تسجيل الدخول' : 'Login'}
-              </Link>
+            {lang === 'ar' ? 'تسجيل الدخول' : 'Login'}
+          </Link>
 
-              <div className="pt-4 px-4">
-                <button 
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    navigate('/register');
-                  }}
-                  className="w-full bg-gold hover:bg-gold-light text-main font-semibold py-4 rounded-lg transition-colors text-sm uppercase tracking-wider"
-                >
-                  {t('nav.cta')}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="pt-4 px-4">
+            <button 
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                navigate('/register');
+              }}
+              className="w-full bg-gold hover:bg-gold-light text-main font-semibold py-4 rounded-lg transition-colors text-sm uppercase tracking-wider"
+            >
+              {t('nav.cta')}
+            </button>
+          </div>
+        </div>
+      </div>
     </nav>
   );
 };
+

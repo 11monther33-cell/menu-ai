@@ -1,11 +1,9 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
-  // 🔒 SECURITY: DO NOT use `define` to inject server-side API keys into the client bundle.
-  // All AI calls should go through /api/ai/generate endpoint in server.ts
   return {
     plugins: [react(), tailwindcss()],
     resolve: {
@@ -17,7 +15,22 @@ export default defineConfig(() => {
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
-      allowedHosts: true as true, // 🔓 Allow tunnels like localtunnel
+      allowedHosts: true as true, // Allow tunnels like localtunnel
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+            'vendor-motion': ['framer-motion'],
+            'vendor-icons': ['lucide-react'],
+            'vendor-i18n': ['i18next', 'react-i18next', 'zustand'],
+            'vendor-supabase': ['@supabase/supabase-js'],
+            'vendor-3d': ['three', '@google/model-viewer']
+          },
+        },
+      },
+      chunkSizeWarningLimit: 1000,
     },
   };
 });

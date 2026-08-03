@@ -14,7 +14,8 @@ export interface CartItem {
 interface POSState {
   // Branch context
   currentBranch: POSBranch | null;
-  setBranch: (branch: POSBranch) => void;
+  isAllBranches: boolean;
+  setBranch: (branch: POSBranch | 'all' | null) => void;
 
   // Cart (client-side state before order creation)
   cart: CartItem[];
@@ -53,7 +54,14 @@ interface POSState {
 export const usePOSStore = create<POSState>((set, get) => ({
   // Branch
   currentBranch: null,
-  setBranch: (branch) => set({ currentBranch: branch }),
+  isAllBranches: false,
+  setBranch: (branch) => {
+    if (branch === 'all') {
+      set({ isAllBranches: true });
+    } else {
+      set({ currentBranch: branch, isAllBranches: false });
+    }
+  },
 
   // Cart
   cart: [],

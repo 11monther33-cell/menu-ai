@@ -1,10 +1,48 @@
 import React from 'react';
-import { motion } from 'motion/react';
 import { ArrowLeft, Box } from 'lucide-react';
 
 export const NewHeroSection = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden bg-main">
+      {/* CSS Animations — no JavaScript required */}
+      <style>{`
+        @keyframes heroFadeUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heroFadeScale {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes heroParallax {
+          0%, 100% { transform: rotateY(-2deg) rotateX(1deg); }
+          50% { transform: rotateY(2deg) rotateX(-1deg); }
+        }
+        @keyframes heroRotate {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes heroFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        .hero-fade-up {
+          animation: heroFadeUp 0.8s ease-out both;
+        }
+        .hero-fade-scale {
+          animation: heroFadeScale 1s ease-out 0.2s both;
+        }
+        .hero-parallax {
+          animation: heroParallax 6s ease-in-out infinite;
+        }
+        .hero-rotate {
+          animation: heroRotate 40s linear infinite;
+        }
+        .hero-float {
+          animation: heroFloat 4s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Background Glows */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[40rem] h-[40rem] bg-indigo-500/10 rounded-full blur-[120px] mix-blend-screen" />
@@ -15,11 +53,8 @@ export const NewHeroSection = () => {
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           
           {/* Content (RTL) */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center lg:text-right"
+          <div 
+            className="text-center lg:text-right hero-fade-up"
             dir="rtl"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-medium text-sm mb-8">
@@ -47,21 +82,16 @@ export const NewHeroSection = () => {
                 استكشف النظام
               </button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Visual: Tablet Mockup */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="relative lg:h-[600px] h-[400px] flex items-center justify-center"
+          <div 
+            className="relative lg:h-[600px] h-[400px] flex items-center justify-center hero-fade-scale"
             style={{ perspective: '1000px' }}
           >
             {/* Parallax Container */}
-            <motion.div 
-              animate={{ rotateY: [-2, 2, -2], rotateX: [1, -1, 1] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="relative w-full max-w-[340px] aspect-[3/4] bg-[#222] p-2.5 rounded-[2.5rem] shadow-[0_0_50px_rgba(139,92,246,0.15)] border border-[#333] ring-1 ring-black/50 mx-auto"
+            <div 
+              className="relative w-full max-w-[340px] aspect-[3/4] bg-[#222] p-2.5 rounded-[2.5rem] shadow-[0_0_50px_rgba(139,92,246,0.15)] border border-[#333] ring-1 ring-black/50 mx-auto hero-parallax"
             >
               {/* Tablet Camera */}
               <div className="absolute top-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-black rounded-full" />
@@ -82,14 +112,12 @@ export const NewHeroSection = () => {
                  {/* App Content - Interactive Placeholder */}
                  <div className="flex-1 relative bg-gradient-to-br from-indigo-500/10 to-cyan-500/10 flex items-center justify-center group cursor-pointer overflow-hidden">
                     {/* Placeholder Plate */}
-                    <motion.div 
-                       animate={{ rotate: 360 }}
-                       transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
-                       className="w-56 h-56 rounded-full border border-dashed border-indigo-500/20 flex items-center justify-center relative"
+                    <div 
+                       className="w-56 h-56 rounded-full border border-dashed border-indigo-500/20 flex items-center justify-center relative hero-rotate"
                     >
                       <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-indigo-500/20 to-cyan-500/20 backdrop-blur-3xl" />
                       <div className="absolute inset-12 rounded-full bg-gradient-to-tr from-indigo-500/30 to-cyan-500/30 backdrop-blur-xl shadow-inner" />
-                    </motion.div>
+                    </div>
                     
                     {/* Interactive Play Button */}
                     <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -101,10 +129,8 @@ export const NewHeroSection = () => {
                  </div>
                  
                  {/* Floating UI: Suggestion AI */}
-                 <motion.div 
-                   animate={{ y: [0, -6, 0] }}
-                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                   className="absolute bottom-6 right-4 left-4 bg-surface/95 backdrop-blur-xl border border-white/10 p-3.5 rounded-2xl shadow-xl z-20"
+                 <div 
+                   className="absolute bottom-6 right-4 left-4 bg-surface/95 backdrop-blur-xl border border-white/10 p-3.5 rounded-2xl shadow-xl z-20 hero-float"
                    dir="rtl"
                  >
                    <div className="flex items-center gap-3">
@@ -113,13 +139,13 @@ export const NewHeroSection = () => {
                      </div>
                      <div>
                        <p className="text-[9px] text-text-muted font-medium mb-0.5">توصية ذكية للزبون</p>
-                       <p className="font-bold text-xs text-text-primary">"نقترح إضافة بطاطس مقلية؟"</p>
+                       <p className="font-bold text-xs text-text-primary">"نقترح إضافة بطاطس مقلية?"</p>
                      </div>
                    </div>
-                 </motion.div>
+                 </div>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
 
         </div>
       </div>

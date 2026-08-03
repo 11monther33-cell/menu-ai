@@ -39,6 +39,7 @@ import {
   SlidersHorizontal,
   AlertTriangle
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 declare global {
   interface Window {
@@ -50,7 +51,7 @@ declare global {
 export const WhatsAppSalesAgent = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch, setBranch } = usePOSStore();
+  const { currentBranch, isAllBranches, setBranch } = usePOSStore();
 
   const [activeTab, setActiveTab] = useState<'connection' | 'qr' | 'monitor'>('connection');
   const [monitorSubTab, setMonitorSubTab] = useState<'conversations' | 'orders' | 'faqs'>('conversations');
@@ -404,6 +405,10 @@ export const WhatsAppSalesAgent = () => {
     navigator.clipboard.writeText(text);
     toast.success(isRtl ? 'تم النسخ للحافظة' : 'Copied to clipboard');
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="space-y-8 p-4 lg:p-8 max-w-7xl mx-auto selection:bg-gold/30">

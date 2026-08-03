@@ -20,11 +20,12 @@ import { toast } from 'react-hot-toast';
 import {
   Plus, RefreshCw, X, Edit, Trash2, Layers, Save, Tag
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSProducts = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch } = usePOSStore();
+  const { currentBranch, isAllBranches } = usePOSStore();
 
   const [products, setProducts] = useState<POSProduct[]>([]);
   const [categories, setCategories] = useState<POSMenuCategory[]>([]);
@@ -189,6 +190,10 @@ export const POSProducts = () => {
       toast.error(isRtl ? 'فشل حذف الفئة' : 'Failed to delete category');
     }
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="space-y-8">

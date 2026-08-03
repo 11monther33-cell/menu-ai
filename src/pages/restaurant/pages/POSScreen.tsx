@@ -19,12 +19,15 @@ import { toast } from 'react-hot-toast';
 import {
   ShoppingCart, RefreshCw, AlertTriangle, Printer, Trash2, Plus, Minus, CreditCard, DollarSign, Wallet, X
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSScreen = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
   const {
     currentBranch,
+    isAllBranches,
+    setCartFromOrder,
     cart,
     addToCart,
     updateCartItemQty,
@@ -179,6 +182,10 @@ export const POSScreen = () => {
   const vatRate = currentBranch?.vat_rate ?? 5.00;
   const vat = subtotal * (vatRate / 100);
   const total = subtotal + vat;
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="h-[calc(100vh-8rem)] flex flex-col lg:flex-row gap-6 relative">

@@ -30,9 +30,9 @@ import {
 import { useMenuStore } from '../store/menuStore';
 import { useCartStore } from '../store/cartStore';
 import { assetService } from '../services/assetService';
-import { AIChatDrawer } from '../components/qr/AIChatDrawer';
-import { MenuStories } from '../components/menu/MenuStories';
-import { MenuCartSheet } from '../components/menu/MenuCartSheet';
+const AIChatDrawer = React.lazy(() => import('../components/qr/AIChatDrawer').then(m => ({ default: m.AIChatDrawer })));
+const MenuStories = React.lazy(() => import('../components/menu/MenuStories').then(m => ({ default: m.MenuStories })));
+const MenuCartSheet = React.lazy(() => import('../components/menu/MenuCartSheet').then(m => ({ default: m.MenuCartSheet })));
 import { cn } from '../lib/utils';
 import { MenuItem } from '../types';
 import { toast } from 'react-hot-toast';
@@ -59,6 +59,15 @@ const PublicMenu = () => {
   const [googleRating, setGoogleRating] = useState<{rating: number | null, reviewCount: number | null, placeId: string | null}>({ rating: null, reviewCount: null, placeId: null });
   
   const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    // Preload AIChatDrawer when idle so it's ready on tap without blocking FCP
+    const idleCallback = window.requestIdleCallback
+      ? window.requestIdleCallback(() => import('../components/qr/AIChatDrawer'))
+      : setTimeout(() => import('../components/qr/AIChatDrawer'), 2000);
+      
+    return () => window.cancelIdleCallback ? window.cancelIdleCallback(idleCallback as number) : clearTimeout(idleCallback as any);
+  }, []);
 
   useEffect(() => {
     if (validCategories.length > 0 && (!activeCategory || !validCategories.find(c => c.id === activeCategory))) {
@@ -167,7 +176,9 @@ const PublicMenu = () => {
 
       {/* 🌟 Menu Stories Section */}
       <div className="mb-6 -mt-4 relative z-10">
-        <MenuStories items={allItems} />
+        <React.Suspense fallback={<div className="h-24 w-full flex items-center justify-center animate-pulse bg-white/5 rounded-2xl mb-6"></div>}>
+          <MenuStories items={allItems} />
+        </React.Suspense>
       </div>
 
       {/* Search Bar (Glassmorphism) */}
@@ -260,11 +271,14 @@ const PublicMenu = () => {
                   {item.video ? (
                     <video 
                       src={assetService.getOptimizedUrl(item.video)}
+                      poster={item.image ? assetService.getOptimizedUrl(item.image, { width: 300, height: 300 }) : undefined}
+                      preload="none"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      autoPlay
                       muted
                       loop
                       playsInline
+                      onPointerEnter={(e) => e.currentTarget.play().catch(()=>{})}
+                      onPointerLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                     />
                   ) : (
                     <motion.img 
@@ -545,7 +559,9 @@ const PublicMenu = () => {
       </AnimatePresence>
 
       {/* Cart Sheet Component */}
-      <MenuCartSheet />
+      <React.Suspense fallback={null}>
+        <MenuCartSheet />
+      </React.Suspense>
 
       {/* Floating AI Chat Bubble */}
       <div className={`fixed bottom-28 ${isRtl ? 'left-6' : 'right-6'} z-30`}>
@@ -564,19 +580,21 @@ const PublicMenu = () => {
         </div>
       </div>
 
-      <AIChatDrawer 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        branding={branding}
-        onViewDish3D={(dishId) => {
-          setIsChatOpen(false);
-          const dish = allItems.find(i => i.id === dishId);
-          if (dish) {
-            setSelectedItem(dish);
-            setShow3DFull(true);
-          }
-        }}
-      />
+      <React.Suspense fallback={null}>
+        <AIChatDrawer 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          branding={branding}
+          onViewDish3D={(dishId) => {
+            setIsChatOpen(false);
+            const dish = allItems.find(i => i.id === dishId);
+            if (dish) {
+              setSelectedItem(dish);
+              setShow3DFull(true);
+            }
+          }}
+        />
+      </React.Suspense>
     </div>
   );
 };

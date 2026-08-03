@@ -13,11 +13,12 @@ import { toast } from 'react-hot-toast';
 import {
   Search, RefreshCw, ChevronDown, ChevronUp, Printer, RefreshCcw, FileText, AlertCircle, X
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSInvoices = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch } = usePOSStore();
+  const { currentBranch, isAllBranches } = usePOSStore();
 
   const [invoices, setInvoices] = useState<POSInvoice[]>([]);
   const [expandedInvoice, setExpandedInvoice] = useState<POSInvoice | null>(null);
@@ -94,6 +95,10 @@ export const POSInvoices = () => {
     document.body.innerHTML = originalContent;
     window.location.reload(); // Reload to restore React state cleanly
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="space-y-8">

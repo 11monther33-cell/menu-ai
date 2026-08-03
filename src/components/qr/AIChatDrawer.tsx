@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, Sparkles, User, Box, ArrowRight } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { supabase } from '../../lib/supabase';
 
 interface Message {
   id: string;
@@ -31,6 +32,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationState, setConversationState] = useState<any>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const primaryColor = branding?.primary_color || '#C9A84C';
@@ -58,7 +60,7 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
     }
   }, [messages, isTyping]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: Message = {
@@ -69,33 +71,61 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
     setIsTyping(true);
 
-    // Simulate AI response after 1.5s
-    setTimeout(() => {
-      setIsTyping(false);
-      const isArabic = isRtl; // Simplification based on UI lang
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp-webhook', {
+        body: { source: 'website', message: currentInput, state: conversationState }
+      });
+
+      if (error) throw error;
       
+      const responsePayload = data.response || data;
+      if (data.state) {
+        setConversationState(data.state);
+      }
+
+      let dishRec;
+      // Convert backend schema to frontend UI
+      if (responsePayload.products && responsePayload.products.length > 0) {
+        const prod = responsePayload.products[0];
+        dishRec = {
+          id: prod.id,
+          nameAr: prod.name,
+          nameEn: prod.name,
+          price: prod.price || 0,
+          currency: 'OMR',
+          has3d: false
+        };
+      }
+
+      let aiText = responsePayload.message;
+      if (responsePayload.suggestions && responsePayload.suggestions.length > 0) {
+        aiText += '\n\n💡 يقترح:\n' + responsePayload.suggestions.map((s: string) => `- ${s}`).join('\n');
+      }
+
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
-        text: isArabic
-          ? 'بناءً على طلبك، أنصحك بشدة بتجربة "ستيك الريب آي المشوي" لدينا. إنه من أكثر الأطباق مبيعاً ويتميز بطراوته وطعمه الغني! يمكنك إلقاء نظرة عليه بتقنية 3D قبل الطلب.'
-          : 'Based on what you mentioned, I highly recommend our "Grilled Ribeye Steak". It is a top seller, very tender and rich in flavor! You can view it in 3D right now.',
+        text: aiText,
         timestamp: new Date(),
-        dishRecommendation: {
-          id: 'mock-dish-1',
-          nameAr: 'ستيك ريب آي مشوي',
-          nameEn: 'Grilled Ribeye Steak',
-          price: 12.500,
-          currency: 'OMR',
-          has3d: true
-        }
+        dishRecommendation: dishRec
       };
       
       setMessages(prev => [...prev, aiResponse]);
-    }, 1500);
+    } catch (err) {
+      console.error("AI Error:", err);
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'ai',
+        text: isRtl ? 'عذراً، أواجه مشكلة في الاتصال حالياً.' : 'Sorry, I am facing a connection issue right now.',
+        timestamp: new Date()
+      }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (

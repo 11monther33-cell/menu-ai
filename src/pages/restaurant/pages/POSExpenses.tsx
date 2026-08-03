@@ -15,11 +15,12 @@ import { toast } from 'react-hot-toast';
 import {
   Plus, RefreshCw, X, Filter, Calendar, DollarSign, Tag
 } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSExpenses = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch } = usePOSStore();
+  const { currentBranch, isAllBranches } = usePOSStore();
 
   const [expenses, setExpenses] = useState<POSExpense[]>([]);
   const [categories, setCategories] = useState<POSExpenseCategory[]>([]);
@@ -110,6 +111,10 @@ export const POSExpenses = () => {
       toast.error(isRtl ? 'فشل إضافة التصنيف' : 'Failed to add category');
     }
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   return (
     <div className="space-y-8">

@@ -5,6 +5,7 @@ import {
   fetchSalesSummary,
   fetchProfitLoss,
   fetchLowStock,
+  getCrossBranchReport,
   POSInventoryItem,
   SalesSummaryRow,
   ProfitLossData
@@ -22,7 +23,7 @@ import {
 export const POSReports = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch } = usePOSStore();
+  const { isAllBranches, currentBranch } = usePOSStore();
 
   const [salesSummary, setSalesSummary] = useState<SalesSummaryRow[]>([]);
   const [profitLoss, setProfitLoss] = useState<ProfitLossData>({
@@ -31,6 +32,7 @@ export const POSReports = () => {
     netProfit: 0
   });
   const [lowStock, setLowStock] = useState<POSInventoryItem[]>([]);
+  const [crossBranchData, setCrossBranchData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Time Period State
@@ -43,7 +45,9 @@ export const POSReports = () => {
   const [toDate, setToDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   const loadData = async () => {
-    if (!currentBranch) return;
+    // If neither all branches nor specific branch is selected, do nothing
+    if (!isAllBranches && !currentBranch) return;
+    
     setLoading(true);
 
     // Calculate dates based on period selection
@@ -68,14 +72,19 @@ export const POSReports = () => {
     }
 
     try {
-      const [sales, pl, stock] = await Promise.all([
-        fetchSalesSummary(currentBranch.id, start, end),
-        fetchProfitLoss(currentBranch.id, start, end),
-        fetchLowStock(currentBranch.id)
-      ]);
-      setSalesSummary(sales);
-      setProfitLoss(pl);
-      setLowStock(stock);
+      if (isAllBranches && user?.restaurantId) {
+        const report = await getCrossBranchReport(user.restaurantId, start, end);
+        setCrossBranchData(report);
+      } else if (currentBranch) {
+        const [sales, pl, stock] = await Promise.all([
+          fetchSalesSummary(currentBranch.id, start, end),
+          fetchProfitLoss(currentBranch.id, start, end),
+          fetchLowStock(currentBranch.id)
+        ]);
+        setSalesSummary(sales);
+        setProfitLoss(pl);
+        setLowStock(stock);
+      }
     } catch (err) {
       console.error(err);
       toast.error(isRtl ? 'فشل تحميل التقارير' : 'Failed to generate financial reports');
@@ -86,7 +95,7 @@ export const POSReports = () => {
 
   useEffect(() => {
     loadData();
-  }, [currentBranch?.id, period, fromDate, toDate]);
+  }, [currentBranch, isAllBranches, period, fromDate, toDate]);
 
   return (
     <div className="space-y-8">
@@ -147,7 +156,57 @@ export const POSReports = () => {
         </div>
       )}
 
-      {/* KPI Cards row */}
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <RefreshCw className="animate-spin text-gold" size={32} />
+        </div>
+      ) : isAllBranches ? (
+        <div className="bg-sidebar border border-border-custom p-6 rounded-[2rem]">
+          <h2 className="text-xl font-bold mb-6 text-text-primary">
+            {isRtl ? 'تقرير مبيعات الفروع المجمّع' : 'Cross-Branch Sales Report'}
+          </h2>
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-main border-b border-white/5">
+                <tr>
+                  <th className={`p-4 font-semibold text-text-secondary ${isRtl ? 'text-right' : 'text-left'}`}>
+                    {isRtl ? 'الفرع' : 'Branch'}
+                  </th>
+                  <th className={`p-4 font-semibold text-text-secondary ${isRtl ? 'text-right' : 'text-left'}`}>
+                    {isRtl ? 'إجمالي المبيعات' : 'Total Revenue'}
+                  </th>
+                  <th className={`p-4 font-semibold text-text-secondary ${isRtl ? 'text-right' : 'text-left'}`}>
+                    {isRtl ? 'عدد الطلبات' : 'Order Count'}
+                  </th>
+                  <th className={`p-4 font-semibold text-text-secondary ${isRtl ? 'text-right' : 'text-left'}`}>
+                    {isRtl ? 'متوسط قيمة الطلب' : 'Avg Order Value'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {crossBranchData.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-text-muted">
+                      {isRtl ? 'لا توجد مبيعات في هذه الفترة' : 'No sales in this period'}
+                    </td>
+                  </tr>
+                ) : (
+                  crossBranchData.map((row, idx) => (
+                    <tr key={idx} className="hover:bg-card/50 transition-colors">
+                      <td className="p-4 font-bold text-text-primary">{row.branch_name}</td>
+                      <td className="p-4 text-gold font-bold">{row.total_revenue.toFixed(3)} OMR</td>
+                      <td className="p-4 text-text-secondary">{row.order_count}</td>
+                      <td className="p-4 text-text-secondary">{row.avg_order_value.toFixed(3)} OMR</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -308,6 +367,8 @@ export const POSReports = () => {
           </table>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

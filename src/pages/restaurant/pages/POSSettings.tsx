@@ -6,11 +6,12 @@ import { usePOSStore } from '../../../store/posStore';
 import { motion } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { Save, RefreshCw, MapPin, DollarSign, Percent } from 'lucide-react';
+import { BranchRequirementOverlay } from '../../../components/dashboard/BranchRequirementOverlay';
 
 export const POSSettings = () => {
   const { isRtl } = useLanguage();
   const { user } = useAuth();
-  const { currentBranch, setBranch } = usePOSStore();
+  const { currentBranch, isAllBranches, setBranch } = usePOSStore();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -69,6 +70,10 @@ export const POSSettings = () => {
       setSaving(false);
     }
   };
+
+  if (isAllBranches) {
+    return <BranchRequirementOverlay />;
+  }
 
   if (loading) {
     return (
