@@ -38,7 +38,7 @@ const LandingPage = () => {
       {/* Floating AI Chat Button */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 left-6 z-40 bg-gold text-white p-4 rounded-2xl shadow-xl hover:bg-gold-light transition-all duration-300 flex items-center justify-center transform hover:scale-105"
+        className="fixed bottom-6 right-6 z-[9999] bg-[#8B5CF6] text-white p-4 rounded-2xl shadow-2xl hover:bg-[#A78BFA] transition-all duration-300 flex items-center justify-center transform hover:scale-105"
         aria-label="Open AI Assistant"
       >
         <Smile className="w-8 h-8" />
