@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@^2';
+import { createClient } from '@supabase/supabase-js';
 import { ConversationState } from './state.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';

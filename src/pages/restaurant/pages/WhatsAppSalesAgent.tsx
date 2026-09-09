@@ -660,10 +660,10 @@ export const WhatsAppSalesAgent = () => {
                 </p>
                 <div className="bg-main border border-white/10 p-3 rounded-xl flex items-center justify-between">
                   <code className="text-[11px] text-gold dir-ltr truncate font-mono">
-                    https://visiono.vercel.app/api/whatsapp/webhook
+                    https://getvisiono.com/api/whatsapp/webhook
                   </code>
                   <button
-                    onClick={() => copyToClipboard('https://visiono.vercel.app/api/whatsapp/webhook')}
+                    onClick={() => copyToClipboard('https://getvisiono.com/api/whatsapp/webhook')}
                     className="p-1.5 hover:bg-white/10 rounded-lg text-muted hover:text-text transition-colors"
                   >
                     <Copy size={14} />

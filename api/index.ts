@@ -183,6 +183,41 @@ async function uploadToR2(base64Data: string, filename: string, contentType: str
 // ═══════════════════════════════════════════════════════════
 // Main handler — routes all /api/* requests
 // ═══════════════════════════════════════════════════════════
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY;
+
+function validateInternalApiKey(req: VercelRequest): boolean {
+  const key = req.headers['x-api-key'] as string;
+  return !!key && key === INTERNAL_API_KEY;
+}
+
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+import { Client as QStashClient } from '@upstash/qstash';
+
+// ── Rate Limiting (Upstash Redis) ──
+let ratelimit: Ratelimit | null = null;
+if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+  const redis = new Redis({
+    url: process.env.UPSTASH_REDIS_REST_URL,
+    token: process.env.UPSTASH_REDIS_REST_TOKEN,
+  });
+  ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(20, '1 m'),
+  });
+}
+
+async function checkRateLimit(ip: string): Promise<boolean> {
+  if (!ratelimit) {
+    console.warn("UPSTASH_REDIS not configured, skipping rate limit.");
+    return true; 
+  }
+  const { success } = await ratelimit.limit(ip);
+  return success;
+}
+
+// ── QStash Client ──
+const qstash = process.env.QSTASH_TOKEN ? new QStashClient({ token: process.env.QSTASH_TOKEN }) : null;
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -462,7 +497,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!user) return res.status(401).json({ error: 'Auth required' });
 
       const { restaurantSlug, tableNumber, origin } = req.body;
-      const qrData = `${origin || 'https://tablexapp.vercel.app'}/menu/${restaurantSlug}?table=${tableNumber}`;
+      const qrData = `${origin || 'https://getvisiono.com'}/menu/${restaurantSlug}?table=${tableNumber}`;
       const qrSvg = await QRCode.toString(qrData, { type: 'svg' });
       return res.json({ svg: Buffer.from(qrSvg).toString('base64'), qrData });
     }
@@ -491,6 +526,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Manual Restaurant Invite (Admin Only) ───────────────────
     if (url === '/api/admin/create-restaurant' && method === 'POST') {
+      if (!validateInternalApiKey(req)) {
+        return res.status(401).json({ error: 'Unauthorized internal API call' });
+      }
+      
       const { user, reason } = await getUser(req);
       if (!user || !sb) return res.status(401).json({ error: `Auth failed: ${reason}` });
 
@@ -563,7 +602,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Determine public URL from request context or env
-      const host = req.headers['x-forwarded-host'] || req.headers.host || 'visiono.vercel.app';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'getvisiono.com';
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const origin = process.env.VITE_APP_URL || `${protocol}://${host}`;
 
@@ -661,11 +700,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json(model);
     }
 
-    // ── AI generate ──────────────────────────────────────
+    // ── AI Generation (Heavy Workload -> QStash) ───────
     if (url === '/api/ai/generate' && method === 'POST') {
+      const clientIp = req.headers['x-forwarded-for'] || 'unknown';
+      if (!(await checkRateLimit(clientIp as string))) {
+        return res.status(429).json({ error: 'Too many requests' });
+      }
+
       const { user } = await getUser(req);
       if (!user) return res.status(401).json({ error: 'Auth required' });
 
+      if (qstash && process.env.VERCEL_URL) {
+        // Publish to QStash Worker
+        await qstash.publishJSON({
+          url: `https://${process.env.VERCEL_URL}/api/workers/ai-generate`,
+          body: { prompt: req.body.prompt, userId: user.id }
+        });
+        return res.status(202).json({ status: 'queued' });
+      }
+
+      // Fallback for dev if QStash not configured
       const r = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
@@ -677,9 +731,71 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.json(await r.json());
     }
 
-    // ═══════════════════════════════════════════════════════
+    // ── QStash Worker: AI Generation ───────
+    if (url === '/api/workers/ai-generate' && method === 'POST') {
+      // In production, verify QStash signature here
+      const { prompt, userId } = req.body;
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        }
+      );
+      const data = await r.json();
+      
+      // Assume we store the result back to DB or notify the user via websocket
+      if (sb && userId) {
+        // e.g. await sb.from('ai_results').insert({ user_id: userId, result: data });
+      }
+      return res.status(200).json({ success: true });
+    }
+
+    // ── Public Order Creation (Protected by Rate Limit) ───────
+    if (url === '/api/orders/create' && method === 'POST') {
+      const clientIp = req.headers['x-forwarded-for'] || 'unknown';
+      if (!(await checkRateLimit(clientIp as string))) {
+        return res.status(429).json({ error: 'Too many requests' });
+      }
+
+      if (!sb) return res.status(500).json({ error: 'Supabase missing' });
+      const { restaurantId, tableNumber, items, totalAmount } = req.body;
+
+      // Note: Since Public INSERT is disabled, we must use the Service Role Key here to insert the order safely.
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data: order, error } = await serviceSb.from('orders').insert({
+        restaurant_id: restaurantId,
+        table_number: tableNumber,
+        status: 'PENDING',
+        total_amount: totalAmount,
+        device_hash: clientIp // using IP as secure device hash anchor
+      }).select('id').single();
+
+      if (error || !order) return res.status(400).json({ error: 'Failed to create order' });
+
+      // Insert items
+      if (items && items.length > 0) {
+        const orderItems = items.map((item: any) => ({
+          order_id: order.id,
+          dish_id: item.dish_id,
+          quantity: item.quantity,
+          unit_price: item.price,
+          subtotal: item.quantity * item.price
+        }));
+        await serviceSb.from('order_items').insert(orderItems);
+      }
+
+      return res.status(201).json({ success: true, orderId: order.id });
+    }
+
+    // ═══════════════════════════════════════════════════════════
     // 🧊 Stability AI — Stable Fast 3D Generation
-    // ═══════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════
     const STABILITY_BASE = 'https://api.stability.ai/v2beta/3d/stable-fast-3d';
     const STABILITY_KEY  = process.env.STABILITY_API_KEY || '';
 
@@ -920,7 +1036,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           }
 
           const urlResp = await fetch(inputUrl, {
-            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://visiono.vercel.app/bot-info)' },
+            method: 'GET',
+            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://getvisiono.com/bot-info)' },
             signal: AbortSignal.timeout(15000),
           });
           

@@ -83,16 +83,44 @@ ALTER TABLE pos_order_requests ENABLE ROW LEVEL SECURITY;
 
 -- Allow owners & service role full access
 DROP POLICY IF EXISTS "Owner manage whatsapp_qr_codes" ON whatsapp_qr_codes;
-CREATE POLICY "Owner manage whatsapp_qr_codes" ON whatsapp_qr_codes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Owner manage whatsapp_qr_codes" ON whatsapp_qr_codes FOR ALL USING (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+) WITH CHECK (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+);
 
 DROP POLICY IF EXISTS "Owner manage pos_branch_faq" ON pos_branch_faq;
-CREATE POLICY "Owner manage pos_branch_faq" ON pos_branch_faq FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Owner manage pos_branch_faq" ON pos_branch_faq FOR ALL USING (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+) WITH CHECK (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+);
 
 DROP POLICY IF EXISTS "Owner manage whatsapp_conversations" ON whatsapp_conversations;
-CREATE POLICY "Owner manage whatsapp_conversations" ON whatsapp_conversations FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Owner manage whatsapp_conversations" ON whatsapp_conversations FOR ALL USING (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+) WITH CHECK (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+);
 
 DROP POLICY IF EXISTS "Owner manage whatsapp_messages" ON whatsapp_messages;
-CREATE POLICY "Owner manage whatsapp_messages" ON whatsapp_messages FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Owner manage whatsapp_messages" ON whatsapp_messages FOR ALL USING (
+  conversation_id IN (
+    SELECT id FROM whatsapp_conversations WHERE branch_id IN (
+      SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids())
+    )
+  )
+) WITH CHECK (
+  conversation_id IN (
+    SELECT id FROM whatsapp_conversations WHERE branch_id IN (
+      SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids())
+    )
+  )
+);
 
 DROP POLICY IF EXISTS "Owner manage pos_order_requests" ON pos_order_requests;
-CREATE POLICY "Owner manage pos_order_requests" ON pos_order_requests FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Owner manage pos_order_requests" ON pos_order_requests FOR ALL USING (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+) WITH CHECK (
+  branch_id IN (SELECT id FROM pos_branches WHERE restaurant_id IN (SELECT get_my_restaurant_ids()))
+);

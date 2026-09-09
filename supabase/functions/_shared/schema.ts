@@ -1,39 +1,43 @@
-export const DiscoveryResponseSchema = {
-  type: "object",
+import { z } from 'zod';
+
+export const AssistantResponseSchema = z.object({
+  type: z.enum(['answer', 'recommendation', 'order_summary', 'no_match', 'clarifying_question']),
+  message: z.string().min(1).max(1000),
+  dishes: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    price: z.number(),
+  })).max(5),
+  suggestions: z.array(z.string()).max(3),
+});
+
+export type AssistantResponse = z.infer<typeof AssistantResponseSchema>;
+
+// Gemini API equivalent schema for structrued generation if needed
+export const GeminiAssistantResponseSchema = {
+  type: "OBJECT",
   properties: {
     type: {
-      type: "string",
-      enum: ["question", "recommendation", "comparison", "no_match", "error"]
+      type: "STRING",
+      enum: ["answer", "recommendation", "order_summary", "no_match", "clarifying_question"]
     },
-    message: { type: "string" },
-    products: {
-      type: "array",
+    message: { type: "STRING" },
+    dishes: {
+      type: "ARRAY",
       items: {
-        type: "object",
+        type: "OBJECT",
         properties: {
-          id: { type: "string" },
-          name: { type: "string" },
-          summary: { type: "string" }
+          id: { type: "STRING" },
+          name: { type: "STRING" },
+          price: { type: "NUMBER" }
         },
-        required: ["id", "name"]
+        required: ["id", "name", "price"]
       }
     },
-    matchReasons: {
-      type: "array",
-      items: { type: "string" }
-    },
     suggestions: {
-      type: "array",
-      items: { type: "string" }
+      type: "ARRAY",
+      items: { type: "STRING" }
     }
   },
-  required: ["type", "message", "products", "matchReasons", "suggestions"]
+  required: ["type", "message", "dishes", "suggestions"]
 };
-
-export interface DiscoveryResponse {
-  type: "question" | "recommendation" | "comparison" | "no_match" | "error";
-  message: string;
-  products: { id: string; name: string; summary?: string }[];
-  matchReasons: string[];
-  suggestions: string[];
-}

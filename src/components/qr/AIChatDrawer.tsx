@@ -25,9 +25,10 @@ interface AIChatDrawerProps {
   onClose: () => void;
   branding?: any;
   onViewDish3D?: (dishId: string) => void;
+  agentType?: 'restaurant' | 'marketing';
 }
 
-export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, branding, onViewDish3D }) => {
+export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, branding, onViewDish3D, agentType = 'restaurant' }) => {
   const { isRtl, t } = useLanguage();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -44,14 +45,14 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
         {
           id: '1',
           sender: 'ai',
-          text: isRtl 
-            ? 'مرحباً بك في مطعمنا! أنا المساعد الذكي، كيف يمكنني مساعدتك في اختيار وجبتك اليوم؟' 
-            : 'Welcome to our restaurant! I am your AI waiter, how can I help you choose your meal today?',
+          text: agentType === 'marketing' 
+            ? (isRtl ? 'مرحباً! أنا مساعد Visiono الذكي. هل تبحث عن نقطة بيع، أم نظام 3D لمطعمك؟' : 'Hello! I am Visiono AI assistant. Are you looking for POS or 3D menu features?')
+            : (isRtl ? 'مرحباً بك! أنا مساعدك الذكي لليوم. كيف يمكنني إثراء تجربتك؟' : 'Hello! I am your AI assistant for today. How can I enrich your experience?'),
           timestamp: new Date()
         }
       ]);
     }
-  }, [isOpen, messages.length, isRtl]);
+  }, [isOpen, messages.length, isRtl, agentType]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -76,7 +77,8 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
     setIsTyping(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('whatsapp-webhook', {
+      const endpoint = agentType === 'marketing' ? 'marketing-agent' : 'whatsapp-webhook';
+      const { data, error } = await supabase.functions.invoke(endpoint, {
         body: { source: 'website', message: currentInput, state: conversationState }
       });
 
@@ -89,8 +91,9 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
 
       let dishRec;
       // Convert backend schema to frontend UI
-      if (responsePayload.products && responsePayload.products.length > 0) {
-        const prod = responsePayload.products[0];
+      const items = responsePayload.dishes || responsePayload.products; // Fallback for transition
+      if (items && items.length > 0) {
+        const prod = items[0];
         dishRec = {
           id: prod.id,
           nameAr: prod.name,
@@ -132,13 +135,13 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop (Mobile only) */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden"
           />
 
           {/* Drawer */}
@@ -147,7 +150,10 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ isOpen, onClose, bra
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0.5 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 z-[101] flex flex-col h-[85vh] max-h-[800px] bg-main rounded-t-3xl border-t border-white/10 shadow-2xl overflow-hidden font-display"
+            className={`fixed z-[101] flex flex-col bg-main shadow-2xl overflow-hidden font-display 
+              inset-x-0 bottom-0 w-full h-[85vh] max-h-[800px] rounded-t-3xl border-t border-white/10
+              md:inset-x-auto md:bottom-24 md:left-6 md:w-[380px] md:h-[650px] md:max-h-[80vh] md:rounded-3xl md:border md:border-white/10
+            `}
           >
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-white/5 bg-sidebar relative z-10">

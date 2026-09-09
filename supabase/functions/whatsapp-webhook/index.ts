@@ -33,10 +33,59 @@ serve(async (req) => {
     }
   }
 
+// ── HMAC Signature Verification Helper ──
+async function verifyMetaSignature(req: Request, rawBody: string): Promise<boolean> {
+  const signatureHeader = req.headers.get("x-hub-signature-256");
+  if (!signatureHeader) return false;
+  
+  const signature = signatureHeader.replace("sha256=", "");
+  const APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET");
+  if (!APP_SECRET) {
+    console.warn("WHATSAPP_APP_SECRET not set, bypassing signature check for dev.");
+    return true; 
+  }
+
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(APP_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+
+  const buffer = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    encoder.encode(rawBody)
+  );
+  
+  const hash = Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+    
+  return hash === signature;
+}
+
   // 2. Receiving Messages (POST request)
   if (req.method === "POST") {
     try {
-      const body = await req.json();
+      const rawBody = await req.text();
+      
+      // Verification check (only applies if signature header is present, typical for Meta)
+      if (req.headers.has("x-hub-signature-256")) {
+        const isValid = await verifyMetaSignature(req, rawBody);
+        if (!isValid) {
+          return new Response("Invalid signature", { status: 401, headers: corsHeaders });
+        }
+      }
+      
+      let body;
+      try {
+        body = JSON.parse(rawBody);
+      } catch (e) {
+        return new Response("Invalid JSON", { status: 400, headers: corsHeaders });
+      }
       
       // A. Web Chat Request
       if (body.source === "website") {

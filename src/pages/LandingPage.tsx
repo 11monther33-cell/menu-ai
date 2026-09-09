@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 import { Navbar } from '../components/Navbar';
 import { Smile } from 'lucide-react';
 const Footer = React.lazy(() => import('../components/Footer').then(m => ({ default: m.Footer })));
@@ -15,6 +16,8 @@ const WhyUs = React.lazy(() => import('../components/landing/WhyUs').then(m => (
 
 const LandingPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const { language } = useLanguage();
+  const isRtl = language === 'ar';
 
   return (
     <div className="min-h-screen bg-main font-sans text-text-primary selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -38,7 +41,7 @@ const LandingPage = () => {
       {/* Floating AI Chat Button */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className="fixed bottom-6 right-6 z-[9999] bg-[#8B5CF6] text-white p-4 rounded-2xl shadow-2xl hover:bg-[#A78BFA] transition-all duration-300 flex items-center justify-center transform hover:scale-105"
+        className={`fixed bottom-6 left-6 z-[9999] bg-[#C9A84C] text-black p-4 rounded-2xl shadow-2xl hover:bg-[#E2C268] transition-all duration-300 flex items-center justify-center transform hover:scale-105`}
         aria-label="Open AI Assistant"
       >
         <Smile className="w-8 h-8" />
@@ -48,7 +51,8 @@ const LandingPage = () => {
       <AIChatDrawer 
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
-        branding={{ primary_color: '#8B5CF6' }} 
+        branding={{ primary_color: '#C9A84C' }} 
+        agentType="marketing"
       />
     </div>
   );

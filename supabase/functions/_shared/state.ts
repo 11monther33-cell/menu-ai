@@ -4,20 +4,20 @@ import { CatalogItem } from './catalog.ts';
 // Zod is available via npm:zod or unpkg in Deno. Let's assume npm:zod works via deno.json or we can fetch it.
 
 export const FactSchema = {
-  type: "object",
+  type: "OBJECT",
   properties: {
-    key: { type: "string" },
-    value: { type: "string" },
-    certainty: { type: "string", enum: ["explicit", "uncertain", "inferred"] }
+    key: { type: "STRING" },
+    value: { type: "STRING" },
+    certainty: { type: "STRING", enum: ["explicit", "uncertain", "inferred"] }
   },
   required: ["key", "value", "certainty"]
 };
 
 export const ExtractedFactsSchema = {
-  type: "object",
+  type: "OBJECT",
   properties: {
     facts: {
-      type: "array",
+      type: "ARRAY",
       items: FactSchema
     }
   },

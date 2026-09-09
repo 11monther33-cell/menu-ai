@@ -3,13 +3,14 @@ import { useLanguage } from '../context/LanguageContext';
 import { motion } from 'motion/react';
 import { Check, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { VisionoCatalog } from '../lib/visiono-plans';
 
 export const PricingSection = () => {
   const { t, isRtl } = useLanguage();
   const navigate = useNavigate();
   const [isAnnual, setIsAnnual] = useState(false);
 
-  const plans = t('pricing.plans');
+  const plans = VisionoCatalog;
 
   return (
     <section id="pricing" className="py-24 bg-main relative overflow-hidden">

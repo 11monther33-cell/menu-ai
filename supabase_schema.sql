@@ -407,10 +407,9 @@ CREATE POLICY "Admin manage qr codes"
 -- ║  🔒 ORDERS — RLS POLICIES                                  ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
--- Public (anon) can INSERT orders (guests placing orders from public menu)
-CREATE POLICY "Public insert orders"
-  ON orders FOR INSERT
-  WITH CHECK (true);
+-- Public (anon) CANNOT INSERT orders directly (Revoked to prevent DDoS)
+-- Orders must now be created via /api/orders/create endpoint with strict Upstash Rate Limiting.
+DROP POLICY IF EXISTS "Public insert orders" ON orders;
 
 -- Public can read their own order by device_hash (optional)
 CREATE POLICY "Public read own orders"
@@ -437,10 +436,9 @@ CREATE POLICY "Admin manage orders"
 -- ║  🔒 ORDER ITEMS — RLS POLICIES                             ║
 -- ╚══════════════════════════════════════════════════════════════╝
 
--- Public can insert order items (with their order)
-CREATE POLICY "Public insert order items"
-  ON order_items FOR INSERT
-  WITH CHECK (true);
+-- Public CANNOT insert order items directly (Revoked to prevent DDoS)
+-- Order items are now inserted via the secure /api/orders/create endpoint.
+DROP POLICY IF EXISTS "Public insert order items" ON order_items;
 
 CREATE POLICY "Public read order items"
   ON order_items FOR SELECT
@@ -701,6 +699,11 @@ CREATE TABLE IF NOT EXISTS admin_invites (
 
 ALTER TABLE admin_invites ENABLE ROW LEVEL SECURITY;
 
+CREATE POLICY "Admin manage admin_invites"
+  ON admin_invites FOR ALL
+  USING (is_super_admin())
+  WITH CHECK (is_super_admin());
+
 CREATE POLICY "Public read ready 3d models"
   ON product_3d_models FOR SELECT
   USING (status = 'ready');
@@ -757,3 +760,64 @@ BEGIN
   DO UPDATE SET count = restaurant_usage_metrics.count + p_increment_amount;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ═══════════════════════════════════════════
+-- Z. Add Missing RLS Policies
+-- ═══════════════════════════════════════════
+ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin manage admin_activity_log" ON admin_activity_log 
+  FOR ALL USING (is_super_admin()) WITH CHECK (is_super_admin());
+
+ALTER TABLE restaurant_usage_metrics ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Admin manage restaurant_usage_metrics" ON restaurant_usage_metrics 
+  FOR ALL USING (is_super_admin()) WITH CHECK (is_super_admin());
+CREATE POLICY "Owner read metrics" ON restaurant_usage_metrics 
+  FOR SELECT USING (restaurant_id IN (SELECT get_my_restaurant_ids()));
+
+-- ═══════════════════════════════════════════
+-- AB. Database Indexes for Performance
+-- ═══════════════════════════════════════════
+CREATE INDEX IF NOT EXISTS idx_order_items_dish_id ON order_items(dish_id);
+CREATE INDEX IF NOT EXISTS idx_ugc_photos_dish_id ON ugc_photos(dish_id);
+CREATE INDEX IF NOT EXISTS idx_admin_invites_restaurant_id ON admin_invites(restaurant_id);
+
+-- ═══════════════════════════════════════════
+-- AC. Storage Security Limits
+-- ═══════════════════════════════════════════
+-- Assuming storage schema exists, but we ensure policies are strictly bound:
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'storage' AND tablename = 'objects') THEN
+    DROP POLICY IF EXISTS "Limit 3d-models size" ON storage.objects;
+    CREATE POLICY "Limit 3d-models size" ON storage.objects
+      FOR INSERT WITH CHECK ( bucket_id = '3d-models' AND (octet_length(COALESCE(file_body, '')) < 15000000) );
+  END IF;
+END $$;
+
+-- ═══════════════════════════════════════════
+-- AA. Universal Reference Monitor
+-- ═══════════════════════════════════════════
+CREATE OR REPLACE FUNCTION assert_actor_authorized(
+  p_actor_id UUID, p_resource_type TEXT, p_resource_id UUID
+) RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  -- Logic to verify ownership across tables centrally
+  IF p_resource_type = 'restaurant' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM restaurants WHERE owner_id = p_actor_id AND id = p_resource_id
+    ) AND NOT is_super_admin() THEN
+      RAISE EXCEPTION 'Access denied for % %', p_resource_type, p_resource_id USING ERRCODE = '42501';
+    END IF;
+  ELSIF p_resource_type = 'branch' THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pos_branches WHERE id = p_resource_id AND restaurant_id IN (
+        SELECT id FROM restaurants WHERE owner_id = p_actor_id
+      )
+    ) AND NOT is_super_admin() THEN
+      RAISE EXCEPTION 'Access denied for % %', p_resource_type, p_resource_id USING ERRCODE = '42501';
+    END IF;
+  ELSE
+    RAISE EXCEPTION 'Unknown resource type %', p_resource_type USING ERRCODE = '42501';
+  END IF;
+END;
+$$;

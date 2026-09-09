@@ -364,15 +364,8 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pos_branches b
-    JOIN restaurants r ON r.id = b.restaurant_id
-    WHERE b.id = p_branch_id
-      AND r.owner_id = auth.uid()
-  ) THEN
-    RAISE EXCEPTION 'Access denied for branch %', p_branch_id
-      USING ERRCODE = '42501';
-  END IF;
+  -- Call the Universal Reference Monitor to centralize security checks
+  PERFORM assert_actor_authorized(auth.uid(), 'branch', p_branch_id);
 END;
 $$;
 
