@@ -41,7 +41,7 @@ const LandingPage = () => {
       {/* Floating AI Chat Button */}
       <button
         onClick={() => setIsChatOpen(true)}
-        className={`fixed bottom-6 left-6 z-[9999] bg-[#C9A84C] text-black p-4 rounded-2xl shadow-2xl hover:bg-[#E2C268] transition-all duration-300 flex items-center justify-center transform hover:scale-105`}
+        className={`fixed bottom-6 left-6 z-[9999] bg-[#351344] text-white p-4 rounded-2xl shadow-2xl hover:bg-[#260D32] transition-all duration-300 flex items-center justify-center transform hover:scale-105`}
         aria-label="Open AI Assistant"
       >
         <Smile className="w-8 h-8" />
@@ -51,7 +51,7 @@ const LandingPage = () => {
       <AIChatDrawer 
         isOpen={isChatOpen} 
         onClose={() => setIsChatOpen(false)} 
-        branding={{ primary_color: '#C9A84C' }} 
+        branding={{ primary_color: '#351344' }} 
         agentType="marketing"
       />
     </div>

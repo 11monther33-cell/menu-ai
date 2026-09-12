@@ -114,7 +114,7 @@ const PublicMenu = () => {
     toast.success(isRtl ? 'تم تجهيز بطاقة المشاركة!' : 'Snap card ready to share!');
   };
 
-  const primaryColor = branding?.primary_color || '#C9A84C';
+  const primaryColor = branding?.primary_color || '#351344';
 
   return (
     <div 

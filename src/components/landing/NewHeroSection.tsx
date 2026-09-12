@@ -57,30 +57,30 @@ export const NewHeroSection = () => {
             className="text-center lg:text-right hero-fade-up"
             dir="rtl"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-medium text-sm mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#F4EEF7] border border-[#E7E1EA] text-[#351344] font-medium text-sm mb-8">
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FF5A1F] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF5A1F]"></span>
               </span>
               منصة الجيل القادم للمطاعم
             </div>
 
-            <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display leading-[1.1] mb-6 text-text-primary tracking-tight">
-              زبونك يشوف طبقه <span className="text-transparent bg-clip-text bg-gradient-to-l from-cyan-400 to-indigo-500">ثلاثي الأبعاد</span> قبل ما يطلبه.
+            <h1 className="text-[clamp(2.5rem,6vw,4.5rem)] font-display leading-[1.1] mb-6 text-[#241B2B] tracking-tight">
+              زبونك يشوف طبقه <span className="text-[#FF5A1F]">ثلاثي الأبعاد</span> قبل ما يطلبه.
             </h1>
 
-            <p className="text-lg md:text-xl text-text-secondary mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed font-sans">
+            <p className="text-lg md:text-xl text-[#6B6272] mb-10 max-w-xl mx-auto lg:mx-0 leading-relaxed font-sans">
               تجاوز قوائم الـ PDF الجامدة. حوّل قائمة مطعمك إلى تجربة تفاعلية بالواقع المعزز (AR) واربطها بنظام تشغيل متكامل يغطي كل احتياجاتك من الطلب حتى المحاسبة.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <button className="w-full sm:w-auto bg-text-primary text-main hover:bg-white font-bold px-8 py-4 rounded-xl text-base transition-colors flex items-center justify-center gap-2">
+              <a href="/register" className="w-full sm:w-auto bg-[#351344] hover:bg-[#260D32] text-white font-bold px-8 py-4 rounded-xl text-base transition-colors flex items-center justify-center gap-2 shadow-lg">
                 احجز عرض تجريبي
                 <ArrowLeft size={18} />
-              </button>
-              <button className="w-full sm:w-auto bg-transparent hover:bg-surface-2 text-text border border-border-custom font-semibold px-8 py-4 rounded-xl text-base transition-colors">
-                استكشف النظام
-              </button>
+              </a>
+              <a href="#pricing" className="w-full sm:w-auto bg-white hover:bg-[#F4EEF7] text-[#351344] border border-[#E7E1EA] font-semibold px-8 py-4 rounded-xl text-base transition-colors flex items-center justify-center">
+                استكشف الباقات
+              </a>
             </div>
           </div>
 

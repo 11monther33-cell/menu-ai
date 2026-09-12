@@ -54,7 +54,7 @@ export const MenuCartSheet = () => {
               <>
                 <div className="px-6 pb-4 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                   <h2 className="text-2xl font-bold flex items-center gap-2">
-                    <ShoppingBag className="w-6 h-6 text-[#C9A84C]" />
+                    <ShoppingBag className="w-6 h-6 text-[#351344]" />
                     {isRtl ? 'سلة الطلبات' : 'Your Order'}
                   </h2>
                   <button onClick={() => setIsOpen(false)} className="p-2 bg-gray-100 dark:bg-white/10 rounded-full">
@@ -81,7 +81,7 @@ export const MenuCartSheet = () => {
                             <h4 className="font-bold text-lg leading-tight mb-1">
                               {isRtl ? item.nameAr : item.nameEn}
                             </h4>
-                            <p className="text-[#C9A84C] font-semibold">
+                            <p className="text-[#351344] font-semibold">
                               {item.price.toFixed(3)} OMR
                             </p>
                           </div>
@@ -114,7 +114,7 @@ export const MenuCartSheet = () => {
                     </div>
                     <button
                       onClick={() => setIsCheckout(true)}
-                      className="w-full h-14 bg-[#C9A84C] text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-[#C9A84C]/20"
+                      className="w-full h-14 bg-[#351344] hover:bg-[#260D32] text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-lg shadow-[#351344]/20"
                     >
                       {isRtl ? 'متابعة الدفع' : 'Proceed to Checkout'}
                     </button>

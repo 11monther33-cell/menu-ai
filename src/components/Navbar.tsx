@@ -24,7 +24,7 @@ export const Navbar = () => {
   return (
     <nav 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-main/90 backdrop-blur-md py-3 border-b border-white/5' : 'bg-transparent py-5'
+        isScrolled ? 'bg-white/95 backdrop-blur-md py-3 border-b border-[#E7E1EA] shadow-sm' : 'bg-white/90 backdrop-blur-sm py-4 border-b border-[#E7E1EA]/60'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,7 +40,7 @@ export const Navbar = () => {
               <a 
                 key={`nav-link-${i}-${link.name}`} 
                 href={link.href}
-                className="text-muted/80 hover:text-gold transition-colors text-sm uppercase tracking-wider font-medium"
+                className="text-[#351344] hover:text-[#FF5A1F] transition-colors text-sm uppercase tracking-wider font-semibold"
               >
                 {link.name}
               </a>
@@ -52,7 +52,7 @@ export const Navbar = () => {
             <button 
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
-              className="flex items-center gap-2 text-muted/80 hover:text-text transition-colors px-3 py-2 rounded-lg hover:bg-surface-2 text-sm uppercase tracking-wider font-medium"
+              className="flex items-center gap-2 text-[#351344] hover:text-[#FF5A1F] transition-colors px-3 py-2 rounded-lg hover:bg-[#F4EEF7] text-sm uppercase tracking-wider font-semibold"
             >
               <Globe size={16} />
               <span>{lang === 'ar' ? 'English' : 'العربية'}</span>
@@ -60,7 +60,7 @@ export const Navbar = () => {
             
             <Link 
               to="/login"
-              className="flex items-center gap-2 text-muted/80 hover:text-gold transition-colors px-3 py-2 text-sm uppercase tracking-wider font-medium"
+              className="flex items-center gap-2 text-[#351344] hover:text-[#FF5A1F] transition-colors px-3 py-2 text-sm uppercase tracking-wider font-semibold"
             >
               <User size={16} />
               <span>{lang === 'ar' ? 'دخول' : 'Login'}</span>
@@ -68,7 +68,7 @@ export const Navbar = () => {
 
             <button 
               onClick={() => navigate('/register')}
-              className="bg-gold hover:bg-gold-light text-main font-semibold px-6 py-3 rounded-lg transition-colors shadow-lg text-xs uppercase tracking-wider"
+              className="bg-[#351344] hover:bg-[#260D32] text-white font-bold px-6 py-3 rounded-full transition-all shadow-md hover:shadow-lg text-xs uppercase tracking-wider"
             >
               {t('nav.cta')}
             </button>
@@ -79,14 +79,14 @@ export const Navbar = () => {
             <button 
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               aria-label={lang === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
-              className="p-2 text-muted/80"
+              className="p-2 text-[#351344]"
             >
               <Globe size={20} />
             </button>
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
-              className="p-2 text-text"
+              className="p-2 text-[#351344]"
             >
               {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
             </button>
@@ -94,9 +94,9 @@ export const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu — CSS transition instead of framer-motion */}
+      {/* Mobile Menu */}
       <div 
-        className={`md:hidden bg-surface-2 border-b border-white/5 overflow-hidden transition-all duration-300 ease-in-out ${
+        className={`md:hidden bg-white border-b border-[#E7E1EA] overflow-hidden transition-all duration-300 ease-in-out ${
           isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
         }`}
       >
@@ -106,7 +106,7 @@ export const Navbar = () => {
               key={`mobile-nav-link-${i}-${link.name}`} 
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="block px-4 py-3 text-sm uppercase tracking-wider font-medium text-muted/80 hover:text-gold hover:bg-surface rounded-lg transition-colors"
+              className="block px-4 py-3 text-sm uppercase tracking-wider font-semibold text-[#351344] hover:text-[#FF5A1F] hover:bg-[#F4EEF7] rounded-lg transition-colors"
             >
               {link.name}
             </a>
