@@ -171,7 +171,7 @@ export const Login = () => {
 
         <div className="bg-surface border border-white/5 p-8 md:p-12 rounded-2xl shadow-xl">
           <div className="text-center mb-10">
-            <img src="/logo.png" alt="VISIONO" className="w-14 h-14 object-contain mb-6 mx-auto" />
+            <img src="/logo.png" alt="VISIONO" className="h-12 w-auto object-contain mb-6 mx-auto" />
             <h1 className="text-3xl font-display text-text mb-3 leading-tight tracking-tight">{isRtl ? 'مرحباً بعودتك' : 'Welcome Back'}</h1>
             <p className="text-muted/80">{isRtl ? 'سجّل الدخول إلى لوحة تحكم VISIONO' : 'Sign in to your VISIONO dashboard'}</p>
           </div>

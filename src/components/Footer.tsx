@@ -79,8 +79,7 @@ export const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-16">
           <div className="col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <img src="/logo.png" alt="VISIONO" className="h-12 object-contain" />
-              <span className="font-bold text-2xl tracking-wider text-white">VISIONO</span>
+              <img src="/logo-white.png" alt="VISIONO" className="h-10 object-contain" />
             </div>
             <p className="text-[#E8DDED] text-sm max-w-xs leading-relaxed">
               {t('footer.tagline')}
