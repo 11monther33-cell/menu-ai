@@ -146,11 +146,8 @@ export const Register = () => {
             slug: formData.slug.substring(0, 50),
             city: formData.city.substring(0, 50),
             category: formData.category,
-            // status is NOT set here — DB trigger enforces 'PENDING'
-            subscription_status: 'trial',
-            subscription_plan: selectedPlan.id,
-            subscription_expiry: trialExpiry,
-            paypal_subscription_id: details?.subscriptionID || details?.id || null,
+            plan: selectedPlan.id,
+            status: 'PENDING',
             branding: {
               primary_color: formData.primaryColor,
               secondary_color: '#0F0E0B',
@@ -336,6 +333,35 @@ export const Register = () => {
             <AnimatePresence mode="wait">
               {step === 1 && (
                 <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+                   {/* Google Signup Button */}
+                   <button
+                     type="button"
+                     onClick={async () => {
+                       await supabase.auth.signInWithOAuth({
+                         provider: 'google',
+                         options: {
+                           redirectTo: `${window.location.origin}/login`,
+                         },
+                       });
+                     }}
+                     className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3.5 px-4 rounded-xl border border-white/10 shadow-lg flex items-center justify-center gap-3 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                   >
+                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                       <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                       <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                       <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                       <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                     </svg>
+                     <span>{isRtl ? 'المتابعة والتسجيل بواسطة Google' : 'Continue with Google'}</span>
+                   </button>
+
+                   <div className="relative flex py-2 items-center">
+                     <div className="flex-grow border-t border-white/10"></div>
+                     <span className="flex-shrink mx-4 text-xs uppercase tracking-wider text-muted/70 font-medium">
+                       {isRtl ? 'أو أدخل بياناتك يدوياً' : 'Or fill details manually'}
+                     </span>
+                     <div className="flex-grow border-t border-white/10"></div>
+                   </div>
                    <div className="grid md:grid-cols-2 gap-5">
                     <div className="space-y-2">
                        <label className="text-xs font-bold uppercase text-muted tracking-wider">{isRtl ? 'الاسم الكامل' : 'Full Name'}</label>

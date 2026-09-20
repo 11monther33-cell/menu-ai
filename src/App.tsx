@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './i18n/i18n';
 import { LanguageProvider } from './context/LanguageContext';
@@ -15,7 +15,7 @@ const PrivacyPage = React.lazy(() => import('./pages/LegalPages').then(m => ({ d
 const RefundPage = React.lazy(() => import('./pages/LegalPages').then(m => ({ default: m.RefundPage })));
 
 import ErrorBoundary from './components/ErrorBoundary';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 
 // Simple global loading spinner for suspense fallback
 const GlobalLoader = () => (
@@ -23,6 +23,106 @@ const GlobalLoader = () => (
     <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin"></div>
   </div>
 );
+
+// Global OAuth Callback and Token Resolver: Catches OAuth redirects on ANY route (e.g. /, /login, /auth/callback)
+const OAuthCallbackHandler = () => {
+  const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const handleAuthRedirect = async () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.substring(1) : '');
+      const urlError = searchParams.get('error_description') || hashParams.get('error_description') || searchParams.get('error') || hashParams.get('error');
+      const code = searchParams.get('code');
+
+      if (urlError) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        toast.error(`خطأ في تسجيل الدخول: ${urlError}`);
+        return;
+      }
+
+      if (code) {
+        try {
+          const { supabase } = await import('./lib/supabase');
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          if (error) {
+            console.error('Error exchanging code:', error);
+            toast.error(error.message || 'فشل التحقق من رمز الدخول');
+            return;
+          }
+          if (data?.session?.user) {
+            await finalizeOAuthUser(data.session.user);
+          }
+        } catch (err: any) {
+          console.error('OAuth exchange error:', err);
+        }
+      }
+    };
+
+    const finalizeOAuthUser = async (user: any) => {
+      const { supabase } = await import('./lib/supabase');
+      const userEmail = user?.email?.trim().toLowerCase();
+      if (userEmail === '11monther33@gmail.com') {
+        toast.success('مرحباً بك يا مدير النظام');
+        navigate('/admin', { replace: true });
+        return;
+      }
+
+      let { data: profile } = await supabase
+        .from('profiles')
+        .select('id, role, is_active, restaurant_id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!profile && userEmail) {
+        const { data: byEmail } = await supabase
+          .from('profiles')
+          .select('id, role, is_active, restaurant_id')
+          .ilike('email', userEmail)
+          .maybeSingle();
+        if (byEmail) profile = byEmail;
+      }
+
+      if (profile && !profile.is_active) {
+        toast.error('حسابك معلق. يرجى التواصل مع الإدارة.');
+        await supabase.auth.signOut();
+        navigate('/login', { replace: true });
+        return;
+      }
+
+      if (profile?.role === 'SUPER_ADMIN') {
+        toast.success('مرحباً بك يا مدير النظام');
+        navigate('/admin', { replace: true });
+        return;
+      }
+
+      let restQuery = supabase.from('restaurants').select('id, plan, status, is_active');
+      if (profile?.restaurant_id) {
+        restQuery = restQuery.eq('id', profile.restaurant_id);
+      } else {
+        restQuery = restQuery.eq('owner_id', user.id);
+      }
+
+      const { data: restaurant } = await restQuery.maybeSingle();
+      const isSubscribed = restaurant && restaurant.status !== 'SUSPENDED' && (
+        restaurant.plan || restaurant.status === 'APPROVED' || restaurant.status === 'ACTIVE'
+      );
+
+      if (!isSubscribed) {
+        toast.error('مرحباً بك! للاستفادة من منصة VISIONO، يجب تفعيل باقة اشتراك أولاً.');
+        navigate('/register?step=plans', { replace: true });
+        return;
+      }
+
+      navigate('/dashboard', { replace: true });
+    };
+
+    handleAuthRedirect();
+  }, [navigate]);
+
+  return null;
+};
 
 function App() {
   const { i18n } = useTranslation();
@@ -63,8 +163,10 @@ function App() {
     <LanguageProvider>
       <Toaster position="top-center" reverseOrder={false} />
       <Router>
+        <OAuthCallbackHandler />
         <React.Suspense fallback={<GlobalLoader />}>
           <Routes>
+            <Route path="/auth/callback" element={<Navigate to="/login" replace />} />
             {/* Marketing Site / Landing Page */}
             <Route path="/" element={<LandingPage />} />
             

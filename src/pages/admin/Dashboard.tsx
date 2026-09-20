@@ -63,8 +63,16 @@ export const AdminDashboard = () => {
   useEffect(() => {
     // 🔒 SECURITY: Client-side role check — defense in depth
     // The REAL protection is RLS policies on system_settings table
-    if (!authLoading && (!user || user.role !== 'SUPER_ADMIN')) {
-      navigate('/login');
+    if (!authLoading) {
+      if (!user) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) {
+            navigate('/login');
+          }
+        });
+      } else if (user.role !== 'SUPER_ADMIN') {
+        navigate('/login');
+      }
     }
   }, [user, authLoading, navigate]);
 

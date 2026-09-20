@@ -26,12 +26,28 @@ export function useAuth() {
 
     // Check active sessions and sets the user
     const checkSession = async () => {
+      const hasAuthRedirectParams = typeof window !== 'undefined' && (
+        window.location.search.includes('code=') ||
+        window.location.hash.includes('access_token=')
+      );
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         await fetchProfile(session.user);
-      } else {
+      } else if (!hasAuthRedirectParams) {
         setUser(null);
         setLoading(false);
+      } else {
+        // If returning from OAuth redirect, give PKCE/token exchange up to 4s to complete before releasing loading
+        setTimeout(async () => {
+          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (retrySession?.user) {
+            await fetchProfile(retrySession.user);
+          } else {
+            setUser(null);
+            setLoading(false);
+          }
+        }, 4000);
       }
     };
 
@@ -74,11 +90,38 @@ export function useAuth() {
         }
 
         if (data) {
-          const sanitizedData = { ...data };
-          if (sanitizedData.restaurant_id === 'undefined') {
-            sanitizedData.restaurant_id = undefined;
+          let restaurantId = data.restaurant_id;
+          if (restaurantId === 'undefined') restaurantId = undefined;
+
+          let restaurantData: any = null;
+          if (restaurantId) {
+            const { data: rest } = await supabase
+              .from('restaurants')
+              .select('id, name_ar, name_en, slug')
+              .eq('id', restaurantId)
+              .maybeSingle();
+            restaurantData = rest;
+          } else {
+            const { data: rest } = await supabase
+              .from('restaurants')
+              .select('id, name_ar, name_en, slug')
+              .eq('owner_id', userId)
+              .maybeSingle();
+            restaurantData = rest;
+            if (rest) restaurantId = rest.id;
           }
-          setUser({ uid: userId, ...sanitizedData, restaurantId: sanitizedData.restaurant_id } as UserProfile);
+
+          setUser({
+            uid: userId,
+            email: data.email || userEmail,
+            role: data.role,
+            name: data.name || 'User',
+            restaurantId: restaurantId || undefined,
+            restaurantNameAr: restaurantData?.name_ar,
+            restaurantNameEn: restaurantData?.name_en,
+            restaurantSlug: restaurantData?.slug,
+            is_active: data.is_active !== false,
+          } as UserProfile);
         } else {
           setUser(null);
         }

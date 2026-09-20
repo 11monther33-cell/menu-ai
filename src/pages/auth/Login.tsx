@@ -52,7 +52,8 @@ export const Login = () => {
 
       // 1. Root Super Admin check by email directly
       if (userEmail === '11monther33@gmail.com') {
-        navigate('/admin');
+        toast.success(isRtl ? 'تم تسجيل الدخول بنجاح كمدير عام' : 'Logged in as Super Admin');
+        navigate('/admin', { replace: true });
         return;
       }
 
@@ -80,7 +81,8 @@ export const Login = () => {
 
       // Super Admins bypass restaurant subscription requirement
       if (profile?.role === 'SUPER_ADMIN') {
-        navigate('/admin');
+        toast.success(isRtl ? 'تم تسجيل الدخول بنجاح كمدير عام' : 'Logged in as Super Admin');
+        navigate('/admin', { replace: true });
         return;
       }
 
@@ -107,18 +109,50 @@ export const Login = () => {
             ? 'مرحباً بك! للاستفادة من منصة VISIONO، يجب تفعيل اشتراكك في إحدى الباقات أولاً.'
             : 'Welcome! An active subscription is required to access the platform.'
         );
-        navigate('/register?step=plans');
+        navigate('/register?step=plans', { replace: true });
         return;
       }
 
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Authentication error');
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
   // Check if returning from Google OAuth redirect
   useEffect(() => {
+    // 0. Parse URL parameters for error or code
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.substring(1) : '');
+    const urlError = searchParams.get('error_description') || hashParams.get('error_description') || searchParams.get('error') || hashParams.get('error');
+    const code = searchParams.get('code');
+
+    if (urlError) {
+      setError(urlError);
+      toast.error(`خطأ في تسجيل الدخول: ${urlError}`);
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    if (code) {
+      setGoogleLoading(true);
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchangeErr }) => {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        if (exchangeErr) {
+          setError(exchangeErr.message);
+          toast.error(exchangeErr.message);
+          setGoogleLoading(false);
+        } else if (data?.session?.user) {
+          finalizeLogin(data.session.user);
+        }
+      }).catch((err) => {
+        setGoogleLoading(false);
+        setError(err.message || 'OAuth error');
+      });
+    }
+
     // 1. Listen for auth state changes (essential for OAuth token redirect)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
@@ -323,7 +357,7 @@ export const Login = () => {
               </svg>
               <span>
                 {googleLoading 
-                  ? (isRtl ? 'جاري التحويل إلى Google...' : 'Connecting to Google...') 
+                  ? (isRtl ? 'جاري التحقق والدخول بواسطة Google...' : 'Verifying Google sign-in...') 
                   : (isRtl ? 'تسجيل الدخول بواسطة Google' : 'Continue with Google')}
               </span>
             </button>
