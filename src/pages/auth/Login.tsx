@@ -52,7 +52,7 @@ export const Login = () => {
 
       // 1. Root Super Admin check by email directly
       if (userEmail === '11monther33@gmail.com') {
-        toast.success(isRtl ? 'تم تسجيل الدخول بنجاح كمدير عام' : 'Logged in as Super Admin');
+        toast.success(isRtl ? 'تم تسجيل الدخول بنجاح كمدير عام' : 'Logged in as Super Admin', { id: 'admin-login-success' });
         navigate('/admin', { replace: true });
         return;
       }
@@ -138,19 +138,6 @@ export const Login = () => {
 
     if (code) {
       setGoogleLoading(true);
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error: exchangeErr }) => {
-        window.history.replaceState({}, document.title, window.location.pathname);
-        if (exchangeErr) {
-          setError(exchangeErr.message);
-          toast.error(exchangeErr.message);
-          setGoogleLoading(false);
-        } else if (data?.session?.user) {
-          finalizeLogin(data.session.user);
-        }
-      }).catch((err) => {
-        setGoogleLoading(false);
-        setError(err.message || 'OAuth error');
-      });
     }
 
     // 1. Listen for auth state changes (essential for OAuth token redirect)

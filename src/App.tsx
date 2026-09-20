@@ -44,11 +44,25 @@ const OAuthCallbackHandler = () => {
       if (code) {
         try {
           const { supabase } = await import('./lib/supabase');
-          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           window.history.replaceState({}, document.title, window.location.pathname);
+
+          // Check if session is already active (exchanged automatically)
+          const { data: currentSession } = await supabase.auth.getSession();
+          if (currentSession?.session?.user) {
+            await finalizeOAuthUser(currentSession.session.user);
+            return;
+          }
+
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (error) {
-            console.error('Error exchanging code:', error);
-            toast.error(error.message || 'فشل التحقق من رمز الدخول');
+            const { data: retrySession } = await supabase.auth.getSession();
+            if (retrySession?.session?.user) {
+              await finalizeOAuthUser(retrySession.session.user);
+              return;
+            }
+            if (!error.message.includes('code verifier not found')) {
+              toast.error(error.message || 'فشل التحقق من رمز الدخول');
+            }
             return;
           }
           if (data?.session?.user) {
@@ -64,7 +78,7 @@ const OAuthCallbackHandler = () => {
       const { supabase } = await import('./lib/supabase');
       const userEmail = user?.email?.trim().toLowerCase();
       if (userEmail === '11monther33@gmail.com') {
-        toast.success('مرحباً بك يا مدير النظام');
+        toast.success('تم تسجيل الدخول بنجاح كمدير عام', { id: 'admin-login-success' });
         navigate('/admin', { replace: true });
         return;
       }
