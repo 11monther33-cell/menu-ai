@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
@@ -15,6 +15,7 @@ export const Login = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -44,31 +45,81 @@ export const Login = () => {
     }
   };
 
+  // 🔒 Finalize Login & Enforce Active Subscription
   const finalizeLogin = async (user: any) => {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single();
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, is_active')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    if (profileError || !profile) {
-      setError(isRtl 
-        ? 'التسجيل غير مكتمل. يرجى الذهاب لصفحة "سجل مطعمك الآن" وإكمال الخطوات بنفس الإيميل وكلمة المرور.' 
-        : 'Registration incomplete. Please go to Register and complete the steps with the same email and password.');
-      await supabase.auth.signOut();
-      return;
-    }
+      if (profile && !profile.is_active) {
+        setError(isRtl ? 'حسابك معلق. تواصل مع الدعم.' : 'Your account is suspended. Contact support.');
+        await supabase.auth.signOut();
+        return;
+      }
 
-    if (!profile.is_active) {
-      setError(isRtl ? 'حسابك معلق. تواصل مع الدعم.' : 'Your account is suspended. Contact support.');
-      await supabase.auth.signOut();
-      return;
-    }
+      // Super Admins bypass restaurant subscription requirement
+      if (profile?.role === 'SUPER_ADMIN') {
+        navigate('/admin');
+        return;
+      }
 
-    if (profile.role === 'SUPER_ADMIN') {
-      navigate('/admin');
-    } else {
+      // 🔒 Check subscription status for restaurant owner
+      const { data: restaurant } = await supabase
+        .from('restaurants')
+        .select('id, subscription_status, subscription_expiry')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      const isSubscribed = restaurant && (
+        restaurant.subscription_status === 'active' ||
+        (restaurant.subscription_status === 'trial' && new Date(restaurant.subscription_expiry) > new Date())
+      );
+
+      if (!isSubscribed) {
+        toast.error(
+          isRtl
+            ? 'مرحباً بك! للاستفادة من منصة VISIONO، يجب تفعيل اشتراكك في إحدى الباقات أولاً.'
+            : 'Welcome! An active subscription is required to access the platform.'
+        );
+        navigate('/register?step=plans');
+        return;
+      }
+
       navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Authentication error');
+    }
+  };
+
+  // Check if returning from Google OAuth redirect
+  useEffect(() => {
+    const checkOAuthSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await finalizeLogin(session.user);
+      }
+    };
+    checkOAuthSession();
+  }, []);
+
+  // Google OAuth Login
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    setError('');
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login`,
+        },
+      });
+      if (oauthError) throw oauthError;
+    } catch (err: any) {
+      setError(err.message || (isRtl ? 'فشل تسجيل الدخول عبر Google' : 'Google sign-in failed'));
+      setGoogleLoading(false);
     }
   };
 
@@ -224,6 +275,35 @@ export const Login = () => {
             </form>
           ) : (
             <>
+            {/* Google OAuth Login Button */}
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading || googleLoading}
+              className="w-full mb-6 bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3.5 px-4 rounded-xl border border-white/10 shadow-lg flex items-center justify-center gap-3 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+            >
+              <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
+                <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.98 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+              </svg>
+              <span>
+                {googleLoading 
+                  ? (isRtl ? 'جاري التحويل إلى Google...' : 'Connecting to Google...') 
+                  : (isRtl ? 'تسجيل الدخول بواسطة Google' : 'Continue with Google')}
+              </span>
+            </button>
+
+            {/* Divider */}
+            <div className="relative flex py-2 items-center mb-6">
+              <div className="flex-grow border-t border-white/10"></div>
+              <span className="flex-shrink mx-4 text-xs uppercase tracking-wider text-muted/70 font-medium">
+                {isRtl ? 'أو عبر البريد الإلكتروني' : 'Or continue with email'}
+              </span>
+              <div className="flex-grow border-t border-white/10"></div>
+            </div>
+
             <form onSubmit={handleLogin} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-muted mb-2">{isRtl ? 'البريد الإلكتروني' : 'Email Address'}</label>
