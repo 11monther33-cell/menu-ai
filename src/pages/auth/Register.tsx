@@ -339,9 +339,13 @@ export const Register = () => {
                      onClick={async () => {
                        await supabase.auth.signInWithOAuth({
                          provider: 'google',
-                         options: {
-                           redirectTo: `${window.location.origin}/login`,
-                         },
+                          options: {
+                            redirectTo: `${window.location.origin}/login`,
+                            queryParams: {
+                              access_type: 'offline',
+                              prompt: 'consent',
+                            },
+                          },
                        });
                      }}
                      className="w-full bg-white hover:bg-gray-100 text-gray-800 font-semibold py-3.5 px-4 rounded-xl border border-white/10 shadow-lg flex items-center justify-center gap-3 transition-all duration-200 transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
