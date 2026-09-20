@@ -141,16 +141,14 @@ export const RestaurantDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen lg:h-screen bg-main text-[#F5F5F5] overflow-hidden selection:bg-gold/30">
-      <div className="fixed inset-0 bg-[#0A0A0B] -z-10" />
-      
+    <div className="flex h-screen lg:h-screen bg-main text-text overflow-hidden selection:bg-gold/30">
       {/* Sidebar - Desktop */}
       <aside 
-        className={`hidden lg:flex flex-col bg-surface-2 border-white/5 transition-all duration-300 relative z-30 ${
+        className={`hidden lg:flex flex-col bg-surface-2 border-border-custom transition-all duration-300 relative z-30 ${
           isSidebarCollapsed ? 'w-20' : 'w-[260px]'
         } ${isRtl ? 'border-l' : 'border-r'}`}
       >
-        <div className="h-16 flex items-center px-6 border-b border-white/5">
+        <div className="h-16 flex items-center px-6 border-b border-border-custom">
           <img src="/logo.png" alt="VISIONO" className="h-8 object-contain" />
         </div>
 
@@ -158,7 +156,7 @@ export const RestaurantDashboard = () => {
           {navItems.map((group, i) => (
             <div key={`nav-group-${i}-${group.group}`} className="space-y-2">
               {!isSidebarCollapsed && (
-                <p className="px-5 text-[10px] font-semibold text-muted uppercase tracking-[0.2em] mb-4">
+                <p className="px-5 text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">
                   {group.group}
                 </p>
               )}
@@ -167,20 +165,24 @@ export const RestaurantDashboard = () => {
                   <Link
                     key={item.id}
                     to={item.path}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative group mx-2 ${
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative group mx-2 ${
                       isActive(item.path) 
-                        ? 'bg-white/5 text-text' 
-                        : 'text-muted hover:bg-white/5 hover:text-text'
+                        ? 'bg-gold text-white font-bold shadow-sm shadow-gold/20' 
+                        : 'text-text-secondary hover:bg-gold/10 hover:text-gold font-medium'
                     }`}
                   >
-                    <div className={`${isActive(item.path) ? 'text-gold' : 'text-muted group-hover:text-gold'}`}>
+                    <div className={`${isActive(item.path) ? 'text-white' : 'text-text-secondary group-hover:text-gold transition-colors'}`}>
                       {item.icon}
                     </div>
                     {!isSidebarCollapsed && (
                       <>
                         <span className="flex-1 truncate text-sm font-medium">{item.label}</span>
                         {item.badge && (
-                          <span className="px-1.5 py-0.5 bg-red-500/20 border border-red-500/50 text-[8px] font-bold text-red-400 rounded-md animate-pulse">
+                          <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded-md animate-pulse ${
+                            isActive(item.path)
+                              ? 'bg-white/20 text-white'
+                              : 'bg-red-500/10 border border-red-500/20 text-red-600'
+                          }`}>
                             {item.badge}
                           </span>
                         )}
@@ -189,7 +191,7 @@ export const RestaurantDashboard = () => {
                     {isActive(item.path) && (
                       <motion.div 
                         layoutId="active-nav"
-                        className={`absolute inset-y-2 w-1 bg-gold rounded-full ${isRtl ? 'right-0' : 'left-0'}`}
+                        className={`absolute inset-y-2 w-1 bg-white rounded-full ${isRtl ? 'right-0' : 'left-0'}`}
                       />
                     )}
                   </Link>
@@ -199,23 +201,23 @@ export const RestaurantDashboard = () => {
           ))}
         </div>
 
-        <div className="p-4 border-t border-white/5 space-y-2">
+        <div className="p-4 border-t border-border-custom space-y-2">
           {!isSidebarCollapsed && (
-            <div className="px-4 py-3 bg-main border border-white/5 rounded-lg mb-4">
+            <div className="px-4 py-3 bg-card border border-border-custom rounded-xl mb-4 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gold border border-gold/20 rounded flex items-center justify-center text-main font-bold text-xs uppercase shadow-sm">
+                <div className="w-9 h-9 bg-gold rounded-lg flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm shrink-0">
                   {user?.name?.slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate text-[#F5F5F5]">{user?.name}</p>
-                  <p className="text-[10px] text-muted truncate">{user?.email}</p>
+                  <p className="text-xs font-bold truncate text-text-primary">{user?.name}</p>
+                  <p className="text-[10px] text-text-secondary truncate">{user?.email}</p>
                 </div>
               </div>
             </div>
           )}
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-white/5 rounded-lg transition-colors text-sm font-medium"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-semibold"
           >
             <LogOut size={16} />
             {!isSidebarCollapsed && <span>{t('restaurant.nav.logout')}</span>}
@@ -223,7 +225,7 @@ export const RestaurantDashboard = () => {
           
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="w-full flex items-center justify-center p-3 text-muted hover:text-gold hover:bg-white/5 rounded-lg transition-colors border border-transparent"
+            className="w-full flex items-center justify-center p-2.5 text-text-secondary hover:text-gold hover:bg-gold/10 rounded-xl transition-colors"
             title={isSidebarCollapsed ? (isRtl ? 'توسيع' : 'Expand') : (isRtl ? 'طي' : 'Collapse')}
           >
             {isSidebarCollapsed ? (isRtl ? <ChevronLeft size={16} /> : <ChevronRight size={16} />) : (isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />)}
@@ -235,18 +237,18 @@ export const RestaurantDashboard = () => {
       <div className="flex-1 flex flex-col h-full relative overflow-hidden">
         <div className="site-noise"></div>
         {/* Header */}
-        <header className="h-16 bg-main/90 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
+        <header className="h-16 bg-main/90 backdrop-blur-md border-b border-border-custom flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
           <div className="flex items-center gap-4 relative z-10">
             <button 
-              className="lg:hidden p-2.5 bg-surface-2 border border-white/5 rounded-lg text-gold hover:text-gold-light transition-colors shadow-sm"
+              className="lg:hidden p-2.5 bg-card border border-border-custom rounded-lg text-gold hover:text-gold-dark transition-colors shadow-sm"
               onClick={() => setIsMobileMenuOpen(true)}
             >
               <Menu size={20} />
             </button>
-            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-surface-2 rounded-lg border border-white/5">
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 bg-card rounded-lg border border-border-custom shadow-sm">
               <Utensils size={14} className="text-gold" />
-              <span className="text-xs font-semibold text-text tracking-wider">{user?.restaurantName || 'Restaurant Name'}</span>
-              <span className="w-1 h-1 bg-white/10 rounded-full" />
+              <span className="text-xs font-bold text-text-primary tracking-wider">{user?.restaurantName || 'Restaurant Name'}</span>
+              <span className="w-1 h-1 bg-border-custom rounded-full" />
               <BranchSwitcher />
             </div>
           </div>
@@ -255,20 +257,20 @@ export const RestaurantDashboard = () => {
             {/* Language Toggle */}
             <button 
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-              className="px-3 py-1.5 bg-surface-2 border border-white/5 rounded-lg text-[10px] font-semibold hover:bg-surface transition-colors flex items-center gap-2 text-text tracking-wider uppercase"
+              className="px-3 py-1.5 bg-card border border-border-custom rounded-lg text-[10px] font-bold hover:bg-surface-2 transition-colors flex items-center gap-2 text-text-primary tracking-wider uppercase shadow-sm"
             >
               <Globe size={12} />
               {lang === 'ar' ? 'EN' : 'AR'}
             </button>
 
-            <button className="p-2 text-muted hover:text-text relative transition-colors">
+            <button className="p-2 text-text-secondary hover:text-text-primary relative transition-colors">
               <Bell size={18} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-main" />
             </button>
 
-            <div className="w-8 h-8 bg-surface-2 rounded border border-white/5 overflow-hidden cursor-pointer hover:border-white/20 transition-colors shadow-sm">
+            <div className="w-8 h-8 bg-card rounded-lg border border-border-custom overflow-hidden cursor-pointer hover:border-gold/40 transition-colors shadow-sm">
               <img 
-                src={`https://ui-avatars.com/api/?name=${user?.name}&background=C9A84C&color=0A0A0A`} 
+                src={`https://ui-avatars.com/api/?name=${user?.name}&background=351344&color=FFFFFF`} 
                 alt="Avatar" 
                 className="w-full h-full object-cover"
               />

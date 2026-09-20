@@ -27,13 +27,16 @@
   --color-text-primary: #241B2B;
   --color-text-secondary: #6B6272;    /* Purplish Gray */
   --color-text-muted: #8C8193;        /* Medium Gray */
-  
+  --color-muted: #6B6272;             /* Purplish Gray for text-muted */
+  --color-muted-foreground: #8C8193;
+
   /* UI Elements */
   --color-dark: #351344;
   --color-dark-2: #260D32;
-  --color-dark-custom: #FAF9F7;
+  --color-dark-custom: #351344;
   --color-border-custom: #E7E1EA;     /* Light Gray Border */
-  
+  --color-border: #E7E1EA;            /* Standard Border */
+
   /* Special Custom Colors */
   --color-whatsapp: #25D366;
   --color-cyan-accent: #FF5A1F;       /* Secondary Accent Orange */
@@ -79,9 +82,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #D5CEDC;
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: #B3A8BC;
 }

@@ -56,13 +56,13 @@ export function ImageUploader({ images, onChange, lang, primaryColor, maxImages 
   };
 
   return (
-    <div className="space-y-4 text-[#F5F5F5]">
-      <h2 className="font-display text-xl tracking-wide">
+    <div className="space-y-4 text-text-primary">
+      <h2 className="font-display text-xl tracking-wide font-bold">
         {isAr ? 'الصور *' : 'Images *'}
       </h2>
 
       {images.length > 0 && (
-        <p className="text-muted text-xs uppercase tracking-wider font-semibold">
+        <p className="text-text-secondary text-xs uppercase tracking-wider font-semibold">
           💡 {isAr
             ? 'الصورة الأولى هي الصورة الرئيسية في المنيو — استخدم الأسهم للترتيب'
             : 'First image is the main menu image — use arrows to reorder'}
@@ -72,12 +72,12 @@ export function ImageUploader({ images, onChange, lang, primaryColor, maxImages 
       {images.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {images.map((url, i) => (
-            <div key={`${url}-${i}`} className="relative aspect-square bg-[#111] rounded-xl overflow-hidden group border border-white/5">
+            <div key={`${url}-${i}`} className="relative aspect-square bg-card rounded-xl overflow-hidden group border border-border-custom shadow-sm">
               <img src={assetService.getOptimizedUrl(url, { width: 400 })} alt="" className="w-full h-full object-cover" />
 
               {i === 0 && (
                 <div 
-                  className="absolute top-2 start-2 px-2 py-1 bg-gold text-main text-[10px] font-bold rounded shadow-md uppercase tracking-widest"
+                  className="absolute top-2 start-2 px-2 py-1 bg-gold text-white text-[10px] font-bold rounded shadow-md uppercase tracking-widest"
                 >
                   {isAr ? 'رئيسية' : 'Main'}
                 </div>
@@ -116,11 +116,7 @@ export function ImageUploader({ images, onChange, lang, primaryColor, maxImages 
           onDragLeave={() => setDragOver(false)}
           onDrop={e => { e.preventDefault(); setDragOver(false); uploadFiles(e.dataTransfer.files); }}
           onClick={() => document.getElementById('img-input')?.click()}
-          className="border border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-colors"
-          style={{
-            borderColor: dragOver ? primaryColor : 'rgba(255,255,255,0.1)',
-            background: dragOver ? `${primaryColor}10` : 'rgba(255,255,255,0.02)',
-          }}
+          className="border-2 border-dashed rounded-2xl p-8 lg:p-12 text-center cursor-pointer transition-all bg-card border-border-custom hover:border-gold/50 shadow-sm"
         >
           <input
             id="img-input"
@@ -133,15 +129,15 @@ export function ImageUploader({ images, onChange, lang, primaryColor, maxImages 
 
           {uploading ? (
             <div className="flex flex-col items-center gap-4">
-              <div className="w-8 h-8 border-2 border-white/20 border-t-gold rounded-full animate-spin" />
-              <p className="text-muted text-sm font-medium tracking-wide uppercase">{isAr ? 'جاري الرفع...' : 'Uploading...'}</p>
+              <div className="w-8 h-8 border-2 border-border-custom border-t-gold rounded-full animate-spin" />
+              <p className="text-text-secondary text-sm font-bold tracking-wide uppercase">{isAr ? 'جاري الرفع...' : 'Uploading...'}</p>
             </div>
           ) : (
             <>
-              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mx-auto mb-4 border border-white/10 group-hover:border-gold/30 transition-colors">
+              <div className="w-16 h-16 rounded-full bg-gold/10 flex items-center justify-center mx-auto mb-4 border border-gold/20 group-hover:border-gold/40 transition-colors">
                 <Camera size={28} className="text-gold" />
               </div>
-              <p className="text-text font-medium text-sm mb-2 uppercase tracking-wide">
+              <p className="text-text-primary font-bold text-sm mb-2 uppercase tracking-wide">
                 {isAr ? 'اسحب الصور هنا أو اضغط للاختيار' : 'Drag images here or click to browse'}
               </p>
 
@@ -150,14 +146,14 @@ export function ImageUploader({ images, onChange, lang, primaryColor, maxImages 
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); document.getElementById('img-input')?.click(); }}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-main text-xs font-bold hover:opacity-90 transition-all uppercase tracking-wider shadow-lg shadow-gold/20"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gold text-white text-xs font-bold hover:bg-gold/90 transition-all uppercase tracking-wider shadow-lg shadow-gold/20"
                 >
                   <Camera size={16} />
                   {isAr ? 'التقاط صورة الآن' : 'Take Photo Now'}
                 </button>
               </div>
 
-              <p className="text-muted text-xs font-medium tracking-wider">
+              <p className="text-text-secondary text-xs font-medium tracking-wider">
                 {isAr
                   ? `JPG, PNG, WebP · الحد الأقصى ${maxImages} صور · 10MB لكل صورة`
                   : `JPG, PNG, WebP · Max ${maxImages} images · 10MB each`}

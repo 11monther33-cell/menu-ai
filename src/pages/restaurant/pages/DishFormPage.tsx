@@ -216,8 +216,8 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
   }
 
   const renderStepIcon = (index: number) => {
-    if (step > index + 1) return <Check size={14} className="text-[#0F0E0B]" />;
-    return <span className={`text-[10px] font-bold ${step === index + 1 ? 'text-[#0F0E0B]' : 'text-white/60'}`}>{index + 1}</span>;
+    if (step > index + 1) return <Check size={14} className="text-white" />;
+    return <span className={`text-[10px] font-bold ${step === index + 1 ? 'text-white' : 'text-text-secondary'}`}>{index + 1}</span>;
   };
 
   return (
@@ -231,17 +231,35 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
           return (
             <div key={s.id} className="flex items-center shrink-0">
               <div 
-                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl transition-all duration-300 ${isActive ? 'bg-gold shadow-lg shadow-gold/20 scale-105' : isComplete ? 'bg-white/10' : 'bg-[#111] border border-white/5 opacity-40'}`}
+                className={`flex items-center gap-2 px-3 lg:px-4 py-2 rounded-xl transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-gold text-white shadow-lg shadow-gold/20 scale-105' 
+                    : isComplete 
+                      ? 'bg-gold/10 text-gold border border-gold/20' 
+                      : 'bg-card border border-border-custom text-text-secondary opacity-60'
+                }`}
               >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isActive ? 'bg-white/20' : isComplete ? 'bg-gold' : 'bg-white/10'}`}>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
+                  isActive 
+                    ? 'bg-white/20 text-white' 
+                    : isComplete 
+                      ? 'bg-gold text-white' 
+                      : 'bg-surface-2 text-text-secondary'
+                }`}>
                   {renderStepIcon(i)}
                 </div>
-                <span className={`text-[10px] lg:text-xs font-bold uppercase tracking-wider ${isActive || isComplete ? (isActive ? 'text-[#0F0E0B]' : 'text-white') : 'text-white/40'}`}>
+                <span className={`text-[10px] lg:text-xs font-bold uppercase tracking-wider ${
+                  isActive 
+                    ? 'text-white' 
+                    : isComplete 
+                      ? 'text-gold' 
+                      : 'text-text-secondary'
+                }`}>
                   {isRtl ? s.labelAr : s.labelEn}
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`w-4 lg:w-8 h-[1px] mx-1 lg:mx-2 rounded-full ${isComplete ? 'bg-gold/30' : 'bg-white/5'}`} />
+                <div className={`w-4 lg:w-8 h-[1px] mx-1 lg:mx-2 rounded-full ${isComplete ? 'bg-gold/40' : 'bg-border-custom'}`} />
               )}
             </div>
           );
@@ -257,49 +275,49 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
           : `There are invalid or missing fields (${firstErrorPath})`
         );
       })}>
-        <div className="bg-surface-2 rounded-[1.5rem] lg:rounded-[2rem] border border-white/5 p-5 lg:p-12 mb-6 min-h-auto lg:min-h-[500px] shadow-2xl relative overflow-hidden">
+        <div className="bg-card rounded-[1.5rem] lg:rounded-[2rem] border border-border-custom p-5 lg:p-12 mb-6 min-h-auto lg:min-h-[500px] shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-gold/20 to-transparent" />
           {step === 1 && (
             <div className="space-y-6">
-              <h2 className="font-display text-2xl tracking-wide text-[#F5F5F5] mb-8">
+              <h2 className="font-display text-2xl tracking-wide text-text-primary mb-8">
                 {isRtl ? 'المعلومات الأساسية' : 'Basic Information'}
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     {isRtl ? 'اسم الطبق (عربي) *' : 'Dish Name (Arabic) *'}
                   </label>
                   <input
                     {...form.register('nameAr')}
                     dir="rtl"
                     placeholder="برغر واغيو مميز"
-                    className={`w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border outline-none transition-colors ${errors.nameAr ? 'border-red-500/60' : 'border-white/10 focus:border-gold/50'}`}
+                    className={`w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border outline-none transition-colors ${errors.nameAr ? 'border-red-500/60' : 'border-border-custom focus:border-gold'}`}
                   />
-                  {errors.nameAr && <p className="text-red-400 text-xs mt-2">{errors.nameAr.message}</p>}
+                  {errors.nameAr && <p className="text-red-500 text-xs mt-2">{errors.nameAr.message}</p>}
                 </div>
                 
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     Dish Name (English) *
                   </label>
                   <input
                     {...form.register('nameEn')}
                     dir="ltr"
                     placeholder="Signature Wagyu Burger"
-                    className={`w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border outline-none transition-colors ${errors.nameEn ? 'border-red-500/60' : 'border-white/10 focus:border-gold/50'}`}
+                    className={`w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border outline-none transition-colors ${errors.nameEn ? 'border-red-500/60' : 'border-border-custom focus:border-gold'}`}
                   />
-                  {errors.nameEn && <p className="text-red-400 text-xs mt-2">{errors.nameEn.message}</p>}
+                  {errors.nameEn && <p className="text-red-500 text-xs mt-2">{errors.nameEn.message}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                   {isRtl ? 'التصنيف *' : 'Category *'}
                 </label>
                 <select
                   {...form.register('categoryId')}
-                  className={`w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border outline-none ${errors.categoryId ? 'border-red-500/60' : 'border-white/10 focus:border-gold/50'}`}
+                  className={`w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border outline-none ${errors.categoryId ? 'border-red-500/60' : 'border-border-custom focus:border-gold'}`}
                 >
                   <option value="">{isRtl ? '-- اختر تصنيفاً --' : '-- Select category --'}</option>
                   {categories.map(cat => (
@@ -308,12 +326,12 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                     </option>
                   ))}
                 </select>
-                {errors.categoryId && <p className="text-red-400 text-xs mt-2">{errors.categoryId.message}</p>}
+                {errors.categoryId && <p className="text-red-500 text-xs mt-2">{errors.categoryId.message}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     {isRtl ? 'السعر *' : 'Price *'}
                   </label>
                   <input
@@ -321,13 +339,13 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                     {...form.register('price', { 
                       setValueAs: v => (v === '' || Number.isNaN(Number(v))) ? 0 : Number(v) 
                     })}
-                    className={`w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border outline-none ${errors.price ? 'border-red-500/60' : 'border-white/10 focus:border-gold/50'}`}
+                    className={`w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border outline-none ${errors.price ? 'border-red-500/60' : 'border-border-custom focus:border-gold'}`}
                   />
-                  {errors.price && <p className="text-red-400 text-xs mt-2">{errors.price.message}</p>}
+                  {errors.price && <p className="text-red-500 text-xs mt-2">{errors.price.message}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     {isRtl ? 'العملة' : 'Currency'}
                   </label>
                   <CurrencySelector
@@ -342,35 +360,35 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
 
           {step === 2 && (
             <div className="space-y-6">
-              <h2 className="font-display text-2xl tracking-wide text-[#F5F5F5] mb-8">
+              <h2 className="font-display text-2xl tracking-wide text-text-primary mb-8">
                 {isRtl ? 'الوصف والتغذية' : 'Description & Content'}
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     {isRtl ? 'الوصف (عربي)' : 'Description (Arabic)'}
                   </label>
                   <textarea
                     {...form.register('descriptionAr')}
                     dir="rtl" rows={4}
-                    className="w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border border-white/10 outline-none resize-none focus:border-gold/50 transition-colors"
+                    className="w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border border-border-custom outline-none resize-none focus:border-gold transition-colors"
                   />
                 </div>
                 <div>
-                  <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-2">
+                  <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-2">
                     {isRtl ? 'الوصف (انجليزي)' : 'Description (English)'}
                   </label>
                   <textarea
                     {...form.register('descriptionEn')}
                     dir="ltr" rows={4}
-                    className="w-full px-5 py-3.5 rounded-xl text-white text-sm bg-main border border-white/10 outline-none resize-none focus:border-gold/50 transition-colors"
+                    className="w-full px-5 py-3.5 rounded-xl text-text-primary text-sm bg-surface-2/40 border border-border-custom outline-none resize-none focus:border-gold transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-muted text-xs font-bold uppercase tracking-widest mb-4 mt-4">
+                <label className="block text-text-secondary text-xs font-bold uppercase tracking-widest mb-4 mt-4">
                   {isRtl ? 'القيم الغذائية (اختياري)' : 'Nutritional Info'}
                 </label>
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -381,7 +399,7 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                         {...form.register(f as any, { 
                           setValueAs: v => (v === '' || Number.isNaN(Number(v))) ? null : Number(v) 
                         })}
-                        className="w-full px-4 py-3 rounded-lg text-white text-xs bg-main border border-white/10 outline-none uppercase tracking-wide focus:border-gold/50"
+                        className="w-full px-4 py-3 rounded-lg text-text-primary text-xs bg-surface-2/40 border border-border-custom outline-none uppercase tracking-wide focus:border-gold"
                       />
                     </div>
                   ))}
@@ -414,7 +432,7 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
           )}
 
           {step === 5 && (
-            <div className="space-y-6 text-[#F5F5F5]">
+            <div className="space-y-6 text-text-primary">
               <h2 className="font-display text-2xl tracking-wide mb-8">
                 {isRtl ? 'التحكم بالظهور' : 'Settings'}
               </h2>
@@ -423,10 +441,10 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                 { field: 'isAvailable', ar: 'الطبق متاح حالياً', en: 'Dish is available', sub_ar: 'يظهر للزبائن', sub_en: 'Visible to customers' },
                 { field: 'isChefSpecial', ar: 'طبق الشيف', en: 'Chef Special', sub_ar: 'يظهر بشارة مميزة', sub_en: 'Shown with special badge' },
               ].map(item => (
-                <div key={item.field} className="flex items-center justify-between px-6 py-5 rounded-2xl bg-[#111] border border-white/5">
+                <div key={item.field} className="flex items-center justify-between px-6 py-5 rounded-2xl bg-surface-2/30 border border-border-custom">
                   <div>
-                    <p className="text-white text-sm font-semibold uppercase tracking-wider">{isRtl ? item.ar : item.en}</p>
-                    <p className="text-muted text-xs mt-1">{isRtl ? item.sub_ar : item.sub_en}</p>
+                    <p className="text-text-primary text-sm font-bold uppercase tracking-wider">{isRtl ? item.ar : item.en}</p>
+                    <p className="text-text-secondary text-xs mt-1">{isRtl ? item.sub_ar : item.sub_en}</p>
                   </div>
                   <button
                     type="button"
@@ -434,10 +452,10 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                     aria-checked={!!form.watch(item.field as any)}
                     onClick={() => form.setValue(item.field as any, !form.watch(item.field as any))}
                     className="relative w-12 h-6 rounded-full transition-colors shrink-0"
-                    style={{ background: form.watch(item.field as any) ? primaryColor : 'rgba(255,255,255,0.1)' }}
+                    style={{ background: form.watch(item.field as any) ? primaryColor : '#E7E1EA' }}
                   >
                     <span
-                      className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform"
+                      className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-sm"
                       style={{ transform: form.watch(item.field as any) ? 'translateX(24px)' : 'translateX(4px)' }}
                     />
                   </button>
@@ -448,16 +466,16 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
 
           {step === 6 && (
             <div className="space-y-6">
-              <h2 className="font-display text-2xl tracking-wide text-[#F5F5F5] mb-8">
+              <h2 className="font-display text-2xl tracking-wide text-text-primary mb-8">
                 {isRtl ? 'مراجعة الإصدار النهائي' : 'Review & Finalize'}
               </h2>
               
-              <div className="rounded-2xl border border-white/10 overflow-hidden bg-[#111]">
+              <div className="rounded-2xl border border-border-custom overflow-hidden bg-card shadow-sm">
                 {values.images?.[0] && (
-                  <div className="relative h-64 overflow-hidden border-b border-white/10">
+                  <div className="relative h-64 overflow-hidden border-b border-border-custom bg-surface-2">
                     <img src={values.images[0]} alt="" className="w-full h-full object-cover" />
                     {values.model3dUrl && (
-                      <div className="absolute top-4 start-4 px-3 py-1.5 rounded bg-gold text-[#0F0E0B] text-xs font-bold tracking-widest uppercase">
+                      <div className="absolute top-4 start-4 px-3 py-1.5 rounded bg-gold text-white text-xs font-bold tracking-widest uppercase shadow-md">
                         ◉ 3D Model Attached
                       </div>
                     )}
@@ -466,10 +484,10 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                 <div className="p-8">
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <p className="text-white font-display text-2xl tracking-wide">{isRtl ? values.nameAr : values.nameEn}</p>
-                      <p className="text-muted text-xs font-semibold uppercase tracking-wider mt-1">{categories.find(c => c.id === values.categoryId)?.name_en}</p>
+                      <p className="text-text-primary font-display text-2xl tracking-wide">{isRtl ? values.nameAr : values.nameEn}</p>
+                      <p className="text-text-secondary text-xs font-semibold uppercase tracking-wider mt-1">{categories.find(c => c.id === values.categoryId)?.name_en}</p>
                     </div>
-                    <span className="text-2xl font-display text-gold">
+                    <span className="text-2xl font-display text-gold font-bold">
                       {values.price} {values.currency}
                     </span>
                   </div>
@@ -482,10 +500,10 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
                       { check: values.images?.length > 0, ar: 'صور الطبق موجودة', en: 'Images Present' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-3">
-                        <span className={`text-sm ${item.check ? 'text-green-400' : 'text-white/20'}`}>
+                        <span className={`text-sm font-bold ${item.check ? 'text-green-600' : 'text-border-custom'}`}>
                           {item.check ? '✓' : '○'}
                         </span>
-                        <span className={`text-xs uppercase tracking-wider font-semibold ${item.check ? 'text-white/60' : 'text-white/25'}`}>
+                        <span className={`text-xs uppercase tracking-wider font-semibold ${item.check ? 'text-text-primary' : 'text-text-secondary'}`}>
                           {isRtl ? item.ar : item.en}
                         </span>
                       </div>
@@ -498,26 +516,26 @@ export const DishFormPage = ({ mode }: { mode: 'create' | 'edit' }) => {
         </div>
 
         {/* Floating Action Bar */}
-        <div className="flex justify-between items-center bg-surface-2/80 p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] border border-white/10 sticky bottom-4 lg:bottom-6 z-20 backdrop-blur-xl shadow-2xl">
+        <div className="flex justify-between items-center bg-card/90 p-4 lg:p-6 rounded-2xl lg:rounded-[2rem] border border-border-custom sticky bottom-4 lg:bottom-6 z-20 backdrop-blur-xl shadow-xl">
           <button
             type="button"
             onClick={goPrev}
             disabled={step === 1}
-            className="flex items-center gap-2 px-4 lg:px-6 py-3 rounded-xl text-[10px] lg:text-sm font-bold uppercase tracking-wider text-muted hover:text-white hover:bg-white/5 transition-all disabled:opacity-20"
+            className="flex items-center gap-2 px-4 lg:px-6 py-3 rounded-xl text-[10px] lg:text-sm font-bold uppercase tracking-wider text-text-secondary hover:text-gold hover:bg-gold/10 transition-all disabled:opacity-30"
           >
             <ChevronLeft size={16} className={isRtl ? 'rotate-180' : ''} />
             {isRtl ? 'السابق' : 'Back'}
           </button>
 
           <div className="flex-1 flex justify-center lg:hidden">
-            <span className="text-[10px] font-bold text-white/20 tracking-widest">{step}/6</span>
+            <span className="text-[10px] font-bold text-text-secondary tracking-widest">{step}/6</span>
           </div>
 
           {step < 6 ? (
             <button
               type="button"
               onClick={goNext}
-              className="flex items-center gap-2 px-6 lg:px-8 py-3 rounded-xl text-[10px] lg:text-sm font-bold uppercase tracking-wider text-main transition-all shadow-lg hover:shadow-gold/30 active:scale-95"
+              className="flex items-center gap-2 px-6 lg:px-8 py-3 rounded-xl text-[10px] lg:text-sm font-bold uppercase tracking-wider text-white bg-gold hover:bg-gold/90 transition-all shadow-lg hover:shadow-gold/30 active:scale-95"
               style={{ background: primaryColor }}
             >
               {isRtl ? 'التالي' : 'Next'}

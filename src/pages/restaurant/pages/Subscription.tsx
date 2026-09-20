@@ -141,7 +141,7 @@ export const Subscription = () => {
           className="bg-gold/10 border border-gold/30 rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6"
         >
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-dark shadow-lg shadow-gold/20">
+            <div className="w-16 h-16 bg-gold rounded-2xl flex items-center justify-center text-white shadow-lg shadow-gold/20">
               <Star size={32} fill="currentColor" />
             </div>
             <div>
@@ -259,12 +259,12 @@ export const Subscription = () => {
               transition={{ delay: i * 0.1 }}
               className={`relative p-8 rounded-[2.5rem] border transition-all duration-300 flex flex-col ${
                 plan.popular 
-                  ? 'bg-dark-2 border-gold shadow-2xl shadow-gold/10 scale-105 z-10' 
-                  : 'bg-sidebar border-border-custom hover:border-gold/30'
+                  ? 'bg-card border-2 border-gold shadow-2xl shadow-gold/10 scale-105 z-10' 
+                  : 'bg-card border-border-custom hover:border-gold/30 shadow-sm'
               }`}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-dark text-[10px] font-bold px-4 py-1 rounded-full flex items-center gap-1">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gold text-white text-[10px] font-bold px-4 py-1 rounded-full flex items-center gap-1 shadow-md">
                   <Star size={12} fill="currentColor" />
                   {isRtl ? 'الأكثر طلباً' : 'MOST POPULAR'}
                 </div>

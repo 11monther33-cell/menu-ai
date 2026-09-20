@@ -55,7 +55,7 @@ export const ThreeViewer: React.FC<ThreeViewerProps> = ({ modelUrl, posterUrl, n
         <button
           key="ar-button"
           slot="ar-button"
-          className={`absolute left-1/2 -translate-x-1/2 bg-gold text-dark rounded-full font-bold shadow-lg shadow-gold/20 flex items-center gap-2 hover:scale-105 transition-transform z-20 ${isSmall ? 'bottom-2 px-4 py-1.5 text-[10px]' : 'bottom-6 px-8 py-3'}`}
+          className={`absolute left-1/2 -translate-x-1/2 bg-gold text-white rounded-full font-bold shadow-lg shadow-gold/20 flex items-center gap-2 hover:scale-105 transition-transform z-20 ${isSmall ? 'bottom-2 px-4 py-1.5 text-[10px]' : 'bottom-6 px-8 py-3'}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" width={isSmall ? 12 : 20} height={isSmall ? 12 : 20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
           {isRtl ? 'عرض في الواقع المعزز' : 'View in AR'}

@@ -53,7 +53,7 @@ export const ThreeDViewer: React.FC<ThreeDViewerProps> = ({
           <button
             key="ar-button"
             slot="ar-button"
-            className="absolute bottom-4 right-4 bg-gold text-dark px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform"
+            className="absolute bottom-4 right-4 bg-gold text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 hover:scale-105 transition-transform"
           >
             <span className="text-sm">View in AR</span>
           </button>

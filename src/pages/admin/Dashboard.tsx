@@ -316,7 +316,7 @@ export const AdminDashboard = () => {
 
   if (authLoading) {
     return (
-      <div className="h-screen bg-dark flex items-center justify-center">
+      <div className="h-screen bg-main flex items-center justify-center">
         <RefreshCw className="animate-spin text-gold" size={48} />
       </div>
     );
@@ -434,7 +434,7 @@ export const AdminDashboard = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-sidebar border border-border-custom p-8 rounded-[2.5rem] mb-10"
+        className="bg-card border border-border-custom p-8 rounded-[2.5rem] mb-10 shadow-sm"
       >
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -462,7 +462,7 @@ export const AdminDashboard = () => {
             { label: 'QR Engine', status: 'Active', icon: <QrIcon className="text-gold" /> },
             { label: 'AR Viewer', status: 'Enabled', icon: <Globe className="text-green-500" /> },
           ].map((item, i) => (
-            <div key={`setup-item-${i}-${item.label}`} className="bg-card border border-border-custom p-4 rounded-2xl flex items-center justify-between">
+            <div key={`setup-item-${i}-${item.label}`} className="bg-surface-2/40 border border-border-custom p-4 rounded-2xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                 {item.icon}
                 <span className="text-sm font-bold text-text-primary">{item.label}</span>
@@ -486,7 +486,7 @@ export const AdminDashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-dark-2 border border-surface p-6 rounded-3xl group hover:border-gold/30 transition-all"
+            className="bg-card border border-border-custom p-6 rounded-3xl shadow-sm group hover:border-gold/30 hover:shadow-md transition-all"
           >
             <div className="flex justify-between items-start mb-4">
               <div className={`w-12 h-12 ${card.bg} ${card.color} rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
@@ -496,8 +496,8 @@ export const AdminDashboard = () => {
                 {card.trend}
               </span>
             </div>
-            <p className="text-muted text-xs mb-1 uppercase tracking-wider font-medium">{card.label}</p>
-            <p className="text-3xl font-bold tracking-tight">{card.value}</p>
+            <p className="text-text-secondary text-xs mb-1 uppercase tracking-wider font-semibold">{card.label}</p>
+            <p className="text-3xl font-bold tracking-tight text-text-primary">{card.value}</p>
           </motion.div>
         ))}
       </div>
@@ -510,10 +510,10 @@ export const AdminDashboard = () => {
           { label: t('admin.stats.growth'), value: `${stats.growth}%`, trend: 'up' },
           { label: t('admin.activeUsers'), value: '0' },
         ].map((stat, i) => (
-          <div key={`secondary-stat-${i}-${stat.label}`} className="bg-surface/20 border border-surface p-4 rounded-2xl">
-            <p className="text-muted text-[10px] uppercase tracking-widest mb-1">{stat.label}</p>
+          <div key={`secondary-stat-${i}-${stat.label}`} className="bg-card border border-border-custom p-4 rounded-2xl shadow-sm">
+            <p className="text-text-secondary text-[10px] uppercase tracking-widest mb-1 font-semibold">{stat.label}</p>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold">{stat.value}</span>
+              <span className="text-xl font-bold text-text-primary">{stat.value}</span>
               {stat.trend === 'up' && <TrendingUp size={14} className="text-green-500" />}
               {stat.trend === 'down' && <TrendingDown size={14} className="text-green-500" />}
             </div>
@@ -523,10 +523,10 @@ export const AdminDashboard = () => {
 
       {/* Charts Section */}
       <div className="grid lg:grid-cols-3 gap-8 mb-10">
-        <div className="lg:col-span-2 bg-dark-2 border border-surface p-8 rounded-[2rem]">
+        <div className="lg:col-span-2 bg-card border border-border-custom p-8 rounded-[2rem] shadow-sm">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-xl font-bold">{t('admin.revenueGrowth')}</h3>
-            <select className="bg-surface border border-surface rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold">
+            <h3 className="text-xl font-bold text-text-primary">{t('admin.revenueGrowth')}</h3>
+            <select className="bg-surface-2 border border-border-custom text-text-primary rounded-lg px-3 py-1.5 text-xs outline-none focus:border-gold">
               <option>Last 6 Months</option>
               <option>Last Year</option>
             </select>
@@ -536,35 +536,35 @@ export const AdminDashboard = () => {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#C9A84C" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#C9A84C" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#351344" stopOpacity={0.25}/>
+                    <stop offset="95%" stopColor="#351344" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#242220" vertical={false} />
-                <XAxis dataKey="name" stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
-                <YAxis stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E7E1EA" vertical={false} />
+                <XAxis dataKey="name" stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
+                <YAxis stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1A1917', border: '1px solid #242220', borderRadius: '12px' }}
-                  itemStyle={{ color: '#C9A84C' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E7E1EA', borderRadius: '12px', color: '#241B2B' }}
+                  itemStyle={{ color: '#351344' }}
                 />
-                <Area type="monotone" dataKey="value" stroke="#C9A84C" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                <Area type="monotone" dataKey="value" stroke="#351344" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-dark-2 border border-surface p-8 rounded-[2rem]">
-          <h3 className="text-xl font-bold mb-8">{t('admin.registrationsByCity')}</h3>
+        <div className="bg-card border border-border-custom p-8 rounded-[2rem] shadow-sm">
+          <h3 className="text-xl font-bold text-text-primary mb-8">{t('admin.registrationsByCity')}</h3>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#242220" vertical={false} />
-                <XAxis dataKey="name" stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
-                <YAxis stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E7E1EA" vertical={false} />
+                <XAxis dataKey="name" stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
+                <YAxis stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#1A1917', border: '1px solid #242220', borderRadius: '12px' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E7E1EA', borderRadius: '12px', color: '#241B2B' }}
                 />
-                <Bar dataKey="scans" fill="#C9A84C" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="scans" fill="#351344" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -573,9 +573,9 @@ export const AdminDashboard = () => {
 
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Pending Approvals Table */}
-        <div className="lg:col-span-2 bg-dark-2 border border-surface rounded-[2rem] overflow-hidden">
-          <div className="p-8 border-b border-surface flex justify-between items-center bg-surface/10">
-            <h3 className="text-xl font-bold">{t('admin.pendingApprovals')}</h3>
+        <div className="lg:col-span-2 bg-card border border-border-custom rounded-[2rem] overflow-hidden shadow-sm">
+          <div className="p-8 border-b border-border-custom flex justify-between items-center bg-surface-2/40">
+            <h3 className="text-xl font-bold text-text-primary">{t('admin.pendingApprovals')}</h3>
             <button 
               onClick={() => setActiveTab('approvals')}
               className="text-gold text-sm font-bold hover:underline flex items-center gap-1"
@@ -587,41 +587,41 @@ export const AdminDashboard = () => {
           <div className="overflow-x-auto">
             <table className={`w-full ${isRtl ? 'text-right' : 'text-left'}`}>
               <thead>
-                <tr className="bg-surface/30 text-muted text-[10px] uppercase tracking-widest">
+                <tr className="bg-surface-2/60 text-text-secondary text-[10px] uppercase tracking-widest font-bold">
                   <th className="px-8 py-4 font-bold">{t('admin.restaurant')}</th>
                   <th className="px-8 py-4 font-bold">{t('admin.city')}</th>
                   <th className="px-8 py-4 font-bold">{t('admin.status')}</th>
                   <th className={`px-8 py-4 font-bold ${isRtl ? 'text-left' : 'text-right'}`}>{t('admin.actions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface">
+              <tbody className="divide-y divide-border-custom">
                 {loading ? (
                   <tr>
                     <td colSpan={4} className="px-8 py-12 text-center">
                       <div className="flex flex-col items-center gap-3">
                         <RefreshCw className="animate-spin text-gold" size={24} />
-                        <p className="text-muted text-sm">{t('admin.system.loading')}</p>
+                        <p className="text-text-secondary text-sm">{t('admin.system.loading')}</p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   <>
                     {restaurants.filter(r => r.status === 'PENDING').slice(0, 5).map((r, i) => (
-                      <tr key={`pending-res-${r.id || i}`} className="hover:bg-surface/20 transition-colors group">
+                      <tr key={`pending-res-${r.id || i}`} className="hover:bg-surface-2/40 transition-colors group">
                         <td className="px-8 py-5">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center font-bold text-gold border border-surface group-hover:border-gold/30 transition-all">
+                            <div className="w-10 h-10 bg-surface-2 rounded-xl flex items-center justify-center font-bold text-gold border border-border-custom group-hover:border-gold/30 transition-all">
                               {(r.name_en || r.name_ar || '?').charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <p className="font-bold text-sm">{isRtl ? (r.name_ar || r.name_en) : (r.name_en || r.name_ar)}</p>
-                              <p className="text-[10px] text-muted">{r.owner_email}</p>
+                              <p className="font-bold text-sm text-text-primary">{isRtl ? (r.name_ar || r.name_en) : (r.name_en || r.name_ar)}</p>
+                              <p className="text-[10px] text-text-secondary">{r.owner_email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-5 text-sm text-muted">{r.city}</td>
+                        <td className="px-8 py-5 text-sm text-text-secondary font-medium">{r.city}</td>
                         <td className="px-8 py-5">
-                          <span className="px-3 py-1 bg-amber-500/10 text-amber-500 text-[10px] font-bold rounded-full border border-amber-500/20">
+                          <span className="px-3 py-1 bg-amber-500/10 text-amber-600 text-[10px] font-bold rounded-full border border-amber-500/20">
                             {r.status}
                           </span>
                         </td>
@@ -629,14 +629,14 @@ export const AdminDashboard = () => {
                           <div className={`flex ${isRtl ? 'justify-start' : 'justify-end'} gap-2`}>
                             <button 
                               onClick={() => handleApprove(r.id)}
-                              className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all"
+                              className="p-2 bg-green-500/10 text-green-600 rounded-lg hover:bg-green-500/20 transition-all"
                               title={t('admin.approve')}
                             >
                               <CheckCircle size={16} />
                             </button>
                             <button 
                               onClick={() => handleReject(r.id)}
-                              className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all"
+                              className="p-2 bg-red-500/10 text-red-600 rounded-lg hover:bg-red-500/20 transition-all"
                               title={t('admin.reject')}
                             >
                               <XCircle size={16} />
@@ -647,9 +647,9 @@ export const AdminDashboard = () => {
                     ))}
                     {restaurants.filter(r => r.status === 'PENDING').length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-8 py-12 text-center text-muted text-sm">
+                        <td colSpan={4} className="px-8 py-12 text-center text-text-secondary text-sm">
                           <div className="flex flex-col items-center gap-2">
-                            <Store className="text-surface" size={32} />
+                            <Store className="text-text-muted" size={32} />
                             <p>{t('admin.noPending')}</p>
                           </div>
                         </td>
@@ -663,9 +663,9 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Activity Feed */}
-        <div className="bg-dark-2 border border-surface rounded-[2rem] flex flex-col">
-          <div className="p-8 border-b border-surface bg-surface/10">
-            <h3 className="text-xl font-bold flex items-center gap-2">
+        <div className="bg-card border border-border-custom rounded-[2rem] flex flex-col shadow-sm">
+          <div className="p-8 border-b border-border-custom bg-surface-2/40">
+            <h3 className="text-xl font-bold text-text-primary flex items-center gap-2">
               <Activity size={20} className="text-gold" />
               Activity Feed
             </h3>
@@ -673,26 +673,26 @@ export const AdminDashboard = () => {
           <div className="flex-1 p-6 space-y-6">
             {[
               { user: 'Al Baraka', action: 'signed up', time: '2m ago', icon: <Zap size={14} />, color: 'text-gold', bg: 'bg-gold/10' },
-              { user: 'Admin Sarah', action: 'approved Burger King', time: '15m ago', icon: <CheckCircle size={14} />, color: 'text-green-500', bg: 'bg-green-500/10' },
-              { user: 'The Coffee Hub', action: 'upgraded to Pro', time: '1h ago', icon: <TrendingUp size={14} />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-              { user: 'System', action: 'maintenance scheduled', time: '3h ago', icon: <Settings size={14} />, color: 'text-muted', bg: 'bg-surface' },
-              { user: 'User 124', action: 'reported an issue', time: '5h ago', icon: <Activity size={14} />, color: 'text-red-500', bg: 'bg-red-500/10' },
+              { user: 'Admin Sarah', action: 'approved Burger King', time: '15m ago', icon: <CheckCircle size={14} />, color: 'text-green-600', bg: 'bg-green-500/10' },
+              { user: 'The Coffee Hub', action: 'upgraded to Pro', time: '1h ago', icon: <TrendingUp size={14} />, color: 'text-blue-600', bg: 'bg-blue-500/10' },
+              { user: 'System', action: 'maintenance scheduled', time: '3h ago', icon: <Settings size={14} />, color: 'text-text-secondary', bg: 'bg-surface-2' },
+              { user: 'User 124', action: 'reported an issue', time: '5h ago', icon: <Activity size={14} />, color: 'text-red-600', bg: 'bg-red-500/10' },
             ].map((item, i) => (
               <div key={`activity-item-${i}-${item.user}`} className="flex gap-4 group">
                 <div className={`w-8 h-8 ${item.bg} ${item.color} rounded-full flex items-center justify-center flex-shrink-0 mt-1 group-hover:scale-110 transition-transform`}>
                   {item.icon}
                 </div>
                 <div>
-                  <p className="text-sm">
+                  <p className="text-sm text-text-primary">
                     <span className="font-bold">{item.user}</span> {item.action}
                   </p>
-                  <p className="text-[10px] text-muted mt-0.5">{item.time}</p>
+                  <p className="text-[10px] text-text-secondary mt-0.5 font-medium">{item.time}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="p-6 border-t border-surface">
-            <button className="w-full py-3 bg-surface hover:bg-dark-2 text-muted hover:text-text text-sm font-bold rounded-xl transition-all border border-surface">
+          <div className="p-6 border-t border-border-custom">
+            <button className="w-full py-3 bg-surface-2 hover:bg-gold/10 text-text-primary hover:text-gold text-sm font-bold rounded-xl transition-all border border-border-custom">
               {t('admin.system.viewAllActivity')}
             </button>
           </div>
@@ -707,20 +707,20 @@ export const AdminDashboard = () => {
       : restaurants;
 
     return (
-      <div className="bg-dark-2 border border-surface rounded-[2rem] overflow-hidden">
-        <div className="p-8 border-b border-surface flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface/10">
+      <div className="bg-card border border-border-custom rounded-[2rem] overflow-hidden shadow-sm">
+        <div className="p-8 border-b border-border-custom flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-surface-2/40">
           <div>
-            <h3 className="text-xl font-bold">
+            <h3 className="text-xl font-bold text-text-primary">
               {onlyPending ? t('admin.pages.approvals.title') : t('admin.pages.restaurants.title')}
             </h3>
-            <p className="text-sm text-muted">
+            <p className="text-sm text-text-secondary">
               {onlyPending ? t('admin.pages.approvals.desc') : t('admin.pages.restaurants.desc')}
             </p>
           </div>
           {!onlyPending && (
             <button 
               onClick={() => toast('Manual restaurant addition coming soon')}
-              className="flex items-center gap-2 bg-gold text-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all"
+              className="flex items-center gap-2 bg-gold text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all shadow-sm"
             >
               <Plus size={18} />
               {t('admin.system.addManual')}
@@ -730,7 +730,7 @@ export const AdminDashboard = () => {
         <div className="overflow-x-auto">
           <table className={`w-full ${isRtl ? 'text-right' : 'text-left'}`}>
             <thead>
-              <tr className="bg-surface/30 text-muted text-[10px] uppercase tracking-widest">
+              <tr className="bg-surface-2/60 text-text-secondary text-[10px] uppercase tracking-widest font-bold">
                 <th className="px-8 py-4 font-bold">{t('admin.restaurant')}</th>
                 <th className="px-8 py-4 font-bold">{t('admin.city')}</th>
                 <th className="px-8 py-4 font-bold">{t('admin.status')}</th>
@@ -738,43 +738,43 @@ export const AdminDashboard = () => {
                 <th className={`px-8 py-4 font-bold ${isRtl ? 'text-left' : 'text-right'}`}>{t('admin.actions')}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface">
+            <tbody className="divide-y divide-border-custom">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-8 py-12 text-center">
                     <div className="flex flex-col items-center gap-3">
                       <RefreshCw className="animate-spin text-gold" size={24} />
-                      <p className="text-muted text-sm">{t('admin.system.loading')}</p>
+                      <p className="text-text-secondary text-sm">{t('admin.system.loading')}</p>
                     </div>
                   </td>
                 </tr>
               ) : (
                 <>
                   {filteredRestaurants.map((r, i) => (
-                    <tr key={`res-row-${r.id || i}`} className="hover:bg-surface/20 transition-colors group">
+                    <tr key={`res-row-${r.id || i}`} className="hover:bg-surface-2/40 transition-colors group">
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-surface rounded-xl flex items-center justify-center font-bold text-gold border border-surface group-hover:border-gold/30 transition-all">
+                          <div className="w-10 h-10 bg-surface-2 rounded-xl flex items-center justify-center font-bold text-gold border border-border-custom group-hover:border-gold/30 transition-all">
                             {(r.name_en || r.name_ar || '?').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-sm">{isRtl ? (r.name_ar || r.name_en) : (r.name_en || r.name_ar)}</p>
-                            <p className="text-[10px] text-muted">{r.owner_email}</p>
+                            <p className="font-bold text-sm text-text-primary">{isRtl ? (r.name_ar || r.name_en) : (r.name_en || r.name_ar)}</p>
+                            <p className="text-[10px] text-text-secondary">{r.owner_email}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-sm text-muted">{r.city}</td>
+                      <td className="px-8 py-5 text-sm text-text-secondary font-medium">{r.city}</td>
                       <td className="px-8 py-5">
                         <span className={`px-3 py-1 text-[10px] font-bold rounded-full border ${
-                          r.status === 'APPROVED' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                          r.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                          'bg-red-500/10 text-red-500 border-red-500/20'
+                          r.status === 'APPROVED' ? 'bg-green-500/10 text-green-600 border-green-500/20' : 
+                          r.status === 'PENDING' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' : 
+                          'bg-red-500/10 text-red-600 border-red-500/20'
                         }`}>
                           {r.status}
                         </span>
                       </td>
                       <td className="px-8 py-5">
-                        <span className="text-xs font-medium text-text">{r.plan || t('admin.system.proPlan')}</span>
+                        <span className="text-xs font-semibold text-text-primary">{r.plan || t('admin.system.proPlan')}</span>
                       </td>
                       <td className={`px-8 py-5 ${isRtl ? 'text-left' : 'text-right'}`}>
                         <div className={`flex ${isRtl ? 'justify-start' : 'justify-end'} gap-2`}>
@@ -782,14 +782,14 @@ export const AdminDashboard = () => {
                             <>
                               <button 
                                 onClick={() => handleApprove(r.id)}
-                                className="p-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all"
+                                className="p-2 bg-green-500/10 text-green-600 rounded-lg hover:bg-green-500/20 transition-all"
                                 title={t('admin.system.tooltips.approve')}
                               >
                                 <CheckCircle size={16} />
                               </button>
                               <button 
                                 onClick={() => handleReject(r.id)}
-                                className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all"
+                                className="p-2 bg-red-500/10 text-red-600 rounded-lg hover:bg-red-500/20 transition-all"
                                 title={t('admin.system.tooltips.reject')}
                               >
                                 <XCircle size={16} />
@@ -799,14 +799,14 @@ export const AdminDashboard = () => {
                             <>
                               <button 
                                 onClick={() => handleViewRestaurant(r)}
-                                className="p-2 bg-surface rounded-lg hover:text-gold transition-all" 
+                                className="p-2 bg-surface-2 border border-border-custom rounded-lg hover:text-gold transition-all text-text-secondary" 
                                 title={t('admin.system.tooltips.view')}
                               >
                                 <Eye size={16} />
                               </button>
                               <button 
                                 onClick={() => { setEditingRestaurant(r); setEditForm({ plan: r.plan || 'basic', status: r.status }); }}
-                                className="p-2 bg-surface rounded-lg hover:text-gold transition-all" 
+                                className="p-2 bg-surface-2 border border-border-custom rounded-lg hover:text-gold transition-all text-text-secondary" 
                                 title={t('admin.system.tooltips.edit')}
                               >
                                 <Edit size={16} />
@@ -817,7 +817,7 @@ export const AdminDashboard = () => {
                                     toast.error('Delete functionality restricted for demo');
                                   }
                                 }}
-                                className="p-2 bg-surface rounded-lg hover:text-red-500 transition-all" 
+                                className="p-2 bg-surface-2 border border-border-custom rounded-lg hover:text-red-500 transition-all text-text-secondary" 
                                 title={t('admin.system.tooltips.delete')}
                               >
                                 <Trash2 size={16} />
@@ -830,9 +830,9 @@ export const AdminDashboard = () => {
                   ))}
                   {filteredRestaurants.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-8 py-12 text-center text-muted text-sm">
+                      <td colSpan={5} className="px-8 py-12 text-center text-text-secondary text-sm">
                         <div className="flex flex-col items-center gap-2">
-                          <Store className="text-surface" size={32} />
+                          <Store className="text-text-muted" size={32} />
                           <p>{onlyPending ? t('admin.noPending') : t('admin.system.noRestaurants')}</p>
                         </div>
                       </td>
@@ -848,10 +848,10 @@ export const AdminDashboard = () => {
   };
 
   const renderFeatures = () => (
-    <div className="bg-dark-2 border border-surface rounded-[2rem] p-8">
+    <div className="bg-card border border-border-custom rounded-[2rem] p-8 shadow-sm">
       <div className="mb-8">
-        <h3 className="text-xl font-bold">{t('admin.pages.features.title')}</h3>
-        <p className="text-sm text-muted">{t('admin.pages.features.desc')}</p>
+        <h3 className="text-xl font-bold text-text-primary">{t('admin.pages.features.title')}</h3>
+        <p className="text-sm text-text-secondary">{t('admin.pages.features.desc')}</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -863,18 +863,18 @@ export const AdminDashboard = () => {
           { id: 'table_social', name: t('admin.pages.features.items.social.name'), desc: t('admin.pages.features.items.social.desc'), active: true, icon: <Users size={20} /> },
           { id: 'ar_view', name: t('admin.pages.features.items.ar.name'), desc: t('admin.pages.features.items.ar.desc'), active: false, icon: <Globe size={20} /> },
         ].map((feature) => (
-          <div key={feature.id} className="flex items-center justify-between p-6 rounded-2xl border border-surface bg-surface/5 hover:border-gold/30 transition-all group">
+          <div key={feature.id} className="flex items-center justify-between p-6 rounded-2xl border border-border-custom bg-surface-2/20 hover:border-gold/30 hover:bg-surface-2/50 transition-all group">
             <div className="flex gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${feature.active ? 'bg-gold/10 text-gold' : 'bg-surface text-muted'}`}>
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${feature.active ? 'bg-gold/10 text-gold' : 'bg-surface-2 text-text-secondary'}`}>
                 {feature.icon}
               </div>
               <div>
-                <h4 className="font-bold text-text group-hover:text-gold transition-colors">{feature.name}</h4>
-                <p className="text-xs text-muted mt-1">{feature.desc}</p>
+                <h4 className="font-bold text-text-primary group-hover:text-gold transition-colors">{feature.name}</h4>
+                <p className="text-xs text-text-secondary mt-1">{feature.desc}</p>
               </div>
             </div>
-            <button className={`w-12 h-6 rounded-full transition-all relative ${feature.active ? 'bg-gold' : 'bg-surface'}`}>
-              <div className={`absolute top-1 w-4 h-4 bg-dark rounded-full transition-all ${feature.active ? (isRtl ? 'left-1' : 'right-1') : (isRtl ? 'right-1' : 'left-1')}`} />
+            <button className={`w-12 h-6 rounded-full transition-all relative ${feature.active ? 'bg-gold' : 'bg-surface-2 border border-border-custom'}`}>
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${feature.active ? (isRtl ? 'left-1' : 'right-1') : (isRtl ? 'right-1' : 'left-1')}`} />
             </button>
           </div>
         ))}
@@ -884,13 +884,13 @@ export const AdminDashboard = () => {
 
   const renderPricing = () => (
     <div className="space-y-8">
-      <div className="bg-dark-2 border border-surface rounded-[2rem] p-8">
+      <div className="bg-card border border-border-custom rounded-[2rem] p-8 shadow-sm">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h3 className="text-xl font-bold">{t('admin.pages.pricing.title')}</h3>
-            <p className="text-sm text-muted">{t('admin.pages.pricing.desc')}</p>
+            <h3 className="text-xl font-bold text-text-primary">{t('admin.pages.pricing.title')}</h3>
+            <p className="text-sm text-text-secondary">{t('admin.pages.pricing.desc')}</p>
           </div>
-          <button className="bg-gold text-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all">
+          <button className="bg-gold text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all shadow-sm">
             {t('admin.pages.pricing.addPlan')}
           </button>
         </div>
@@ -901,22 +901,22 @@ export const AdminDashboard = () => {
             { name: 'Pro', price: '199', restaurants: 0, color: 'text-gold', bg: 'bg-gold/10', popular: true },
             { name: 'Enterprise', price: '399', restaurants: 0, color: 'text-purple-500', bg: 'bg-purple-500/10' },
           ].map((plan, i) => (
-            <div key={`pricing-plan-${i}-${plan.name}`} className={`p-6 rounded-3xl border ${plan.popular ? 'border-gold bg-gold/5' : 'border-surface bg-surface/5'} relative overflow-hidden group`}>
+            <div key={`pricing-plan-${i}-${plan.name}`} className={`p-6 rounded-3xl border ${plan.popular ? 'border-gold bg-gold/5 shadow-md' : 'border-border-custom bg-surface-2/20'} relative overflow-hidden group`}>
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-gold text-dark text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+                <div className="absolute top-0 right-0 bg-gold text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
                   {t('admin.pages.pricing.mostPopular')}
                 </div>
               )}
               <div className={`w-12 h-12 ${plan.bg} ${plan.color} rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                 <CreditCard size={24} />
               </div>
-              <h4 className="text-xl font-bold mb-1">{plan.name}</h4>
-              <p className="text-3xl font-black text-gold mb-4">$ {plan.price}<span className="text-sm font-normal text-muted">/mo</span></p>
-              <div className="flex items-center justify-between text-sm text-muted mb-6">
+              <h4 className="text-xl font-bold mb-1 text-text-primary">{plan.name}</h4>
+              <p className="text-3xl font-black text-gold mb-4">$ {plan.price}<span className="text-sm font-normal text-text-secondary">/mo</span></p>
+              <div className="flex items-center justify-between text-sm text-text-secondary mb-6">
                 <span>{t('admin.pages.pricing.activeSubs')}</span>
-                <span className="font-bold text-text">{plan.restaurants}</span>
+                <span className="font-bold text-text-primary">{plan.restaurants}</span>
               </div>
-              <button className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${plan.popular ? 'bg-gold text-dark' : 'bg-surface text-text hover:bg-surface/80'}`}>
+              <button className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${plan.popular ? 'bg-gold text-white shadow-sm' : 'bg-surface-2 text-text-primary border border-border-custom hover:bg-surface-2/80'}`}>
                 {t('admin.pages.pricing.editPlan')}
               </button>
             </div>
@@ -924,9 +924,9 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="bg-dark-2 border border-surface rounded-[2rem] p-8">
+      <div className="bg-card border border-border-custom rounded-[2rem] p-8 shadow-sm">
         <div className="flex justify-between items-center mb-8">
-          <h3 className="text-xl font-bold">{t('admin.pages.pricing.couponsTitle')}</h3>
+          <h3 className="text-xl font-bold text-text-primary">{t('admin.pages.pricing.couponsTitle')}</h3>
           <button className="text-gold text-sm font-bold hover:underline">{t('admin.pages.pricing.createCoupon')}</button>
         </div>
         <div className="space-y-4">
@@ -935,18 +935,18 @@ export const AdminDashboard = () => {
             { code: 'RAMADAN2025', discount: '20%', usage: '0/1000', status: 'Active' },
             { code: 'EXPIRED10', discount: '10%', usage: '0/100', status: 'Expired' },
           ].map((coupon, i) => (
-            <div key={`coupon-item-${i}-${coupon.code}`} className="flex items-center justify-between p-4 rounded-2xl border border-surface bg-surface/5">
+            <div key={`coupon-item-${i}-${coupon.code}`} className="flex items-center justify-between p-4 rounded-2xl border border-border-custom bg-surface-2/20">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 bg-gold/10 text-gold rounded-xl flex items-center justify-center">
                   <Tag size={20} />
                 </div>
                 <div>
-                  <p className="font-bold text-text">{coupon.code}</p>
-                  <p className="text-xs text-muted">{t('admin.pages.pricing.discount')}: {coupon.discount}</p>
+                  <p className="font-bold text-text-primary">{coupon.code}</p>
+                  <p className="text-xs text-text-secondary">{t('admin.pages.pricing.discount')}: {coupon.discount}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-sm font-bold">{coupon.usage}</p>
+                <p className="text-sm font-bold text-text-primary">{coupon.usage}</p>
                 <span className={`text-[10px] font-bold uppercase ${coupon.status === 'Active' ? 'text-green-500' : 'text-red-500'}`}>
                   {coupon.status === 'Active' ? t('admin.pages.pricing.status.active') : t('admin.pages.pricing.status.expired')}
                 </span>
@@ -966,31 +966,31 @@ export const AdminDashboard = () => {
           { label: t('admin.pages.revenue.stats.active'), value: '0', trend: '0', icon: <Users /> },
           { label: t('admin.pages.revenue.stats.aov'), value: '$ 0', trend: '0%', icon: <TrendingUp /> },
         ].map((stat, i) => (
-          <div key={`revenue-stat-${i}-${stat.label}`} className="bg-dark-2 border border-surface p-6 rounded-3xl">
+          <div key={`revenue-stat-${i}-${stat.label}`} className="bg-card border border-border-custom p-6 rounded-3xl shadow-sm">
             <div className="flex justify-between items-start mb-4">
               <div className="w-12 h-12 bg-gold/10 text-gold rounded-2xl flex items-center justify-center">
                 {stat.icon}
               </div>
-              <span className="text-[10px] font-bold px-2 py-1 bg-green-500/10 text-green-500 rounded-full">
+              <span className="text-[10px] font-bold px-2 py-1 bg-green-500/10 text-green-600 rounded-full">
                 {stat.trend}
               </span>
             </div>
-            <p className="text-muted text-xs mb-1 uppercase tracking-wider">{stat.label}</p>
-            <p className="text-3xl font-bold">{stat.value}</p>
+            <p className="text-text-secondary text-xs mb-1 uppercase tracking-wider font-semibold">{stat.label}</p>
+            <p className="text-3xl font-bold text-text-primary">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-dark-2 border border-surface p-8 rounded-[2rem]">
-        <h3 className="text-xl font-bold mb-8">{t('admin.pages.revenue.title')}</h3>
+      <div className="bg-card border border-border-custom p-8 rounded-[2rem] shadow-sm">
+        <h3 className="text-xl font-bold mb-8 text-text-primary">{t('admin.pages.revenue.title')}</h3>
         <div className="h-96">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#242220" vertical={false} />
-              <XAxis dataKey="name" stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
-              <YAxis stroke="#8B8578" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
-              <Tooltip contentStyle={{ backgroundColor: '#1A1917', border: '1px solid #242220', borderRadius: '12px' }} />
-              <Area type="monotone" dataKey="value" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.1} strokeWidth={3} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E7E1EA" vertical={false} />
+              <XAxis dataKey="name" stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} reversed={isRtl} />
+              <YAxis stroke="#6B6272" fontSize={10} tickLine={false} axisLine={false} orientation={isRtl ? 'right' : 'left'} />
+              <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E7E1EA', borderRadius: '12px', color: '#241B2B' }} />
+              <Area type="monotone" dataKey="value" stroke="#351344" fill="#351344" fillOpacity={0.1} strokeWidth={3} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -999,18 +999,18 @@ export const AdminDashboard = () => {
   );
 
   const renderUsers = () => (
-    <div className="bg-dark-2 border border-surface rounded-[2rem] overflow-hidden">
-      <div className="p-8 border-b border-surface flex justify-between items-center bg-surface/10">
+    <div className="bg-card border border-border-custom rounded-[2rem] overflow-hidden shadow-sm">
+      <div className="p-8 border-b border-border-custom flex justify-between items-center bg-surface-2/40">
         <div>
-          <h3 className="text-xl font-bold">{t('admin.users')}</h3>
-          <p className="text-sm text-muted">Manage all system users and their roles</p>
+          <h3 className="text-xl font-bold text-text-primary">{t('admin.users')}</h3>
+          <p className="text-sm text-text-secondary">Manage all system users and their roles</p>
         </div>
-        <button className="bg-gold text-dark px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all">
+        <button className="bg-gold text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-gold/90 transition-all shadow-sm">
           <Plus size={18} />
           Add User
         </button>
       </div>
-      <div className="p-12 text-center text-muted">
+      <div className="p-12 text-center text-text-secondary">
         <Users size={48} className="mx-auto mb-4 opacity-20" />
         <p>User management interface coming soon.</p>
       </div>
@@ -1020,29 +1020,29 @@ export const AdminDashboard = () => {
   const renderAnalytics = () => (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-dark-2 border border-surface p-6 rounded-3xl">
-          <h4 className="text-muted text-xs uppercase mb-2">Total Scans</h4>
-          <p className="text-3xl font-bold">12,458</p>
+        <div className="bg-card border border-border-custom p-6 rounded-3xl shadow-sm">
+          <h4 className="text-text-secondary text-xs uppercase mb-2 font-semibold">Total Scans</h4>
+          <p className="text-3xl font-bold text-text-primary">12,458</p>
         </div>
-        <div className="bg-dark-2 border border-surface p-6 rounded-3xl">
-          <h4 className="text-muted text-xs uppercase mb-2">Active Sessions</h4>
-          <p className="text-3xl font-bold">452</p>
+        <div className="bg-card border border-border-custom p-6 rounded-3xl shadow-sm">
+          <h4 className="text-text-secondary text-xs uppercase mb-2 font-semibold">Active Sessions</h4>
+          <p className="text-3xl font-bold text-text-primary">452</p>
         </div>
-        <div className="bg-dark-2 border border-surface p-6 rounded-3xl">
-          <h4 className="text-muted text-xs uppercase mb-2">Conversion Rate</h4>
-          <p className="text-3xl font-bold">3.2%</p>
+        <div className="bg-card border border-border-custom p-6 rounded-3xl shadow-sm">
+          <h4 className="text-text-secondary text-xs uppercase mb-2 font-semibold">Conversion Rate</h4>
+          <p className="text-3xl font-bold text-text-primary">3.2%</p>
         </div>
       </div>
-      <div className="bg-dark-2 border border-surface p-8 rounded-[2rem]">
-        <h3 className="text-xl font-bold mb-8">Usage Over Time</h3>
+      <div className="bg-card border border-border-custom p-8 rounded-[2rem] shadow-sm">
+        <h3 className="text-xl font-bold mb-8 text-text-primary">Usage Over Time</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#242220" vertical={false} />
-              <XAxis dataKey="name" stroke="#8B8578" fontSize={10} />
-              <YAxis stroke="#8B8578" fontSize={10} />
-              <Tooltip contentStyle={{ backgroundColor: '#1A1917', border: '1px solid #242220', borderRadius: '12px' }} />
-              <Area type="monotone" dataKey="scans" stroke="#C9A84C" fill="#C9A84C" fillOpacity={0.1} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E7E1EA" vertical={false} />
+              <XAxis dataKey="name" stroke="#6B6272" fontSize={10} />
+              <YAxis stroke="#6B6272" fontSize={10} />
+              <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', border: '1px solid #E7E1EA', borderRadius: '12px', color: '#241B2B' }} />
+              <Area type="monotone" dataKey="scans" stroke="#351344" fill="#351344" fillOpacity={0.1} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -1052,8 +1052,8 @@ export const AdminDashboard = () => {
 
   const renderSettings = () => (
     <div className="space-y-8">
-      <div className="bg-dark-2 border border-surface rounded-[2rem] p-8">
-        <h3 className="text-xl font-bold mb-8">Global System Settings</h3>
+      <div className="bg-card border border-border-custom rounded-[2rem] p-8 shadow-sm">
+        <h3 className="text-xl font-bold mb-8 text-text-primary">Global System Settings</h3>
         <div className="space-y-6">
           {[
             { label: 'Maintenance Mode', desc: 'Disable public access to all menus', active: false },
@@ -1061,13 +1061,13 @@ export const AdminDashboard = () => {
             { label: 'Email Notifications', desc: 'Send system alerts to admins', active: true },
             { label: 'Auto-Approval', desc: 'Automatically approve new restaurants (Not recommended)', active: false },
           ].map((setting, i) => (
-            <div key={`setting-item-${i}-${setting.label}`} className="flex items-center justify-between p-6 rounded-2xl border border-surface bg-surface/5">
+            <div key={`setting-item-${i}-${setting.label}`} className="flex items-center justify-between p-6 rounded-2xl border border-border-custom bg-surface-2/20">
               <div>
-                <h4 className="font-bold text-text">{setting.label}</h4>
-                <p className="text-xs text-muted mt-1">{setting.desc}</p>
+                <h4 className="font-bold text-text-primary">{setting.label}</h4>
+                <p className="text-xs text-text-secondary mt-1">{setting.desc}</p>
               </div>
-              <button className={`w-12 h-6 rounded-full transition-all relative ${setting.active ? 'bg-gold' : 'bg-surface'}`}>
-                <div className={`absolute top-1 w-4 h-4 bg-dark rounded-full transition-all ${setting.active ? (isRtl ? 'left-1' : 'right-1') : (isRtl ? 'right-1' : 'left-1')}`} />
+              <button className={`w-12 h-6 rounded-full transition-all relative ${setting.active ? 'bg-gold' : 'bg-surface-2 border border-border-custom'}`}>
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${setting.active ? (isRtl ? 'left-1' : 'right-1') : (isRtl ? 'right-1' : 'left-1')}`} />
               </button>
             </div>
           ))}
@@ -1081,15 +1081,15 @@ export const AdminDashboard = () => {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-dark-2 border border-surface rounded-[2rem] p-8"
+        className="bg-card border border-border-custom rounded-[2rem] p-8 shadow-sm"
       >
         <div className="flex items-center gap-4 mb-8">
           <div className="w-14 h-14 bg-gold/10 text-gold rounded-2xl flex items-center justify-center">
             <CreditCard size={32} />
           </div>
           <div>
-            <h3 className="text-xl font-bold">{isRtl ? 'إعدادات دفع Paddle الرئيسية' : 'Primary Paddle Settings'}</h3>
-            <p className="text-sm text-muted">{isRtl ? 'قم بإدخال الـ Client Token و الـ Price IDs الخاصة بحسابك في Paddle' : 'Enter your Client Token and Price IDs from your Paddle developer account'}</p>
+            <h3 className="text-xl font-bold text-text-primary">{isRtl ? 'إعدادات دفع Paddle الرئيسية' : 'Primary Paddle Settings'}</h3>
+            <p className="text-sm text-text-secondary">{isRtl ? 'قم بإدخال الـ Client Token و الـ Price IDs الخاصة بحسابك في Paddle' : 'Enter your Client Token and Price IDs from your Paddle developer account'}</p>
           </div>
         </div>
 
@@ -1102,13 +1102,13 @@ export const AdminDashboard = () => {
                   type="text"
                   value={paddleSettings.client_token}
                   onChange={(e) => setPaddleSettings({ ...paddleSettings, client_token: e.target.value })}
-                  className="flex-1 bg-surface border border-surface rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all"
+                  className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-sm text-text-primary outline-none focus:border-gold transition-all"
                   placeholder="Enter Paddle Client Token"
                 />
                 <button 
                   onClick={() => savePaddleSetting('paddle_client_token', paddleSettings.client_token)}
                   disabled={isSaving}
-                  className="px-6 py-3 bg-gold text-dark font-bold rounded-xl hover:bg-gold/90 transition-all disabled:opacity-50"
+                  className="px-6 py-3 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-sm disabled:opacity-50"
                 >
                   {isRtl ? 'حفظ' : 'Save'}
                 </button>
@@ -1121,7 +1121,7 @@ export const AdminDashboard = () => {
                 <select 
                   value={paddleSettings.environment}
                   onChange={(e) => setPaddleSettings({ ...paddleSettings, environment: e.target.value })}
-                  className="flex-1 bg-surface border border-surface rounded-xl px-4 py-3 text-sm outline-none focus:border-gold transition-all appearance-none"
+                  className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-sm text-text-primary outline-none focus:border-gold transition-all appearance-none"
                 >
                   <option value="sandbox">Sandbox (Testing)</option>
                   <option value="production">Production (Live)</option>
@@ -1129,7 +1129,7 @@ export const AdminDashboard = () => {
                 <button 
                   onClick={() => savePaddleSetting('paddle_environment', paddleSettings.environment)}
                   disabled={isSaving}
-                  className="px-6 py-3 bg-gold text-dark font-bold rounded-xl hover:bg-gold/90 transition-all disabled:opacity-50"
+                  className="px-6 py-3 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-sm disabled:opacity-50"
                 >
                   {isRtl ? 'حفظ' : 'Save'}
                 </button>
@@ -1137,7 +1137,7 @@ export const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 pt-6 border-t border-surface">
+          <div className="grid md:grid-cols-3 gap-8 pt-6 border-t border-border-custom">
             <div className="space-y-4">
               <h4 className="text-gold font-bold flex items-center gap-2">
                 <Tag size={16} />
@@ -1145,29 +1145,29 @@ export const AdminDashboard = () => {
               </h4>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Monthly Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Monthly Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_basic_monthly}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_basic_monthly: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_basic_monthly', paddleSettings.price_basic_monthly)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_basic_monthly', paddleSettings.price_basic_monthly)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Annual Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Annual Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_basic_annual}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_basic_annual: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_basic_annual', paddleSettings.price_basic_annual)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_basic_annual', paddleSettings.price_basic_annual)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
               </div>
@@ -1180,29 +1180,29 @@ export const AdminDashboard = () => {
               </h4>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Monthly Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Monthly Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_pro_monthly}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_pro_monthly: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_pro_monthly', paddleSettings.price_pro_monthly)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_pro_monthly', paddleSettings.price_pro_monthly)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Annual Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Annual Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_pro_annual}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_pro_annual: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_pro_annual', paddleSettings.price_pro_annual)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_pro_annual', paddleSettings.price_pro_annual)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
               </div>
@@ -1215,29 +1215,29 @@ export const AdminDashboard = () => {
               </h4>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Monthly Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Monthly Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_ent_monthly}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_ent_monthly: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_ent_monthly', paddleSettings.price_ent_monthly)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_ent_monthly', paddleSettings.price_ent_monthly)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs text-muted mb-1 block">Annual Price ID</label>
+                  <label className="text-xs text-text-secondary mb-1 block">Annual Price ID</label>
                   <div className="flex gap-2">
                     <input 
                       type="text"
                       value={paddleSettings.price_ent_annual}
                       onChange={(e) => setPaddleSettings({ ...paddleSettings, price_ent_annual: e.target.value })}
-                      className="flex-1 bg-surface border border-surface rounded-xl px-4 py-2 text-sm outline-none focus:border-gold"
+                      className="flex-1 bg-surface-2 border border-border-custom rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-gold"
                       placeholder="pri_XXXX..."
                     />
-                    <button onClick={() => savePaddleSetting('paddle_price_ent_annual', paddleSettings.price_ent_annual)} className="px-4 py-2 bg-surface border border-surface rounded-xl text-gold text-xs font-bold hover:bg-surface/80">Save</button>
+                    <button onClick={() => savePaddleSetting('paddle_price_ent_annual', paddleSettings.price_ent_annual)} className="px-4 py-2 bg-gold/10 border border-gold/20 rounded-xl text-gold text-xs font-bold hover:bg-gold hover:text-white transition-all">Save</button>
                   </div>
                 </div>
               </div>
@@ -1248,7 +1248,7 @@ export const AdminDashboard = () => {
         <div className="mt-10 p-6 bg-gold/5 border border-gold/20 rounded-2xl">
           <div className="flex gap-3">
             <Shield className="text-gold shrink-0" size={20} />
-            <p className="text-xs text-muted leading-relaxed">
+            <p className="text-xs text-text-secondary leading-relaxed">
               {isRtl 
                 ? 'تأكد من أن الـ Price IDs مطابقة تماماً لما هو موجود في حساب المطور الخاص بك في Paddle. سيتم استخدام هذه الإعدادات مباشرة في صفحة التسجيل والاشتراكات.'
                 : 'Ensure that the Price IDs match exactly what is in your Paddle Developer account. These settings will be used directly on the registration and subscription pages.'}
@@ -1283,30 +1283,30 @@ export const AdminDashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-dark text-text overflow-hidden">
+    <div className="flex h-screen bg-main text-text overflow-hidden">
       {/* Sidebar */}
-      <aside className={`w-64 bg-dark-2 border-surface hidden lg:flex flex-col flex-shrink-0 ${isRtl ? 'border-l' : 'border-r'}`}>
-        <div className="p-6 border-b border-surface">
+      <aside className={`w-64 bg-surface-2 border-border-custom hidden lg:flex flex-col flex-shrink-0 ${isRtl ? 'border-l' : 'border-r'}`}>
+        <div className="p-6 border-b border-border-custom">
           <img src="/logo.png" alt="VISIONO" className="h-10 object-contain" />
         </div>
         
         <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
           {sidebarItems.map((section, i) => (
             <div key={`sidebar-section-${i}`} className="space-y-2">
-              <p className="text-[10px] uppercase tracking-widest text-muted font-bold px-4">{section.label}</p>
+              <p className="text-[10px] uppercase tracking-widest text-text-secondary font-bold px-4">{section.label}</p>
               <div className="space-y-1">
                 {section.items.map((item) => (
                   <button 
                     key={item.id} 
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${activeTab === item.id ? 'bg-gold text-dark font-bold' : 'text-muted hover:bg-surface hover:text-text'}`}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${activeTab === item.id ? 'bg-gold text-white font-bold shadow-sm shadow-gold/20' : 'text-text-secondary hover:bg-gold/10 hover:text-gold font-medium'}`}
                   >
                     <div className="flex items-center gap-3">
                       {item.icon}
                       <span className="text-sm">{item.label}</span>
                     </div>
                     {item.badge && (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${activeTab === item.id ? 'bg-dark/20 text-dark' : 'bg-gold/10 text-gold'}`}>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${activeTab === item.id ? 'bg-white/20 text-white' : 'bg-gold/10 text-gold'}`}>
                         {item.badge}
                       </span>
                     )}
@@ -1317,10 +1317,10 @@ export const AdminDashboard = () => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-surface">
+        <div className="p-4 border-t border-border-custom">
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all font-semibold"
           >
             <LogOut size={18} />
             <span className="text-sm">{t('admin.logout')}</span>
@@ -1329,51 +1329,51 @@ export const AdminDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-dark custom-scrollbar">
+      <main className="flex-1 overflow-y-auto bg-main custom-scrollbar">
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">
           <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
             <div className="flex items-center gap-4 w-full md:w-auto">
               <button 
-                className="lg:hidden p-2.5 bg-surface border border-surface rounded-xl text-gold hover:text-gold-light transition-all shadow-sm"
+                className="lg:hidden p-2.5 bg-card border border-border-custom rounded-xl text-gold hover:text-gold-dark transition-all shadow-sm"
                 onClick={() => setIsMobileMenuOpen(true)}
               >
                 <Menu size={24} />
               </button>
               <div>
                 <div className="flex items-center gap-3 mb-2">
-                  <h1 className="text-2xl md:text-3xl font-bold">{t('admin.dashboard')}</h1>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-500 rounded-full border border-green-500/20 text-[10px] font-bold uppercase tracking-wider">
+                  <h1 className="text-2xl md:text-3xl font-bold text-text-primary">{t('admin.dashboard')}</h1>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-600 rounded-full border border-green-500/20 text-[10px] font-bold uppercase tracking-wider">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     {t('admin.system.healthy')}
                   </div>
                 </div>
-                <p className="text-muted text-sm">{t('admin.welcome')} 11monther33@gmail.com</p>
+                <p className="text-text-secondary text-sm font-medium">{t('admin.welcome')} 11monther33@gmail.com</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4 w-full md:w-auto">
               <button 
                 onClick={() => fetchRestaurants()}
-                className="p-2.5 bg-surface rounded-xl border border-surface text-muted hover:text-gold transition-all flex items-center gap-2 group"
+                className="p-2.5 bg-card rounded-xl border border-border-custom text-text-secondary hover:text-gold transition-all flex items-center gap-2 group shadow-sm"
                 title={isRtl ? 'تحديث' : 'Refresh'}
               >
                 <RefreshCw size={20} className={loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
               </button>
               <button 
                 onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
-                className="p-2.5 bg-surface rounded-xl border border-surface text-muted hover:text-gold transition-all flex items-center gap-2"
+                className="p-2.5 bg-card rounded-xl border border-border-custom text-text-secondary hover:text-gold transition-all flex items-center gap-2 shadow-sm"
               >
                 <Globe size={20} />
                 <span className="text-xs font-bold uppercase">{lang === 'ar' ? 'EN' : 'AR'}</span>
               </button>
               <div className="relative flex-1 md:flex-none">
-                <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-muted`} size={18} />
-                <input className={`w-full bg-surface border border-surface rounded-xl py-2.5 ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'} text-sm outline-none focus:border-gold transition-all`} placeholder={t('admin.search')} />
+                <Search className={`absolute ${isRtl ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-text-secondary`} size={18} />
+                <input className={`w-full bg-card border border-border-custom rounded-xl py-2.5 ${isRtl ? 'pr-10 pl-4' : 'pl-10 pr-4'} text-sm text-text-primary placeholder:text-text-secondary outline-none focus:border-gold transition-all shadow-sm`} placeholder={t('admin.search')} />
               </div>
-              <button className="p-2.5 bg-surface rounded-xl border border-surface text-muted hover:text-text transition-all">
+              <button className="p-2.5 bg-card rounded-xl border border-border-custom text-text-secondary hover:text-gold transition-all shadow-sm">
                 <Filter size={20} />
               </button>
-              <div className="w-10 h-10 bg-gold/10 rounded-full border border-gold/20 flex items-center justify-center text-gold font-bold">
+              <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
                 AD
               </div>
             </div>
@@ -1391,17 +1391,17 @@ export const AdminDashboard = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 bg-dark/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-text-primary/40 backdrop-blur-sm z-40 lg:hidden"
             />
             <motion.aside 
               initial={{ x: isRtl ? 300 : -300 }}
               animate={{ x: 0 }}
               exit={{ x: isRtl ? 300 : -300 }}
-              className={`fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[280px] bg-dark-2 z-50 lg:hidden flex flex-col shadow-2xl border-surface ${isRtl ? 'border-l' : 'border-r'}`}
+              className={`fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[280px] bg-surface-2 z-50 lg:hidden flex flex-col shadow-2xl border-border-custom ${isRtl ? 'border-l' : 'border-r'}`}
             >
-              <div className="p-6 border-b border-surface flex items-center justify-between">
+              <div className="p-6 border-b border-border-custom flex items-center justify-between">
                 <img src="/logo.png" alt="VISIONO" className="h-10 object-contain" />
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-muted hover:text-gold transition-colors">
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-text-secondary hover:text-gold transition-colors">
                   <X size={24} />
                 </button>
               </div>
@@ -1409,7 +1409,7 @@ export const AdminDashboard = () => {
               <nav className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
                 {sidebarItems.map((section, i) => (
                   <div key={`mobile-sidebar-section-${i}`} className="space-y-2">
-                    <p className="text-[10px] uppercase tracking-widest text-muted font-bold px-4">{section.label}</p>
+                    <p className="text-[10px] uppercase tracking-widest text-text-secondary font-bold px-4">{section.label}</p>
                     <div className="space-y-1">
                       {section.items.map((item) => (
                         <button 
@@ -1418,14 +1418,14 @@ export const AdminDashboard = () => {
                             setActiveTab(item.id);
                             setIsMobileMenuOpen(false);
                           }}
-                          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${activeTab === item.id ? 'bg-gold text-dark font-bold' : 'text-muted hover:bg-surface hover:text-text'}`}
+                          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl transition-all ${activeTab === item.id ? 'bg-gold text-white font-bold shadow-sm shadow-gold/20' : 'text-text-secondary hover:bg-gold/10 hover:text-gold font-medium'}`}
                         >
                           <div className="flex items-center gap-3">
                             {item.icon}
                             <span className="text-sm">{item.label}</span>
                           </div>
                           {item.badge && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md ${activeTab === item.id ? 'bg-dark/20 text-dark' : 'bg-gold/10 text-gold'}`}>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${activeTab === item.id ? 'bg-white/20 text-white' : 'bg-gold/10 text-gold'}`}>
                               {item.badge}
                             </span>
                           )}
@@ -1436,10 +1436,10 @@ export const AdminDashboard = () => {
                 ))}
               </nav>
 
-              <div className="p-4 border-t border-surface">
+              <div className="p-4 border-t border-border-custom">
                 <button 
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all font-semibold"
                 >
                   <LogOut size={18} />
                   <span className="text-sm">{t('admin.logout')}</span>
@@ -1450,36 +1450,36 @@ export const AdminDashboard = () => {
         )}
       
         {viewingRestaurant && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-dark-2 border border-surface rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto"
+              className="bg-card border border-border-custom rounded-2xl p-6 w-full max-w-2xl shadow-2xl relative max-h-[90vh] overflow-y-auto"
             >
               <button 
                 onClick={() => setViewingRestaurant(null)}
-                className="absolute top-4 right-4 p-2 text-muted hover:text-white transition-colors"
+                className="absolute top-4 right-4 p-2 text-text-secondary hover:text-gold transition-colors"
               >
                 <X size={20} />
               </button>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-text-primary">
                 <Store className="text-gold" />
                 تفاصيل المطعم: {isRtl ? viewingRestaurant.name_ar : viewingRestaurant.name_en}
               </h2>
               
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="p-4 bg-surface/20 rounded-xl border border-surface">
-                  <p className="text-xs text-muted mb-1">البريد الإلكتروني (المالك)</p>
-                  <p className="font-bold text-sm">{viewingRestaurant.owner_email || 'N/A'}</p>
+                <div className="p-4 bg-surface-2/40 rounded-xl border border-border-custom">
+                  <p className="text-xs text-text-secondary mb-1">البريد الإلكتروني (المالك)</p>
+                  <p className="font-bold text-sm text-text-primary">{viewingRestaurant.owner_email || 'N/A'}</p>
                 </div>
-                <div className="p-4 bg-surface/20 rounded-xl border border-surface">
-                  <p className="text-xs text-muted mb-1">الباقة الحالية</p>
+                <div className="p-4 bg-surface-2/40 rounded-xl border border-border-custom">
+                  <p className="text-xs text-text-secondary mb-1">الباقة الحالية</p>
                   <p className="font-bold uppercase text-gold text-sm">{viewingRestaurant.plan || 'basic'}</p>
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-text-primary">
                 <Activity size={18} className="text-gold" />
                 استهلاك الموارد (الشهر الحالي)
               </h3>
@@ -1504,12 +1504,12 @@ export const AdminDashboard = () => {
                     };
 
                     return (
-                      <div key={metric} className={`p-4 rounded-xl border ${isDanger ? 'bg-red-500/10 border-red-500/30' : isWarning ? 'bg-amber-500/10 border-amber-500/30' : 'bg-dark border-surface'}`}>
+                      <div key={metric} className={`p-4 rounded-xl border ${isDanger ? 'bg-red-500/10 border-red-500/30' : isWarning ? 'bg-amber-500/10 border-amber-500/30' : 'bg-surface-2/30 border-border-custom'}`}>
                         <div className="flex justify-between items-center mb-2">
-                          <span className="font-bold text-sm">{labels[metric]}</span>
-                          <span className="text-xs font-mono">{usage} / {limit}</span>
+                          <span className="font-bold text-sm text-text-primary">{labels[metric]}</span>
+                          <span className="text-xs font-mono text-text-secondary">{usage} / {limit}</span>
                         </div>
-                        <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+                        <div className="w-full h-2 bg-surface-2 rounded-full overflow-hidden border border-border-custom">
                           <div 
                             className={`h-full transition-all duration-1000 ${isDanger ? 'bg-red-500' : isWarning ? 'bg-amber-500' : 'bg-gold'}`}
                             style={{ width: `${percentage}%` }}
@@ -1525,31 +1525,31 @@ export const AdminDashboard = () => {
         )}
 
         {editingRestaurant && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-dark/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-dark-2 border border-surface rounded-2xl p-6 w-full max-w-lg shadow-2xl relative"
+              className="bg-card border border-border-custom rounded-2xl p-6 w-full max-w-lg shadow-2xl relative"
             >
               <button 
                 onClick={() => setEditingRestaurant(null)}
-                className="absolute top-4 right-4 p-2 text-muted hover:text-white transition-colors"
+                className="absolute top-4 right-4 p-2 text-text-secondary hover:text-gold transition-colors"
               >
                 <X size={20} />
               </button>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-text-primary">
                 <Edit className="text-gold" />
                 {isRtl ? 'تعديل بيانات المطعم' : 'Edit Restaurant'}
               </h2>
               
               <form onSubmit={handleSaveEdit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold text-muted mb-2">{isRtl ? 'الباقة' : 'Plan'}</label>
+                  <label className="block text-sm font-bold text-text-primary mb-2">{isRtl ? 'الباقة' : 'Plan'}</label>
                   <select
                     value={editForm.plan}
                     onChange={(e) => setEditForm({ ...editForm, plan: e.target.value })}
-                    className="w-full bg-dark border border-surface rounded-xl px-4 py-3 text-white outline-none focus:border-gold/50"
+                    className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary outline-none focus:border-gold"
                   >
                     <option value="starter">Starter</option>
                     <option value="basic">Basic</option>
@@ -1559,11 +1559,11 @@ export const AdminDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-muted mb-2">{isRtl ? 'الحالة' : 'Status'}</label>
+                  <label className="block text-sm font-bold text-text-primary mb-2">{isRtl ? 'الحالة' : 'Status'}</label>
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-                    className="w-full bg-dark border border-surface rounded-xl px-4 py-3 text-white outline-none focus:border-gold/50"
+                    className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary outline-none focus:border-gold"
                   >
                     <option value="PENDING">PENDING (قيد الانتظار)</option>
                     <option value="APPROVED">APPROVED (مقبول)</option>
@@ -1577,7 +1577,7 @@ export const AdminDashboard = () => {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex-1 bg-gold text-dark font-bold py-3 rounded-xl hover:bg-gold/90 transition-colors flex justify-center items-center gap-2"
+                    className="flex-1 bg-gold text-white font-bold py-3 rounded-xl hover:bg-gold/90 transition-colors shadow-sm flex justify-center items-center gap-2"
                   >
                     {isSaving ? <RefreshCw className="animate-spin" size={20} /> : (isRtl ? 'حفظ التعديلات' : 'Save Changes')}
                   </button>

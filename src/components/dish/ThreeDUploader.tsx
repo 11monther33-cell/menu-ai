@@ -81,7 +81,7 @@ export function ThreeDUploader({
 
   return (
     <div className="space-y-6">
-      <h2 className="font-display tracking-wide text-xl text-[#F5F5F5]">
+      <h2 className="font-display tracking-wide text-xl text-text-primary font-bold">
         {isAr ? 'نموذج ثلاثي الأبعاد' : '3D Model'}
       </h2>
 
@@ -89,7 +89,7 @@ export function ThreeDUploader({
           حالة 1: النموذج موجود — عرض المعاينة
           ════════════════════════════════════════════════════════════ */}
       {model3dUrl && !uploading && (
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#111]">
+        <div className="rounded-2xl overflow-hidden border border-border-custom bg-card shadow-sm">
           {/* 3D Preview — يدور تلقائياً */}
           <div className="h-[400px] bg-[#0A0A0A] relative">
             <Suspense fallback={
@@ -123,10 +123,10 @@ export function ThreeDUploader({
           </div>
 
           {/* Bottom bar */}
-          <div className="px-6 py-4 flex items-center justify-between border-t border-white/10 bg-surface-2">
+          <div className="px-6 py-4 flex items-center justify-between border-t border-border-custom bg-surface-2">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-green-400 font-bold uppercase tracking-wider bg-green-400/10 px-2 py-0.5 rounded">✓ 3D</span>
-              <span className="text-muted text-xs font-medium">{isAr ? 'النموذج جاهز' : 'Model Ready'}</span>
+              <span className="text-xs text-green-600 font-bold uppercase tracking-wider bg-green-500/10 px-2 py-0.5 rounded">✓ 3D</span>
+              <span className="text-text-secondary text-xs font-semibold">{isAr ? 'النموذج جاهز' : 'Model Ready'}</span>
             </div>
           </div>
         </div>
@@ -149,20 +149,16 @@ export function ThreeDUploader({
 
           {/* ── الخيار الثانوي: رفع GLB يدوي ──────────────────────── */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-white/5" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white/15">
+            <div className="flex-1 h-px bg-border-custom" />
+            <span className="text-[11px] font-bold uppercase tracking-widest text-text-muted">
               {isAr ? 'أو ارفع ملف 3D جاهز' : 'or upload existing 3D file'}
             </span>
-            <div className="flex-1 h-px bg-white/5" />
+            <div className="flex-1 h-px bg-border-custom" />
           </div>
 
           {showManualUpload ? (
             <div
-              className="border border-dashed rounded-2xl p-6 text-center cursor-pointer transition-colors hover:border-white/20"
-              style={{
-                borderColor: 'rgba(255,255,255,0.08)',
-                background: 'rgba(255,255,255,0.02)',
-              }}
+              className="border-2 border-dashed border-border-custom hover:border-gold/50 bg-card rounded-2xl p-6 text-center cursor-pointer transition-all shadow-sm"
               onClick={() => fileInputRef.current?.click()}
               onDragOver={e => e.preventDefault()}
               onDrop={e => {
@@ -183,7 +179,7 @@ export function ThreeDUploader({
                 <div className="flex flex-col items-center gap-4">
                   <div className="relative w-14 h-14">
                     <svg className="-rotate-90 absolute inset-0" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4"/>
+                      <circle cx="32" cy="32" r="26" fill="none" stroke="#E7E1EA" strokeWidth="4"/>
                       <circle
                         cx="32" cy="32" r="26" fill="none"
                         stroke={primaryColor} strokeWidth="4"
@@ -193,21 +189,21 @@ export function ThreeDUploader({
                         style={{ transition: 'stroke-dashoffset .3s ease' }}
                       />
                     </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-white text-xs font-semibold font-mono">
+                    <span className="absolute inset-0 flex items-center justify-center text-text-primary text-xs font-bold font-mono">
                        {progress}%
                     </span>
                   </div>
-                  <p className="text-muted text-sm font-semibold uppercase tracking-widest">
+                  <p className="text-text-secondary text-sm font-semibold uppercase tracking-widest">
                     {isAr ? 'جاري الرفع...' : 'Uploading...'}
                   </p>
                 </div>
               ) : (
                 <>
-                  <Upload size={24} className="text-white/20 mx-auto mb-3" />
-                  <p className="text-white/40 text-xs mb-1">
-                    {isAr ? 'اسحب ملف GLB هنا أو اضغط' : 'Drop GLB/GLTF file or click'}
+                  <Upload size={24} className="text-gold mx-auto mb-3" />
+                  <p className="text-text-primary font-bold text-xs mb-1">
+                    {isAr ? 'اسحب ملف GLB هنا أو اضغط للاختيار' : 'Drop GLB/GLTF file or click'}
                   </p>
-                  <p className="text-white/20 text-[10px] uppercase tracking-wider">
+                  <p className="text-text-muted text-[10px] uppercase tracking-wider font-medium">
                     {isAr ? 'يدعم: .glb · .gltf · حد: 50MB' : '.glb · .gltf · Max 50MB'}
                   </p>
                 </>
@@ -217,7 +213,7 @@ export function ThreeDUploader({
             <button
               type="button"
               onClick={() => setShowManualUpload(true)}
-              className="w-full py-3 rounded-xl border border-dashed border-white/8 text-white/25 text-xs font-bold uppercase tracking-wider hover:border-white/15 hover:text-white/40 transition-all"
+              className="w-full py-3 rounded-xl border border-dashed border-border-custom text-text-secondary hover:text-gold hover:border-gold/50 bg-card text-xs font-bold uppercase tracking-wider transition-all shadow-sm"
             >
               <Upload size={14} className="inline mr-2" />
               {isAr ? 'رفع ملف GLB/GLTF' : 'Upload GLB/GLTF file'}
@@ -225,7 +221,7 @@ export function ThreeDUploader({
           )}
 
           {uploadError && (
-            <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold uppercase tracking-wider text-center">
+            <div className="px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-semibold uppercase tracking-wider text-center">
               {uploadError}
             </div>
           )}
@@ -234,12 +230,12 @@ export function ThreeDUploader({
 
       {/* ── Customizable Toggle ───────────────────────────────────── */}
       {model3dUrl && (
-        <div className="flex items-center justify-between p-5 rounded-2xl bg-[#111] border border-white/5">
+        <div className="flex items-center justify-between p-5 rounded-2xl bg-card border border-border-custom shadow-sm">
           <div>
-            <p className="text-text text-sm font-semibold uppercase tracking-wide">
+            <p className="text-text-primary text-sm font-bold uppercase tracking-wide">
               {isAr ? '🏗️ قابل للتخصيص' : '🏗️ Customizable 3D'}
             </p>
-            <p className="text-muted text-xs mt-1 font-medium">
+            <p className="text-text-secondary text-xs mt-1 font-medium">
               {isAr
                 ? 'يتيح للزبون تخصيص مكونات الطبق'
                 : 'Lets customers customize ingredients'}
@@ -251,7 +247,7 @@ export function ThreeDUploader({
             aria-checked={isCustomizable}
             onClick={() => onCustomizable(!isCustomizable)}
             className="relative w-12 h-6 rounded-full transition-colors flex-shrink-0"
-            style={{ background: isCustomizable ? primaryColor : 'rgba(255,255,255,0.1)' }}
+            style={{ background: isCustomizable ? primaryColor : '#D5CEDC' }}
           >
             <span
               className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform shadow-md"

@@ -213,16 +213,16 @@ export const POSBranches = () => {
       {/* Form Modal */}
       {isFormOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-surface border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-white/5 bg-surface-2">
-              <h2 className="text-xl font-bold text-text">
+          <div className="bg-card border border-border-custom rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between p-6 border-b border-border-custom bg-surface-2">
+              <h2 className="text-xl font-bold text-text-primary">
                 {editingBranch 
                   ? (isRtl ? 'تعديل الفرع' : 'Edit Branch')
                   : (isRtl ? 'إضافة فرع جديد' : 'Add New Branch')}
               </h2>
               <button 
                 onClick={() => setIsFormOpen(false)}
-                className="p-2 text-muted hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
+                className="p-2 text-text-secondary hover:text-text-primary bg-card hover:bg-border-custom rounded-xl transition-colors"
               >
                 <X size={20} />
               </button>
@@ -230,7 +230,7 @@ export const POSBranches = () => {
             
             <form onSubmit={handleSave} className="p-6 overflow-y-auto custom-scrollbar flex-1 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-text mb-2">
+                <label className="block text-sm font-bold text-text-primary mb-2">
                   {isRtl ? 'اسم الفرع' : 'Branch Name'} *
                 </label>
                 <input
@@ -238,25 +238,25 @@ export const POSBranches = () => {
                   required
                   value={name}
                   onChange={e => setName(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors"
+                  className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-gold transition-colors"
                   placeholder={isRtl ? 'مثال: فرع السيب' : 'e.g. Seeb Branch'}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text mb-2">
+                <label className="block text-sm font-bold text-text-primary mb-2">
                   {isRtl ? 'العنوان' : 'Address'}
                 </label>
                 <textarea
                   value={address}
                   onChange={e => setAddress(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors min-h-[80px]"
+                  className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-gold transition-colors min-h-[80px]"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-text mb-2">
+                  <label className="block text-sm font-bold text-text-primary mb-2">
                     {isRtl ? 'العملة' : 'Currency'} *
                   </label>
                   <input
@@ -265,11 +265,11 @@ export const POSBranches = () => {
                     value={currencyCode}
                     onChange={e => setCurrencyCode(e.target.value.toUpperCase())}
                     maxLength={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors uppercase"
+                    className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-gold transition-colors uppercase"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-text mb-2">
+                  <label className="block text-sm font-bold text-text-primary mb-2">
                     {isRtl ? 'نسبة الضريبة %' : 'VAT Rate %'} *
                   </label>
                   <input
@@ -279,43 +279,43 @@ export const POSBranches = () => {
                     step="0.01"
                     value={vatRate}
                     onChange={e => setVatRate(Number(e.target.value))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors"
+                    className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-gold transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-text mb-2">
+                <label className="block text-sm font-bold text-text-primary mb-2">
                   {isRtl ? 'الرقم الضريبي (إن وجد)' : 'VAT Reg. Number (Optional)'}
                 </label>
                 <input
                   type="text"
                   value={vatRegNumber}
                   onChange={e => setVatRegNumber(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-text focus:outline-none focus:border-gold transition-colors"
+                  className="w-full bg-surface-2 border border-border-custom rounded-xl px-4 py-3 text-text-primary focus:outline-none focus:border-gold transition-colors"
                 />
               </div>
 
               {editingBranch && !editingBranch.is_default && (
-                <div className="flex items-center gap-3 bg-white/5 p-4 rounded-xl border border-white/10">
+                <div className="flex items-center gap-3 bg-surface-2 p-4 rounded-xl border border-border-custom">
                   <input
                     type="checkbox"
                     id="isActive"
                     checked={isActive}
                     onChange={e => setIsActive(e.target.checked)}
-                    className="w-5 h-5 rounded border-white/20 bg-dark-custom text-gold focus:ring-gold focus:ring-offset-dark-custom"
+                    className="w-5 h-5 rounded border-border-custom bg-card text-gold focus:ring-gold"
                   />
-                  <label htmlFor="isActive" className="text-sm font-medium text-text cursor-pointer select-none">
+                  <label htmlFor="isActive" className="text-sm font-medium text-text-primary cursor-pointer select-none">
                     {isRtl ? 'الفرع نشط (يعمل حالياً)' : 'Branch is active'}
                   </label>
                 </div>
               )}
 
-              <div className="pt-4 border-t border-white/5">
+              <div className="pt-4 border-t border-border-custom">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full flex items-center justify-center gap-2 bg-gold text-main font-bold py-3 px-4 rounded-xl hover:bg-gold-light transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 bg-gold text-white font-bold py-3 px-4 rounded-xl hover:bg-gold/90 transition-all shadow-lg shadow-gold/20 disabled:opacity-50"
                 >
                   {saving ? <RefreshCw className="animate-spin" size={20} /> : <Save size={20} />}
                   <span>{isRtl ? 'حفظ' : 'Save'}</span>

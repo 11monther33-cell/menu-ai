@@ -223,11 +223,11 @@ export const DashboardHome = () => {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-sidebar border border-border-custom p-6 rounded-[2rem] h-32"></div>
+            <div key={i} className="bg-card border border-border-custom p-6 rounded-[2rem] h-32 shadow-sm"></div>
           ))}
         </div>
         <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-3 bg-sidebar border border-border-custom rounded-[2.5rem] h-64"></div>
+          <div className="lg:col-span-3 bg-card border border-border-custom rounded-[2.5rem] h-64 shadow-sm"></div>
         </div>
       </div>
     );
@@ -318,7 +318,7 @@ export const DashboardHome = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-sidebar border border-border-custom p-6 rounded-[2rem] hover:shadow-xl hover:shadow-gold/5 transition-all"
+            className="bg-card border border-border-custom p-6 rounded-[2rem] shadow-sm hover:shadow-md hover:border-gold/30 transition-all"
           >
             <div className="flex justify-between items-start mb-4">
               <div className={`w-12 h-12 ${card.bg} ${card.color} rounded-2xl flex items-center justify-center shadow-sm`}>
@@ -327,9 +327,9 @@ export const DashboardHome = () => {
               {card.trend === 'up' && <TrendingUp size={16} className="text-green-500" />}
               {card.trend === 'down' && <TrendingDown size={16} className="text-red-500" />}
             </div>
-            <p className="text-text-secondary text-sm mb-1">{card.title}</p>
+            <p className="text-text-secondary text-sm mb-1 font-medium">{card.title}</p>
             <p className="text-3xl font-bold mb-1 text-text-primary">{card.value}</p>
-            <p className={`text-xs ${card.trend === 'up' ? 'text-green-500' : card.trend === 'down' ? 'text-red-500' : 'text-text-secondary'}`}>
+            <p className={`text-xs ${card.trend === 'up' ? 'text-green-600 font-semibold' : card.trend === 'down' ? 'text-red-600 font-semibold' : 'text-text-secondary'}`}>
               {card.trendLabel ? `${card.trendLabel} ${isRtl ? 'عن الأسبوع الماضي' : 'vs last week'}` : card.sub}
             </p>
           </motion.div>
@@ -338,12 +338,12 @@ export const DashboardHome = () => {
 
       {/* Row 3: Live Orders */}
       <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-3 bg-sidebar border border-border-custom rounded-[2.5rem] overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-border-custom flex items-center justify-between bg-card/30">
+        <div className="lg:col-span-3 bg-card border border-border-custom rounded-[2.5rem] overflow-hidden flex flex-col shadow-sm">
+          <div className="p-6 border-b border-border-custom flex items-center justify-between bg-surface-2/40">
             <div className="flex items-center gap-3">
               <h3 className="text-xl font-bold text-text-primary">{t('restaurant.dashboard.liveOrders.title')}</h3>
             </div>
-            <div className="flex items-center gap-2 text-xs text-text-secondary">
+            <div className="flex items-center gap-2 text-xs font-semibold text-text-secondary">
               <span className="w-2 h-2 bg-green-500 rounded-full" />
               {t('restaurant.dashboard.liveOrders.connected')}
             </div>
@@ -358,7 +358,7 @@ export const DashboardHome = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-main border border-border-custom p-4 rounded-2xl flex items-center justify-between group hover:border-gold/30 hover:shadow-md transition-all"
+                  className="bg-surface-2/30 border border-border-custom p-4 rounded-2xl flex items-center justify-between group hover:border-gold/30 hover:bg-surface-2/60 hover:shadow-sm transition-all"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gold/10 text-gold rounded-xl flex items-center justify-center font-bold text-lg">
@@ -396,7 +396,7 @@ export const DashboardHome = () => {
             
             {orders.length === 0 && (
               <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                <div className="w-20 h-20 bg-card rounded-full flex items-center justify-center mb-4 text-text-secondary">
+                <div className="w-20 h-20 bg-surface-2 rounded-full flex items-center justify-center mb-4 text-text-secondary">
                   <Utensils size={32} />
                 </div>
                 {dishes.length === 0 ? (
@@ -407,7 +407,7 @@ export const DashboardHome = () => {
                     <p className="text-text-secondary text-sm mb-4">
                       {isRtl ? 'أضف أول منتج لتبدأ في استقبال طلبات الطاولات.' : 'Add your first menu product to begin receiving customer orders.'}
                     </p>
-                    <Link to="/dashboard/menu-builder" className="px-6 py-2 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all">
+                    <Link to="/dashboard/menu-builder" className="px-6 py-2 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-sm">
                       {isRtl ? 'بناء المنيو' : 'Go to Menu Builder'}
                     </Link>
                   </>
@@ -421,7 +421,7 @@ export const DashboardHome = () => {
             )}
           </div>
           
-          <div className="p-4 bg-card/30 border-t border-border-custom text-center">
+          <div className="p-4 bg-surface-2/30 border-t border-border-custom text-center">
             <button className="text-gold text-sm font-bold hover:underline flex items-center justify-center gap-2 mx-auto">
               {t('restaurant.dashboard.liveOrders.viewAll')}
               <ChevronRight size={16} className={isRtl ? 'rotate-180' : ''} />
@@ -433,13 +433,13 @@ export const DashboardHome = () => {
       {/* Row 4: Top Dishes + Recent Activity */}
       <div className="grid lg:grid-cols-3 gap-8">
         {/* Top Dishes */}
-        <div className="lg:col-span-2 bg-sidebar border border-border-custom rounded-[2.5rem] overflow-hidden">
-          <div className="p-6 border-b border-border-custom bg-card/30">
+        <div className="lg:col-span-2 bg-card border border-border-custom rounded-[2.5rem] overflow-hidden shadow-sm">
+          <div className="p-6 border-b border-border-custom bg-surface-2/40">
             <h3 className="text-xl font-bold text-text-primary">{t('restaurant.dashboard.topDishes.title')}</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left rtl:text-right">
-              <thead className="bg-card/50 text-xs text-text-secondary uppercase tracking-wider">
+              <thead className="bg-surface-2/50 text-xs text-text-secondary uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-4 font-bold">{t('restaurant.dashboard.topDishes.dish')}</th>
                   <th className="px-6 py-4 font-bold">{t('restaurant.dashboard.topDishes.views')}</th>
@@ -456,10 +456,10 @@ export const DashboardHome = () => {
                   const conversionRate = views > 0 ? Math.round((ordersCount / views) * 100) : 0;
 
                   return (
-                    <tr key={dish.id} className="hover:bg-card/30 transition-colors">
+                    <tr key={dish.id} className="hover:bg-surface-2/40 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-card rounded-lg overflow-hidden border border-border-custom flex items-center justify-center">
+                          <div className="w-10 h-10 bg-surface-2 rounded-lg overflow-hidden border border-border-custom flex items-center justify-center">
                             {dish.image_url ? (
                               <img 
                                 src={dish.image_url} 
@@ -477,12 +477,12 @@ export const DashboardHome = () => {
                           <span className="font-bold text-sm text-text-primary">{isRtl ? dish.name_ar : dish.name_en}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-text-secondary">{views}</td>
-                      <td className="px-6 py-4 text-sm text-text-secondary">{ordersCount}</td>
-                      <td className="px-6 py-4 text-sm text-text-secondary">{snapsCount}</td>
+                      <td className="px-6 py-4 text-sm text-text-secondary font-medium">{views}</td>
+                      <td className="px-6 py-4 text-sm text-text-secondary font-medium">{ordersCount}</td>
+                      <td className="px-6 py-4 text-sm text-text-secondary font-medium">{snapsCount}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="flex-1 h-1.5 bg-card rounded-full overflow-hidden min-w-[60px] border border-border-custom">
+                          <div className="flex-1 h-1.5 bg-surface-2 rounded-full overflow-hidden min-w-[60px] border border-border-custom">
                             <div className="h-full bg-gold rounded-full" style={{ width: `${Math.min(conversionRate, 100)}%` }} />
                           </div>
                           <span className="text-xs font-bold text-text-primary">{conversionRate}%</span>
@@ -502,8 +502,8 @@ export const DashboardHome = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-sidebar border border-border-custom rounded-[2.5rem] flex flex-col">
-          <div className="p-6 border-b border-border-custom bg-card/30">
+        <div className="bg-card border border-border-custom rounded-[2.5rem] flex flex-col shadow-sm">
+          <div className="p-6 border-b border-border-custom bg-surface-2/40">
             <h3 className="text-xl font-bold text-text-primary">{t('restaurant.dashboard.activity.title')}</h3>
           </div>
           <div className="flex-1 p-6 space-y-6">
@@ -520,11 +520,11 @@ export const DashboardHome = () => {
 
               return (
                 <div key={activity.id || i} className="flex gap-4">
-                  <div className="w-8 h-8 bg-card rounded-full border border-border-custom flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 bg-surface-2 rounded-full border border-border-custom flex items-center justify-center shrink-0">
                     {icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-tight mb-1 text-text-primary break-words">
+                    <p className="text-sm leading-tight mb-1 text-text-primary break-words font-medium">
                       {formatActivityText(activity)}
                     </p>
                     <p className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">
@@ -540,7 +540,7 @@ export const DashboardHome = () => {
               </div>
             )}
           </div>
-          <div className="p-4 bg-card/30 border-t border-border-custom text-center">
+          <div className="p-4 bg-surface-2/30 border-t border-border-custom text-center">
             <button className="text-gold text-sm font-bold hover:underline">
               {t('restaurant.dashboard.activity.viewAll')}
             </button>
