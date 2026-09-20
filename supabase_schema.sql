@@ -411,10 +411,17 @@ CREATE POLICY "Admin manage qr codes"
 -- Orders must now be created via /api/orders/create endpoint with strict Upstash Rate Limiting.
 DROP POLICY IF EXISTS "Public insert orders" ON orders;
 
--- Public can read their own order by device_hash (optional)
-CREATE POLICY "Public read own orders"
+-- Public cannot read all orders arbitrarily.
+-- Reading is restricted to restaurant owners, admins, or clients matching their specific device_hash
+DROP POLICY IF EXISTS "Public read own orders" ON orders;
+
+CREATE POLICY "Owner and client read orders"
   ON orders FOR SELECT
-  USING (true);
+  USING (
+    restaurant_id IN (SELECT get_my_restaurant_ids())
+    OR is_super_admin()
+    OR (device_hash IS NOT NULL AND device_hash = NULLIF(current_setting('request.headers', true)::json->>'x-device-hash', ''))
+  );
 
 -- Owner can manage orders for their restaurants
 CREATE POLICY "Owner manage orders"
@@ -439,10 +446,18 @@ CREATE POLICY "Admin manage orders"
 -- Public CANNOT insert order items directly (Revoked to prevent DDoS)
 -- Order items are now inserted via the secure /api/orders/create endpoint.
 DROP POLICY IF EXISTS "Public insert order items" ON order_items;
+DROP POLICY IF EXISTS "Public read order items" ON order_items;
 
-CREATE POLICY "Public read order items"
+CREATE POLICY "Owner and client read order items"
   ON order_items FOR SELECT
-  USING (true);
+  USING (
+    order_id IN (
+      SELECT o.id FROM orders o 
+      WHERE o.restaurant_id IN (SELECT get_my_restaurant_ids()) 
+         OR is_super_admin()
+         OR (o.device_hash IS NOT NULL AND o.device_hash = NULLIF(current_setting('request.headers', true)::json->>'x-device-hash', ''))
+    )
+  );
 
 -- Owner can manage via order's restaurant_id
 CREATE POLICY "Owner manage order items"
@@ -754,6 +769,10 @@ CREATE OR REPLACE FUNCTION increment_restaurant_usage(
   p_increment_amount INT DEFAULT 1
 ) RETURNS void AS $$
 BEGIN
+  IF p_increment_amount <= 0 OR p_increment_amount > 100 THEN
+    RAISE EXCEPTION 'Invalid increment amount %', p_increment_amount USING ERRCODE = '22003';
+  END IF;
+
   INSERT INTO restaurant_usage_metrics (restaurant_id, metric_type, period_start, period_end, count)
   VALUES (p_restaurant_id, p_metric_type, p_period_start, p_period_end, p_increment_amount)
   ON CONFLICT (restaurant_id, metric_type, period_start)

@@ -791,6 +791,9 @@ DECLARE
   v_branch_id UUID;
   v_restaurant_name TEXT;
 BEGIN
+  -- Fix 1: Verify restaurant ownership BEFORE branch creation
+  PERFORM assert_actor_authorized(auth.uid(), 'restaurant', p_restaurant_id);
+
   -- Check first — never creates duplicates
   SELECT id INTO v_branch_id
   FROM pos_branches

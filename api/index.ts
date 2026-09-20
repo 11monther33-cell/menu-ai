@@ -194,26 +194,63 @@ import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { Client as QStashClient } from '@upstash/qstash';
 
-// ── Rate Limiting (Upstash Redis) ──
+// ── Rate Limiting (Tier 1: Upstash Redis, Tier 2: In-memory fallback) ──
 let ratelimit: Ratelimit | null = null;
 if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-  const redis = new Redis({
-    url: process.env.UPSTASH_REDIS_REST_URL,
-    token: process.env.UPSTASH_REDIS_REST_TOKEN,
-  });
-  ratelimit = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(20, '1 m'),
-  });
+  try {
+    const redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    ratelimit = new Ratelimit({
+      redis,
+      limiter: Ratelimit.slidingWindow(20, '1 m'),
+    });
+  } catch (err) {
+    console.error("Failed to initialize Upstash Redis:", err);
+  }
+}
+
+// Fallback in-memory rate limiter if Upstash Redis is unconfigured or unreachable
+const memoryRateLimitMap = new Map<string, { count: number; expiresAt: number }>();
+const MEMORY_LIMIT = 20; // max 20 requests
+const MEMORY_WINDOW_MS = 60 * 1000; // 1 minute window
+
+function checkMemoryRateLimit(ip: string): boolean {
+  const now = Date.now();
+  // Periodic cleanup if map grows large
+  if (memoryRateLimitMap.size > 5000) {
+    for (const [k, v] of memoryRateLimitMap.entries()) {
+      if (now > v.expiresAt) memoryRateLimitMap.delete(k);
+    }
+  }
+
+  const record = memoryRateLimitMap.get(ip);
+  if (!record || now > record.expiresAt) {
+    memoryRateLimitMap.set(ip, { count: 1, expiresAt: now + MEMORY_WINDOW_MS });
+    return true;
+  }
+
+  if (record.count >= MEMORY_LIMIT) {
+    return false;
+  }
+
+  record.count += 1;
+  return true;
 }
 
 async function checkRateLimit(ip: string): Promise<boolean> {
-  if (!ratelimit) {
-    console.warn("UPSTASH_REDIS not configured, skipping rate limit.");
-    return true; 
+  const normalizedIp = ip?.split(',')[0]?.trim() || 'unknown';
+  if (ratelimit) {
+    try {
+      const { success } = await ratelimit.limit(normalizedIp);
+      return success;
+    } catch (err) {
+      console.warn("Upstash rate limit check failed, falling back to in-memory:", err);
+      return checkMemoryRateLimit(normalizedIp);
+    }
   }
-  const { success } = await ratelimit.limit(ip);
-  return success;
+  return checkMemoryRateLimit(normalizedIp);
 }
 
 // ── QStash Client ──
@@ -295,6 +332,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 1. Create Payment Intent (from checkout page)
     if (url === '/api/paymob/intent' && method === 'POST') {
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress || 'unknown';
+      if (!(await checkRateLimit(clientIp))) {
+        return res.status(429).json({ error: 'Too many requests' });
+      }
+
       const { branchId, orderItems, deliveryAddress, customerPhone, customerName, fulfillmentType } = req.body;
       if (!sb) return res.status(500).json({ error: 'DB not connected' });
 
