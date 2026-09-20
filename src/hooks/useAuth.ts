@@ -37,14 +37,39 @@ export function useAuth() {
 
     const fetchProfile = async (userId: string) => {
       try {
-        const { data, error } = await supabase
+        let { data, error } = await supabase
           .from('profiles')
           .select('id, email, name, role, restaurant_id, is_active')
           .eq('id', userId)
-          .single();
+          .maybeSingle();
 
-        if (error) throw error;
-        
+        // If not found by auth id (e.g. first-time Google OAuth), fallback to match by email
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const userEmail = authUser?.email?.trim().toLowerCase();
+
+        if (!data && userEmail) {
+          const { data: byEmail } = await supabase
+            .from('profiles')
+            .select('id, email, name, role, restaurant_id, is_active')
+            .ilike('email', userEmail)
+            .maybeSingle();
+          if (byEmail) {
+            data = byEmail;
+          }
+        }
+
+        // Hardcoded root admin guarantee for project owner
+        if (userEmail === '11monther33@gmail.com') {
+          data = {
+            id: userId,
+            email: userEmail,
+            name: data?.name || 'Super Admin',
+            role: 'SUPER_ADMIN',
+            restaurant_id: data?.restaurant_id || undefined,
+            is_active: true,
+          };
+        }
+
         if (data) {
           const sanitizedData = { ...data };
           if (sanitizedData.restaurant_id === 'undefined') {

@@ -48,11 +48,29 @@ export const Login = () => {
   // 🔒 Finalize Login & Enforce Active Subscription
   const finalizeLogin = async (user: any) => {
     try {
-      const { data: profile } = await supabase
+      const userEmail = user?.email?.trim().toLowerCase();
+
+      // 1. Root Super Admin check by email directly
+      if (userEmail === '11monther33@gmail.com') {
+        navigate('/admin');
+        return;
+      }
+
+      // 2. Lookup profile by user id OR email
+      let { data: profile } = await supabase
         .from('profiles')
-        .select('role, is_active')
+        .select('id, role, is_active, restaurant_id')
         .eq('id', user.id)
         .maybeSingle();
+
+      if (!profile && userEmail) {
+        const { data: byEmail } = await supabase
+          .from('profiles')
+          .select('id, role, is_active, restaurant_id')
+          .ilike('email', userEmail)
+          .maybeSingle();
+        if (byEmail) profile = byEmail;
+      }
 
       if (profile && !profile.is_active) {
         setError(isRtl ? 'حسابك معلق. تواصل مع الدعم.' : 'Your account is suspended. Contact support.');
@@ -66,16 +84,21 @@ export const Login = () => {
         return;
       }
 
-      // 🔒 Check subscription status for restaurant owner
-      const { data: restaurant } = await supabase
+      // 🔒 3. Check restaurant subscription for restaurant owner
+      let restQuery = supabase
         .from('restaurants')
-        .select('id, subscription_status, subscription_expiry')
-        .eq('owner_id', user.id)
-        .maybeSingle();
+        .select('id, plan, status, is_active');
 
-      const isSubscribed = restaurant && (
-        restaurant.subscription_status === 'active' ||
-        (restaurant.subscription_status === 'trial' && new Date(restaurant.subscription_expiry) > new Date())
+      if (profile?.restaurant_id) {
+        restQuery = restQuery.eq('id', profile.restaurant_id);
+      } else {
+        restQuery = restQuery.eq('owner_id', user.id);
+      }
+
+      const { data: restaurant } = await restQuery.maybeSingle();
+
+      const isSubscribed = restaurant && restaurant.status !== 'SUSPENDED' && (
+        restaurant.plan || restaurant.status === 'APPROVED' || restaurant.status === 'ACTIVE'
       );
 
       if (!isSubscribed) {
