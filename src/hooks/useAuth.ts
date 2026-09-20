@@ -27,26 +27,41 @@ export function useAuth() {
     // Check active sessions and sets the user
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await fetchProfile(session.user.id);
+      if (session?.user) {
+        await fetchProfile(session.user);
       } else {
         setUser(null);
         setLoading(false);
       }
     };
 
-    const fetchProfile = async (userId: string) => {
+    const fetchProfile = async (authUser: any) => {
       try {
-        let { data, error } = await supabase
+        const userId = authUser.id;
+        const userEmail = authUser.email?.trim().toLowerCase();
+
+        // 1. Hardcoded root admin guarantee for project owner
+        if (userEmail === '11monther33@gmail.com') {
+          setUser({
+            uid: userId,
+            email: userEmail,
+            name: authUser.user_metadata?.full_name || authUser.user_metadata?.name || 'Super Admin',
+            role: 'SUPER_ADMIN',
+            restaurantId: undefined,
+            is_active: true,
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 2. Query profile by userId
+        let { data } = await supabase
           .from('profiles')
           .select('id, email, name, role, restaurant_id, is_active')
           .eq('id', userId)
           .maybeSingle();
 
-        // If not found by auth id (e.g. first-time Google OAuth), fallback to match by email
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        const userEmail = authUser?.email?.trim().toLowerCase();
-
+        // 3. Fallback: match by email
         if (!data && userEmail) {
           const { data: byEmail } = await supabase
             .from('profiles')
@@ -56,18 +71,6 @@ export function useAuth() {
           if (byEmail) {
             data = byEmail;
           }
-        }
-
-        // Hardcoded root admin guarantee for project owner
-        if (userEmail === '11monther33@gmail.com') {
-          data = {
-            id: userId,
-            email: userEmail,
-            name: data?.name || 'Super Admin',
-            role: 'SUPER_ADMIN',
-            restaurant_id: data?.restaurant_id || undefined,
-            is_active: true,
-          };
         }
 
         if (data) {
@@ -80,7 +83,6 @@ export function useAuth() {
           setUser(null);
         }
       } catch (error) {
-        // 🔒 Silent fail
         setUser(null);
       } finally {
         setLoading(false);
@@ -89,10 +91,10 @@ export function useAuth() {
 
     checkSession();
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
+    // Listen for changes on auth state (logged in, signed out, token refresh, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        await fetchProfile(session.user.id);
+      if (session?.user) {
+        await fetchProfile(session.user);
       } else {
         setUser(null);
         setLoading(false);

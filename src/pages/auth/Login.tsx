@@ -119,13 +119,23 @@ export const Login = () => {
 
   // Check if returning from Google OAuth redirect
   useEffect(() => {
-    const checkOAuthSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+    // 1. Listen for auth state changes (essential for OAuth token redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
         await finalizeLogin(session.user);
       }
+    });
+
+    // 2. Also check if session is already active
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        finalizeLogin(session.user);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
     };
-    checkOAuthSession();
   }, []);
 
   // Google OAuth Login
