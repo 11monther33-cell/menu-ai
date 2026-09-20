@@ -16,8 +16,7 @@ const WhyUs = React.lazy(() => import('../components/landing/WhyUs').then(m => (
 
 const LandingPage = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const { language } = useLanguage();
-  const isRtl = language === 'ar';
+  const { lang, isRtl } = useLanguage();
 
   return (
     <div className="min-h-screen bg-main font-sans text-text-primary selection:bg-indigo-500/30 selection:text-indigo-200">
