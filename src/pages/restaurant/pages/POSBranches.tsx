@@ -30,16 +30,75 @@ const ROLE_LABELS: Record<StaffRole, { ar: string; en: string; color: string }> 
   branch_manager: { ar: '\u0645\u062f\u064a\u0631 \u0641\u0631\u0639', en: 'Branch Manager', color: 'bg-purple-100 text-purple-700' },
 };
 
-const PERMISSIONS: { key: string; ar: string; en: string }[] = [
-  { key: 'view_orders',    ar: '\u0639\u0631\u0636 \u0627\u0644\u0637\u0644\u0628\u0627\u062a',        en: 'View Orders' },
-  { key: 'create_orders',  ar: '\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628\u0627\u062a',        en: 'Create Orders' },
-  { key: 'edit_orders',    ar: '\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0637\u0644\u0628\u0627\u062a',      en: 'Edit Orders' },
-  { key: 'cancel_orders',  ar: '\u0625\u0644\u063a\u0627\u0621 \u0627\u0644\u0637\u0644\u0628\u0627\u062a',      en: 'Cancel Orders' },
-  { key: 'mark_ready',     ar: '\u062a\u0623\u0643\u064a\u062f \u062c\u0627\u0647\u0632\u064a\u0629 \u0627\u0644\u0637\u0644\u0628', en: 'Mark Order Ready' },
-  { key: 'view_reports',   ar: '\u0639\u0631\u0636 \u0627\u0644\u062a\u0642\u0627\u0631\u064a\u0631',       en: 'View Reports' },
-  { key: 'manage_menu',    ar: '\u0625\u062f\u0627\u0631\u0629 \u0627\u0644\u0642\u0627\u0626\u0645\u0629',      en: 'Manage Menu' },
-  { key: 'apply_discount', ar: '\u062a\u0637\u0628\u064a\u0642 \u0627\u0644\u062e\u0635\u0648\u0645\u0627\u062a',    en: 'Apply Discounts' },
+const PERM_GROUPS: { group: string; groupAr: string; perms: { key: string; ar: string; en: string }[] }[] = [
+  {
+    group: 'Orders',
+    groupAr: 'الطلبات',
+    perms: [
+      { key: 'view_orders',    ar: 'عرض الطلبات',          en: 'View Orders' },
+      { key: 'create_orders',  ar: 'إنشاء طلبات',          en: 'Create Orders' },
+      { key: 'edit_orders',    ar: 'تعديل الطلبات',        en: 'Edit Orders' },
+      { key: 'cancel_orders',  ar: 'إلغاء الطلبات',        en: 'Cancel Orders' },
+      { key: 'live_orders',    ar: 'طلبات مباشرة',         en: 'Live Orders' },
+      { key: 'mark_ready',     ar: 'تأكيد جاهزية الطلب',   en: 'Mark Order Ready' },
+      { key: 'apply_discount', ar: 'تطبيق الخصومات',       en: 'Apply Discounts' },
+    ]
+  },
+  {
+    group: 'Menu',
+    groupAr: 'القائمة',
+    perms: [
+      { key: 'view_menu',      ar: 'عرض القائمة',          en: 'View Menu' },
+      { key: 'manage_menu',    ar: 'إدارة القائمة',        en: 'Manage Menu' },
+      { key: 'manage_categories', ar: 'إدارة التصنيفات',  en: 'Manage Categories' },
+      { key: 'manage_dishes',  ar: 'إضافة وتعديل الأطباق', en: 'Add/Edit Dishes' },
+    ]
+  },
+  {
+    group: 'POS & Accounting',
+    groupAr: 'نقطة البيع والمحاسبة',
+    perms: [
+      { key: 'use_pos',        ar: 'استخدام نقطة البيع',   en: 'Use POS' },
+      { key: 'pos_products',   ar: 'إدارة المنتجات',       en: 'Products Management' },
+      { key: 'pos_inventory',  ar: 'المخزون',              en: 'Inventory' },
+      { key: 'pos_expenses',   ar: 'المصروفات',            en: 'Expenses' },
+      { key: 'pos_invoices',   ar: 'الفواتير',             en: 'Invoices' },
+      { key: 'view_reports',   ar: 'التقارير المالية',     en: 'Financial Reports' },
+    ]
+  },
+  {
+    group: 'Kitchen',
+    groupAr: 'المطبخ',
+    perms: [
+      { key: 'kitchen_pulse',  ar: 'نبض المطبخ',           en: 'Kitchen Pulse' },
+      { key: 'chef_notes',     ar: 'ملاحظات الشيف',        en: 'Chef Notes' },
+    ]
+  },
+  {
+    group: 'Analytics & Content',
+    groupAr: 'التحليلات والمحتوى',
+    perms: [
+      { key: 'analytics',      ar: 'التحليلات',            en: 'Analytics' },
+      { key: 'ugc_review',     ar: 'مراجعة المحتوى',       en: 'UGC Review' },
+      { key: 'qr_codes',       ar: 'رموز QR',              en: 'QR Codes' },
+    ]
+  },
+  {
+    group: 'Settings & System',
+    groupAr: 'الإعدادات والنظام',
+    perms: [
+      { key: 'branding',       ar: 'الهوية البصرية',       en: 'Branding' },
+      { key: 'manage_branches',ar: 'إدارة الفروع',         en: 'Manage Branches' },
+      { key: 'manage_staff',   ar: 'إدارة الموظفين',       en: 'Manage Staff' },
+      { key: 'app_connection', ar: 'ربط التطبيق',          en: 'App Connection' },
+      { key: 'whatsapp_agent', ar: 'موظف مبيعات واتساب',   en: 'WhatsApp AI Agent' },
+      { key: 'settings',       ar: 'الإعدادات',            en: 'Settings' },
+    ]
+  },
 ];
+
+// Flat list for backward compatibility
+const PERMISSIONS = PERM_GROUPS.flatMap(g => g.perms);
 
 async function getStaff(restaurantId: string): Promise<RestaurantStaff[]> {
   const { data, error } = await supabase
@@ -392,16 +451,46 @@ export const POSBranches = () => {
                 <p className="text-xs text-text-secondary mt-1">{isRtl ? '\u0627\u0644\u0645\u0648\u0638\u0641 \u064a\u0633\u062c\u0644 \u062f\u062e\u0648\u0644\u0647 \u0628\u0647\u0630\u0627 \u0627\u0644\u0631\u0642\u0645' : 'Staff logs in with this PIN - no email needed'}</p>
               </div>
               <div>
-                <label className="block text-sm font-bold text-text-primary mb-3"><Shield size={15} className="inline me-1 text-gold" />{isRtl ? '\u0627\u0644\u0635\u0644\u0627\u062d\u064a\u0627\u062a' : 'Permissions'}</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PERMISSIONS.map(p => (
-                    <label key={p.key} className={`flex items-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${sPerms.includes(p.key) ? 'bg-gold/10 border-gold/40 text-gold' : 'bg-surface-2 border-border-custom text-text-secondary hover:border-gold/30'}`}>
-                      <input type="checkbox" checked={sPerms.includes(p.key)} onChange={() => togglePerm(p.key)} className="hidden" />
-                      <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-all ${sPerms.includes(p.key) ? 'bg-gold border-gold' : 'border-border-custom bg-card'}`}>
-                        {sPerms.includes(p.key) && <span className="text-white text-[10px] font-bold">&#10003;</span>}
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-bold text-text-primary"><Shield size={15} className="inline me-1 text-gold" />{isRtl ? 'الصلاحيات' : 'Permissions'}</label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setSPerms(PERMISSIONS.map(p => p.key))}
+                      className="text-[11px] text-gold hover:underline font-bold">{isRtl ? 'تحديد الكل' : 'Select All'}</button>
+                    <span className="text-text-secondary text-[11px]">|</span>
+                    <button type="button" onClick={() => setSPerms([])}
+                      className="text-[11px] text-text-secondary hover:text-red-500 hover:underline font-bold">{isRtl ? 'إلغاء الكل' : 'Clear All'}</button>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {PERM_GROUPS.map(group => (
+                    <div key={group.group}>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[11px] font-extrabold text-gold/80 uppercase tracking-wider">
+                          {isRtl ? group.groupAr : group.group}
+                        </p>
+                        <button type="button"
+                          onClick={() => {
+                            const keys = group.perms.map(p => p.key);
+                            const allSelected = keys.every(k => sPerms.includes(k));
+                            if (allSelected) setSPerms(prev => prev.filter(k => !keys.includes(k)));
+                            else setSPerms(prev => [...new Set([...prev, ...keys])]);
+                          }}
+                          className="text-[10px] text-text-secondary hover:text-gold transition-colors font-medium">
+                          {group.perms.every(p => sPerms.includes(p.key)) ? (isRtl ? 'إلغاء المجموعة' : 'Deselect') : (isRtl ? 'تحديد المجموعة' : 'Select all')}
+                        </button>
                       </div>
-                      <span className="text-xs font-medium">{isRtl ? p.ar : p.en}</span>
-                    </label>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {group.perms.map(p => (
+                          <label key={p.key} className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all ${sPerms.includes(p.key) ? 'bg-gold/10 border-gold/40 text-gold' : 'bg-surface-2 border-border-custom text-text-secondary hover:border-gold/30'}`}>
+                            <input type="checkbox" checked={sPerms.includes(p.key)} onChange={() => togglePerm(p.key)} className="hidden" />
+                            <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-all ${sPerms.includes(p.key) ? 'bg-gold border-gold' : 'border-border-custom bg-card'}`}>
+                              {sPerms.includes(p.key) && <span className="text-white text-[10px] font-bold">✓</span>}
+                            </div>
+                            <span className="text-xs font-medium">{isRtl ? p.ar : p.en}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
