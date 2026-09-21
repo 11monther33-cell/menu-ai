@@ -534,16 +534,16 @@ export const POSBranches = () => {
                   <ChevronDown size={16} className="absolute end-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none" />
                 </div>
               </div>
-              <div><label className="block text-sm font-bold text-text-primary mb-2">{isRtl ? '\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0633\u0631\u064a (4-6 \u0623\u0631\u0642\u0627\u0645)' : 'PIN Code (4-6 digits)'} *</label>
+              <div><label className="block text-sm font-bold text-text-primary mb-2">{isRtl ? 'كلمة المرور / الرقم السري (أرقام أو حروف أو رموز — 4 خانات على الأقل)' : 'Staff Password / PIN (4+ chars, letters, numbers, symbols)'} *</label>
                 <div className="relative">
-                  <input type={showPin ? 'text' : 'password'} required minLength={4} maxLength={6} pattern="[0-9]{4,6}" value={sPin}
-                    onChange={e => setSPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className={`${inputCls} font-mono tracking-widest pe-12`} placeholder="● ● ● ●" />
+                  <input type={showPin ? 'text' : 'password'} required minLength={4} value={sPin}
+                    onChange={e => setSPin(e.target.value)}
+                    className={`${inputCls} pe-12`} placeholder={isRtl ? 'كلمة المرور (4 خانات أو أكثر)...' : 'Password (4+ characters)...'} />
                   <button type="button" onClick={() => setShowPin(!showPin)} className="absolute end-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-gold transition-colors">
                     {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
-                <p className="text-xs text-text-secondary mt-1">{isRtl ? '\u0627\u0644\u0645\u0648\u0638\u0641 \u064a\u0633\u062c\u0644 \u062f\u062e\u0648\u0644\u0647 \u0628\u0647\u0630\u0627 \u0627\u0644\u0631\u0642\u0645' : 'Staff logs in with this PIN - no email needed'}</p>
+                <p className="text-xs text-text-secondary mt-1">{isRtl ? 'الموظف سيستخدم هذه الكلمة أو الرمز للدخول بدون إيميل' : 'Staff logs in with this password/PIN — no email needed'}</p>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-3">

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useStaffSession, StaffSession } from '../../hooks/useStaffSession';
 import { 
   Building2, Key, Shield, ArrowRight, ArrowLeft, 
-  RefreshCw, Delete, Check, Lock, Users, MapPin, X
+  RefreshCw, Delete, Check, Lock, Users, MapPin, X,
+  Eye, EyeOff, LayoutDashboard
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -37,9 +38,11 @@ export const StaffLogin: React.FC = () => {
   const [staffList, setStaffList] = useState<StaffItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStaff, setSelectedStaff] = useState<StaffItem | null>(null);
-  const [pin, setPin] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState(false);
   const [shake, setShake] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     if (!restaurantId) return;
@@ -121,22 +124,33 @@ export const StaffLogin: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const handleKeypadPress = (val: string) => {
-    if (pin.length < 6) {
-      setPin(prev => prev + val);
+  // Focus input when modal opens
+  useEffect(() => {
+    if (selectedStaff) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
     }
+  }, [selectedStaff]);
+
+  const handleKeypadPress = (val: string) => {
+    setPassword(prev => prev + val);
+    inputRef.current?.focus();
   };
 
   const handleBackspace = () => {
-    setPin(prev => prev.slice(0, -1));
+    setPassword(prev => prev.slice(0, -1));
+    inputRef.current?.focus();
   };
 
   const handleClear = () => {
-    setPin('');
+    setPassword('');
+    inputRef.current?.focus();
   };
 
-  const handleSubmitPin = async () => {
-    if (!selectedStaff || pin.length < 4 || !restaurantId) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedStaff || password.length < 4 || !restaurantId) return;
 
     try {
       setSubmitting(true);
@@ -151,7 +165,7 @@ export const StaffLogin: React.FC = () => {
           body: JSON.stringify({
             restaurantId,
             staffId: selectedStaff.id,
-            pin
+            pin: password
           })
         });
 
@@ -170,7 +184,7 @@ export const StaffLogin: React.FC = () => {
       }
 
       if (!success && selectedStaff.pin_code) {
-        if (selectedStaff.pin_code === pin) {
+        if (selectedStaff.pin_code === password) {
           success = true;
           verifiedStaff = {
             staffId: selectedStaff.id,
@@ -196,8 +210,9 @@ export const StaffLogin: React.FC = () => {
       } else {
         setShake(true);
         setTimeout(() => setShake(false), 600);
-        toast.error(isRtl ? 'الرقم السري غير صحيح' : 'Incorrect PIN');
-        setPin('');
+        toast.error(isRtl ? 'كلمة المرور / الرقم السري غير صحيح' : 'Incorrect password / PIN');
+        setPassword('');
+        inputRef.current?.focus();
       }
     } catch (err) {
       console.error('Login error', err);
@@ -206,32 +221,6 @@ export const StaffLogin: React.FC = () => {
       setSubmitting(false);
     }
   };
-
-  useEffect(() => {
-    if (!selectedStaff) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (/^[0-9]$/.test(e.key)) {
-        e.preventDefault();
-        handleKeypadPress(e.key);
-      } else if (e.key === 'Backspace') {
-        e.preventDefault();
-        handleBackspace();
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (pin.length >= 4) {
-          handleSubmitPin();
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setSelectedStaff(null);
-        setPin('');
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedStaff, pin]);
 
   return (
     <div className="min-h-screen bg-main text-text-primary flex flex-col justify-between p-4 sm:p-6 md:p-10">
@@ -247,20 +236,32 @@ export const StaffLogin: React.FC = () => {
             </h1>
             <p className="text-xs sm:text-sm text-text-secondary flex items-center gap-1.5 font-medium">
               <Shield size={14} className="text-gold" />
-              {isRtl ? 'بوابة دخول الموظفين بنظام PIN' : 'Staff PIN Login Portal'}
+              {isRtl ? 'بوابة دخول الموظفين' : 'Staff Login Terminal'}
             </p>
           </div>
         </div>
 
-        {currentSession && (
+        <div className="flex items-center gap-2">
+          {/* Manager Dashboard Button */}
           <button
-            onClick={() => navigate('/staff-dashboard')}
-            className="flex items-center gap-2 px-4 py-2 bg-card hover:bg-surface-2 border border-border-custom rounded-xl text-xs sm:text-sm font-bold text-gold transition-all shadow-sm"
+            onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-1.5 px-3 py-2 bg-card hover:bg-gold/10 hover:text-gold border border-border-custom rounded-xl text-xs sm:text-sm font-bold text-text-primary transition-all shadow-sm cursor-pointer"
+            title={isRtl ? 'الدخول كمدير المطعم' : 'Manager Dashboard'}
           >
-            <span>{isRtl ? `متابعة كـ ${currentSession.name}` : `Continue as ${currentSession.name}`}</span>
-            {isRtl ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+            <LayoutDashboard size={15} className="text-gold" />
+            <span>{isRtl ? 'لوحة تحكم المدير' : 'Manager Dashboard'}</span>
           </button>
-        )}
+
+          {currentSession && (
+            <button
+              onClick={() => navigate('/staff-dashboard')}
+              className="flex items-center gap-2 px-3 py-2 bg-card hover:bg-surface-2 border border-border-custom rounded-xl text-xs sm:text-sm font-bold text-gold transition-all shadow-sm"
+            >
+              <span>{isRtl ? `متابعة كـ ${currentSession.name}` : `Continue as ${currentSession.name}`}</span>
+              {isRtl ? <ArrowLeft size={15} /> : <ArrowRight size={15} />}
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Main Content Area */}
@@ -287,7 +288,7 @@ export const StaffLogin: React.FC = () => {
             </p>
             <button
               onClick={() => navigate('/dashboard/branches')}
-              className="w-full py-3 px-4 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-md shadow-gold/20"
+              className="w-full py-3 px-4 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-md shadow-gold/20 cursor-pointer"
             >
               {isRtl ? 'الذهاب إلى لوحة التحكم' : 'Go to Dashboard'}
             </button>
@@ -299,7 +300,7 @@ export const StaffLogin: React.FC = () => {
                 {isRtl ? 'اختر اسمك لتسجيل الدخول' : 'Select your name to sign in'}
               </h2>
               <p className="text-sm text-text-secondary">
-                {isRtl ? 'اضغط على اسمك ثم أدخل رقمك السري للمتابعة' : 'Tap your name, then enter your PIN code'}
+                {isRtl ? 'اضغط على اسمك ثم أدخل كلمة المرور للمتابعة' : 'Tap your name, then enter your password/PIN'}
               </p>
             </div>
 
@@ -317,7 +318,8 @@ export const StaffLogin: React.FC = () => {
                     key={member.id}
                     onClick={() => {
                       setSelectedStaff(member);
-                      setPin('');
+                      setPassword('');
+                      setShowPassword(false);
                     }}
                     className="group bg-card hover:bg-surface-2 border border-border-custom hover:border-gold rounded-2xl p-5 flex flex-col items-center text-center transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-gold"
                   >
@@ -346,24 +348,25 @@ export const StaffLogin: React.FC = () => {
 
       {/* Footer */}
       <footer className="max-w-4xl w-full mx-auto text-center py-4 border-t border-border-custom text-xs text-text-secondary">
-        <span>VISIONO Smart Restaurant System • PIN-Based Secure Terminal</span>
+        <span>VISIONO Smart Restaurant System • Staff Terminal</span>
       </footer>
 
-      {/* PIN Entry Modal Overlay */}
+      {/* Password Entry Modal Overlay */}
       {selectedStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-card border border-border-custom rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 sm:p-8 relative">
             <button
               onClick={() => {
                 setSelectedStaff(null);
-                setPin('');
+                setPassword('');
               }}
-              className="absolute top-4 end-4 p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-2 transition-colors"
+              className="absolute top-4 end-4 p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-2 transition-colors cursor-pointer"
             >
               <X size={20} />
             </button>
 
-            <div className="text-center mb-6">
+            {/* Staff info header */}
+            <div className="text-center mb-5">
               <div className="w-16 h-16 rounded-2xl bg-gold/15 text-gold flex items-center justify-center font-black text-2xl mx-auto mb-3 shadow-sm">
                 {selectedStaff.name.charAt(0)}
               </div>
@@ -371,63 +374,72 @@ export const StaffLogin: React.FC = () => {
                 {isRtl ? `مرحباً، ${selectedStaff.name}` : `Welcome, ${selectedStaff.name}`}
               </h3>
               <p className="text-xs text-text-secondary mt-1">
-                {isRtl ? 'أدخل الرقم السري المكون من 4 إلى 6 أرقام' : 'Enter your 4 to 6 digit PIN code'}
+                {isRtl ? 'أدخل كلمة المرور أو الرقم السري (4 خانات على الأقل)' : 'Enter password or PIN (4+ characters)'}
               </p>
             </div>
 
-            <div className={`flex justify-center items-center gap-3 my-4 py-3 ${shake ? 'animate-shake' : ''}`}>
-              {[0, 1, 2, 3, 4, 5].map(idx => (
-                <div
-                  key={idx}
-                  className={`w-4 h-4 rounded-full border-2 transition-all duration-150 ${
-                    idx < pin.length
-                      ? 'bg-gold border-gold scale-110 shadow-sm shadow-gold/50'
-                      : 'border-border-custom bg-surface-2'
-                  }`}
+            {/* Password Input Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className={`relative ${shake ? 'animate-shake' : ''}`}>
+                <input
+                  ref={inputRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder={isRtl ? 'كلمة المرور (حروف أو أرقام أو رموز)...' : 'Password (letters, digits, symbols)...'}
+                  className="w-full bg-surface-2 border border-border-custom rounded-2xl px-4 py-3.5 text-text-primary text-center font-bold tracking-wider focus:outline-none focus:border-gold transition-colors pe-12"
+                  autoComplete="current-password"
+                  required
                 />
-              ))}
-            </div>
-
-            <div className="grid grid-cols-3 gap-2.5 my-4">
-              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
                 <button
-                  key={digit}
                   type="button"
-                  onClick={() => handleKeypadPress(digit)}
-                  className="h-14 rounded-2xl bg-surface-2 hover:bg-gold/10 hover:border-gold border border-border-custom font-bold text-xl text-text-primary active:scale-95 transition-all flex items-center justify-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute end-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-gold transition-colors p-1"
                 >
-                  {digit}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={handleClear}
-                className="h-14 rounded-2xl bg-surface-2 hover:bg-red-50 hover:text-red-600 border border-border-custom font-bold text-sm text-text-secondary active:scale-95 transition-all flex items-center justify-center"
-              >
-                C
-              </button>
-              <button
-                type="button"
-                onClick={() => handleKeypadPress('0')}
-                className="h-14 rounded-2xl bg-surface-2 hover:bg-gold/10 hover:border-gold border border-border-custom font-bold text-xl text-text-primary active:scale-95 transition-all flex items-center justify-center"
-              >
-                0
-              </button>
-              <button
-                type="button"
-                onClick={handleBackspace}
-                className="h-14 rounded-2xl bg-surface-2 hover:bg-gold/10 border border-border-custom font-bold text-text-secondary active:scale-95 transition-all flex items-center justify-center"
-              >
-                <Delete size={20} />
-              </button>
-            </div>
+              </div>
 
-            <div className="mt-4 space-y-2">
+              {/* Touch Numeric Keypad */}
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
+                  <button
+                    key={digit}
+                    type="button"
+                    onClick={() => handleKeypadPress(digit)}
+                    className="h-12 rounded-xl bg-surface-2 hover:bg-gold/10 hover:border-gold border border-border-custom font-bold text-lg text-text-primary active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="h-12 rounded-xl bg-surface-2 hover:bg-red-50 hover:text-red-600 border border-border-custom font-bold text-xs text-text-secondary active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                >
+                  C
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleKeypadPress('0')}
+                  className="h-12 rounded-xl bg-surface-2 hover:bg-gold/10 hover:border-gold border border-border-custom font-bold text-lg text-text-primary active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBackspace}
+                  className="h-12 rounded-xl bg-surface-2 hover:bg-gold/10 border border-border-custom font-bold text-text-secondary active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+                >
+                  <Delete size={18} />
+                </button>
+              </div>
+
+              {/* Submit Button */}
               <button
-                type="button"
-                disabled={pin.length < 4 || submitting}
-                onClick={handleSubmitPin}
-                className="w-full py-3.5 px-4 bg-gold text-white font-bold rounded-2xl hover:bg-gold/90 transition-all shadow-lg shadow-gold/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                type="submit"
+                disabled={password.length < 4 || submitting}
+                className="w-full py-3.5 px-4 bg-gold text-white font-bold rounded-2xl hover:bg-gold/90 transition-all shadow-lg shadow-gold/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer mt-3"
               >
                 {submitting ? (
                   <RefreshCw className="animate-spin" size={20} />
@@ -438,7 +450,7 @@ export const StaffLogin: React.FC = () => {
                   </>
                 )}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}

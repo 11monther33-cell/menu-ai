@@ -10,11 +10,14 @@ CREATE TABLE IF NOT EXISTS restaurant_staff (
   name            VARCHAR(100) NOT NULL,
   role            TEXT NOT NULL DEFAULT 'cashier'
                     CHECK (role IN ('cashier', 'chef', 'waiter', 'branch_manager')),
-  pin_code        VARCHAR(6) NOT NULL,
+  pin_code        TEXT NOT NULL,
   permissions     JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_active       BOOLEAN NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- In case table already exists with VARCHAR(6), alter column to TEXT
+ALTER TABLE restaurant_staff ALTER COLUMN pin_code TYPE TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_restaurant_staff_restaurant_id
   ON restaurant_staff(restaurant_id);

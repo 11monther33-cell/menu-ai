@@ -113,6 +113,22 @@ export const Login = () => {
         return;
       }
 
+      // 🔒 Check if restaurant has registered staff members
+      try {
+        const { count } = await supabase
+          .from('restaurant_staff')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', restaurant.id)
+          .eq('is_active', true);
+
+        if (count && count > 0) {
+          navigate(`/staff-login/${restaurant.id}`, { replace: true });
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not check staff count', err);
+      }
+
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(err.message || 'Authentication error');
