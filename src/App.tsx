@@ -13,6 +13,8 @@ const CompleteSignup = React.lazy(() => import('./pages/auth/CompleteSignup').th
 const TermsPage = React.lazy(() => import('./pages/LegalPages').then(m => ({ default: m.TermsPage })));
 const PrivacyPage = React.lazy(() => import('./pages/LegalPages').then(m => ({ default: m.PrivacyPage })));
 const RefundPage = React.lazy(() => import('./pages/LegalPages').then(m => ({ default: m.RefundPage })));
+const StaffLogin = React.lazy(() => import('./pages/staff/StaffLogin').then(m => ({ default: m.StaffLogin })));
+const StaffDashboard = React.lazy(() => import('./pages/staff/StaffDashboard').then(m => ({ default: m.StaffDashboard })));
 
 import ErrorBoundary from './components/ErrorBoundary';
 import { Toaster, toast } from 'react-hot-toast';
@@ -196,6 +198,10 @@ function App() {
             
             {/* Public Menu Route */}
             <Route path="/menu/:restaurantId" element={<PublicMenu />} />
+            
+            {/* Staff PIN Login & Terminal Routes */}
+            <Route path="/staff-login/:restaurantId" element={<StaffLogin />} />
+            <Route path="/staff-dashboard" element={<StaffDashboard />} />
             
             {/* New Restaurant Dashboard Routes (Advanced Features) */}
             <Route path="/dashboard/*" element={

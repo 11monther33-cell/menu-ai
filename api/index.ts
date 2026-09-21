@@ -1946,6 +1946,87 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       return res.json(data || []);
     }
 
+    // ── Staff Portal: List Active Staff for Restaurant ────────
+    if (url.startsWith('/api/staff/list') && method === 'GET') {
+      if (!sb) return res.status(500).json({ error: 'Supabase client unavailable' });
+
+      const query = new URLSearchParams(url.split('?')[1] || '');
+      const restaurantId = query.get('restaurantId');
+      if (!restaurantId) return res.status(400).json({ error: 'Missing restaurantId' });
+
+      const { data: rest } = await sb
+        .from('restaurants')
+        .select('id, name_ar, name_en')
+        .eq('id', restaurantId)
+        .maybeSingle();
+
+      const { data: staff, error: staffErr } = await sb
+        .from('restaurant_staff')
+        .select('id, name, role, branch_id')
+        .eq('restaurant_id', restaurantId)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (staffErr) return res.status(500).json({ error: staffErr.message });
+
+      return res.json({
+        success: true,
+        restaurant: {
+          id: restaurantId,
+          name: rest?.name_ar || rest?.name_en || 'VISIONO Restaurant'
+        },
+        staff: staff || []
+      });
+    }
+
+    // ── Staff Portal: PIN Verification & Login ────────────────
+    if (url === '/api/staff/login' && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'Supabase client unavailable' });
+
+      const { restaurantId, staffId, pin } = req.body || {};
+      if (!restaurantId || !staffId || !pin) {
+        return res.status(400).json({ error: 'Missing restaurantId, staffId, or pin' });
+      }
+
+      const { data: staff, error: staffErr } = await sb
+        .from('restaurant_staff')
+        .select('id, name, role, permissions, branch_id, restaurant_id, pin_code, is_active')
+        .eq('id', staffId)
+        .eq('restaurant_id', restaurantId)
+        .maybeSingle();
+
+      if (staffErr || !staff) {
+        return res.status(404).json({ error: 'Staff member not found' });
+      }
+
+      if (!staff.is_active) {
+        return res.status(403).json({ error: 'Staff account is inactive' });
+      }
+
+      if (staff.pin_code !== pin) {
+        return res.status(401).json({ error: 'Incorrect PIN' });
+      }
+
+      const { data: rest } = await sb
+        .from('restaurants')
+        .select('name_ar, name_en')
+        .eq('id', restaurantId)
+        .maybeSingle();
+
+      return res.json({
+        success: true,
+        staff: {
+          staffId: staff.id,
+          name: staff.name,
+          role: staff.role,
+          permissions: staff.permissions || [],
+          branchId: staff.branch_id,
+          restaurantId: staff.restaurant_id,
+          restaurantName: rest?.name_ar || rest?.name_en || 'VISIONO Restaurant'
+        }
+      });
+    }
+
     // ── 404 ──────────────────────────────────────────────
     return res.status(404).json({ error: 'API route not found', url });
 

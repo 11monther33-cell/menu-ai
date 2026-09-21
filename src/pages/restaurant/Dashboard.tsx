@@ -11,8 +11,9 @@ import {
   ChevronLeft, ChevronRight, Menu, X,
   Layers, Zap, MessageSquare, Camera,
   Palette, MapPin, CreditCard, Globe, RefreshCw, Shield,
-  Calculator, FileText, Package, TrendingDown, Bot
+  Calculator, FileText, Package, TrendingDown, Bot, Key, UserCheck
 } from 'lucide-react';
+import { useStaffSession } from '../../hooks/useStaffSession';
 import { DashboardHome } from './pages/DashboardHome';
 import { MenuBuilder } from './pages/MenuBuilder';
 import { Categories } from './pages/Categories';
@@ -43,15 +44,18 @@ import { usePOSStore } from '../../store/posStore';
 export const RestaurantDashboard = () => {
   const { isRtl, t, lang, setLang } = useLanguage();
   const { user, loading: authLoading } = useAuth();
+  const { session: staffSession, clearSession: clearStaffSession } = useStaffSession();
   const location = useLocation();
   const navigate = useNavigate();
   const { setBranch } = usePOSStore();
 
+  const effectiveRestaurantId = user?.restaurantId || staffSession?.restaurantId;
+
   useEffect(() => {
     const initBranch = async () => {
-      if (user?.restaurantId) {
+      if (effectiveRestaurantId) {
         try {
-          const branch = await getOrCreateBranch(user.restaurantId);
+          const branch = await getOrCreateBranch(effectiveRestaurantId);
           if (branch) {
             setBranch(branch);
           }
@@ -61,15 +65,14 @@ export const RestaurantDashboard = () => {
       }
     };
     initBranch();
-  }, [user?.restaurantId, setBranch]);
+  }, [effectiveRestaurantId, setBranch]);
 
   useEffect(() => {
-    // 🔒 SECURITY: Client-side role check — defense in depth
-    // The REAL protection is RLS on each table (users can only access their own data)
-    if (!authLoading && (!user || !['RESTAURANT_OWNER', 'SUPER_ADMIN'].includes(user.role || ''))) {
+    // 🔒 SECURITY: Allow access if manager/admin OR active staff session
+    if (!authLoading && (!user || !['RESTAURANT_OWNER', 'SUPER_ADMIN'].includes(user.role || '')) && !staffSession) {
       navigate('/login');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, staffSession, navigate]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -113,16 +116,65 @@ export const RestaurantDashboard = () => {
     }
   ];
 
+  const NAV_PERM_MAP: Record<string, string> = {
+    'dashboard': 'view_orders',
+    'menu-builder': 'manage_menu',
+    'categories': 'manage_categories',
+    'orders': 'view_orders',
+    'live-orders': 'live_orders',
+    'kitchen-pulse': 'kitchen_pulse',
+    'chef-notes': 'chef_notes',
+    'ugc-review': 'ugc_review',
+    'analytics': 'analytics',
+    'branding': 'branding',
+    'branches': 'manage_branches',
+    'whatsapp-sales-agent': 'whatsapp_agent',
+    'settings': 'settings',
+    'pos': 'use_pos',
+    'pos-products': 'pos_products',
+    'pos-inventory': 'pos_inventory',
+    'pos-expenses': 'pos_expenses',
+    'pos-invoices': 'pos_invoices',
+    'pos-reports': 'view_reports',
+    'pos-settings': 'settings',
+    'qr-codes': 'qr_codes',
+    'app-connection': 'app_connection',
+    'security': 'settings',
+    'subscription': 'settings'
+  };
+
+  const filteredNavItems = navItems.map(group => {
+    if (!staffSession || staffSession.role === 'branch_manager') {
+      return group;
+    }
+    return {
+      ...group,
+      items: group.items.filter(item => {
+        const requiredPerm = NAV_PERM_MAP[item.id];
+        return !requiredPerm || (staffSession.permissions && staffSession.permissions.includes(requiredPerm));
+      })
+    };
+  }).filter(group => group.items.length > 0);
+
   const handleLogout = async () => {
+    if (staffSession) {
+      const restId = staffSession.restaurantId;
+      clearStaffSession();
+      toast.success(isRtl ? 'تم تسجيل خروج الموظف' : 'Staff logged out');
+      if (restId) {
+        navigate(`/staff-login/${restId}`);
+      } else {
+        navigate('/login');
+      }
+      return;
+    }
     const loadingToast = toast.loading(isRtl ? 'جاري تسجيل الخروج...' : 'Logging out...');
     try {
       await supabase.auth.signOut();
       toast.success(isRtl ? 'تم تسجيل الخروج بنجاح' : 'Logged out successfully', { id: loadingToast });
       navigate('/login');
     } catch (error: any) {
-      // 🔒 Don't log error details
       toast.error(isRtl ? 'فشل تسجيل الخروج' : 'Logout failed', { id: loadingToast });
-      // Still navigate as fallback
       navigate('/login');
     }
   };
@@ -153,7 +205,7 @@ export const RestaurantDashboard = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6 custom-scrollbar">
-          {navItems.map((group, i) => (
+          {filteredNavItems.map((group, i) => (
             <div key={`nav-group-${i}-${group.group}`} className="space-y-2">
               {!isSidebarCollapsed && (
                 <p className="px-5 text-[11px] font-extrabold text-gold/80 uppercase tracking-wider mb-2">
@@ -206,11 +258,15 @@ export const RestaurantDashboard = () => {
             <div className="px-4 py-3 bg-surface-2 border border-border-custom rounded-xl mb-3 shadow-sm">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center text-white font-bold text-sm uppercase shadow-sm shrink-0">
-                  {user?.name?.slice(0, 2)}
+                  {(staffSession ? staffSession.name : user?.name)?.slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold truncate text-text-primary">{user?.name}</p>
-                  <p className="text-[11px] font-medium text-text-secondary truncate">{user?.email}</p>
+                  <p className="text-xs font-bold truncate text-text-primary">
+                    {staffSession ? staffSession.name : user?.name}
+                  </p>
+                  <p className="text-[11px] font-medium text-text-secondary truncate">
+                    {staffSession ? (isRtl ? `موظف: ${staffSession.role}` : `Staff: ${staffSession.role}`) : user?.email}
+                  </p>
                 </div>
               </div>
             </div>
@@ -251,6 +307,32 @@ export const RestaurantDashboard = () => {
               <span className="w-1 h-1 bg-border-custom rounded-full" />
               <BranchSwitcher />
             </div>
+
+            {staffSession ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-gold/10 border border-gold/30 rounded-lg shadow-sm">
+                <UserCheck size={14} className="text-gold" />
+                <span className="text-xs font-bold text-gold">{staffSession.name}</span>
+                <button
+                  onClick={() => {
+                    const rId = staffSession.restaurantId;
+                    clearStaffSession();
+                    navigate(`/staff-login/${rId}`);
+                  }}
+                  className="text-[10px] text-text-secondary hover:text-red-600 font-bold underline cursor-pointer"
+                >
+                  {isRtl ? 'تبديل' : 'Switch'}
+                </button>
+              </div>
+            ) : effectiveRestaurantId ? (
+              <button
+                onClick={() => navigate(`/staff-login/${effectiveRestaurantId}`)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-gold/10 hover:text-gold border border-border-custom rounded-lg text-xs font-bold text-text-primary transition-colors shadow-sm cursor-pointer"
+                title={isRtl ? 'فتح بوابة الموظفين (PIN)' : 'Staff PIN Terminal'}
+              >
+                <Key size={13} className="text-gold" />
+                <span>{isRtl ? 'وضع الموظفين' : 'Staff Mode'}</span>
+              </button>
+            ) : null}
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 relative z-10">
@@ -345,7 +427,7 @@ export const RestaurantDashboard = () => {
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
-                {navItems.map((group, i) => (
+                {filteredNavItems.map((group, i) => (
                   <div key={`mobile-nav-group-${i}-${group.group}`} className="space-y-2">
                     <p className="px-4 text-[11px] font-extrabold text-gold/80 uppercase tracking-wider mb-2">
                       {group.group}

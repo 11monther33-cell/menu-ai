@@ -4,10 +4,11 @@ import { useAuth } from '../../../hooks/useAuth';
 import { getBranches, createBranch, updateBranch, deleteBranch, POSBranch } from '../../../services/posService';
 import {
   Plus, Edit2, Trash2, MapPin, Building2, Save, X, RefreshCw,
-  Users, Key, Shield, ChevronDown, Eye, EyeOff
+  Users, Key, Shield, ChevronDown, Eye, EyeOff, Copy, Check, ExternalLink, QrCode, Link2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { supabase } from '../../../lib/supabase';
+import { QRCodeSVG } from 'qrcode.react';
 
 type StaffRole = 'cashier' | 'chef' | 'waiter' | 'branch_manager';
 
@@ -166,6 +167,20 @@ export const POSBranches = () => {
   const [sPin, setSPin] = useState('');
   const [sPerms, setSPerms] = useState<string[]>([]);
   const [sIsActive, setSIsActive] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+
+  const staffLoginUrl = typeof window !== 'undefined' && user?.restaurantId 
+    ? `${window.location.origin}/staff-login/${user.restaurantId}`
+    : '';
+
+  const handleCopyLink = () => {
+    if (!staffLoginUrl) return;
+    navigator.clipboard.writeText(staffLoginUrl);
+    setCopied(true);
+    toast.success(isRtl ? 'تم نسخ الرابط بنجاح' : 'Link copied to clipboard');
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   useEffect(() => { loadBranches(); }, [user?.restaurantId]);
   useEffect(() => { if (activeTab === 'staff') loadStaff(); }, [activeTab, user?.restaurantId]);
@@ -331,13 +346,93 @@ export const POSBranches = () => {
 
       {activeTab === 'staff' && (
         <div className="flex-1 overflow-y-auto custom-scrollbar">
-          <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <div className="bg-gold/10 border border-gold/30 rounded-xl p-4 mb-4 flex items-start gap-3">
             <Key size={20} className="text-gold flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-text-primary">{isRtl ? '\u0646\u0638\u0627\u0645 \u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0633\u0631\u064a \u2014 \u0644\u0627 \u064a\u062d\u062a\u0627\u062c \u0627\u0644\u0645\u0648\u0638\u0641 \u0625\u0644\u0649 \u0625\u064a\u0645\u064a\u0644' : 'PIN System - No email needed'}</p>
-              <p className="text-xs text-text-secondary mt-1">{isRtl ? '\u0643\u0644 \u0645\u0648\u0638\u0641 \u064a\u062f\u062e\u0644 \u0639\u0628\u0631 \u0631\u0642\u0645 \u0633\u0631\u064a 4-6 \u0623\u0631\u0642\u0627\u0645' : 'Each staff member logs in with a 4-6 digit PIN. You control their permissions.'}</p>
+              <p className="text-sm font-bold text-text-primary">{isRtl ? 'نظام الرقم السري — لا يحتاج الموظف إلى إيميل' : 'PIN System - No email needed'}</p>
+              <p className="text-xs text-text-secondary mt-1">{isRtl ? 'كل موظف يدخل عبر رقم سري 4-6 أرقام. أنت تتحكم في صلاحياته.' : 'Each staff member logs in with a 4-6 digit PIN. You control their permissions.'}</p>
             </div>
           </div>
+
+          {/* Staff Login Link & QR Card */}
+          {staffLoginUrl && (
+            <div className="bg-card border border-border-custom rounded-2xl p-4 sm:p-5 mb-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-gold/15 flex items-center justify-center text-gold">
+                    <Link2 size={16} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-text-primary">
+                      {isRtl ? 'رابط بوابة دخول الموظفين' : 'Staff PIN Login Link'}
+                    </h4>
+                    <p className="text-[11px] text-text-secondary">
+                      {isRtl 
+                        ? 'افتح هذا الرابط على شاشة الكاشير أو التابلت في المطعم' 
+                        : 'Open this link on the cashier tablet or kitchen display'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                      copied 
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30' 
+                        : 'bg-gold text-white hover:bg-gold/90 shadow-sm shadow-gold/20'
+                    }`}
+                  >
+                    {copied ? <Check size={14} /> : <Copy size={14} />}
+                    <span>{copied ? (isRtl ? 'تم النسخ' : 'Copied!') : (isRtl ? 'نسخ الرابط' : 'Copy Link')}</span>
+                  </button>
+
+                  <a
+                    href={staffLoginUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-gold/10 hover:text-gold border border-border-custom rounded-xl text-xs font-bold text-text-primary transition-colors"
+                  >
+                    <ExternalLink size={14} />
+                    <span>{isRtl ? 'فتح البوابة' : 'Open'}</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowQr(!showQr)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 hover:bg-gold/10 hover:text-gold border border-border-custom rounded-xl text-xs font-bold text-text-primary transition-colors"
+                  >
+                    <QrCode size={14} />
+                    <span>{showQr ? (isRtl ? 'إخفاء QR' : 'Hide QR') : 'QR Code'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* URL Display */}
+              <div className="bg-surface-2 border border-border-custom rounded-xl px-3 py-2 text-xs font-mono text-gold truncate select-all">
+                {staffLoginUrl}
+              </div>
+
+              {/* Collapsible QR Code Display */}
+              {showQr && (
+                <div className="mt-4 pt-4 border-t border-border-custom flex flex-col items-center text-center">
+                  <div className="p-3 bg-white rounded-2xl shadow-md inline-block border border-border-custom">
+                    <QRCodeSVG
+                      value={staffLoginUrl}
+                      size={160}
+                      level="M"
+                      bgColor="#FFFFFF"
+                      fgColor="#351344"
+                    />
+                  </div>
+                  <p className="text-xs text-text-secondary mt-2 font-medium">
+                    {isRtl ? 'امسح الرمز بكاميرا الجوال أو التابلت لفتح بوابة الموظفين' : 'Scan with camera to open staff portal on tablet or phone'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {staffLoading ? (
             <div className="flex items-center justify-center h-40"><RefreshCw className="animate-spin text-gold" size={32} /></div>
           ) : staff.length === 0 ? (

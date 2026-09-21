@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- Migration: restaurant_staff table (PIN-based, no email)
 -- Run this in your Supabase SQL Editor
 -- ============================================================
@@ -47,3 +47,9 @@ CREATE POLICY "super_admin_read_all_staff"
       WHERE id = auth.uid() AND role = 'SUPER_ADMIN'
     )
   );
+
+-- Policy: allow public to read active staff list for the PIN login terminal
+CREATE POLICY "public_read_active_staff"
+  ON restaurant_staff
+  FOR SELECT
+  USING (is_active = true);
