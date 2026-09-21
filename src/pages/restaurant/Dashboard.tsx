@@ -302,7 +302,7 @@ export const RestaurantDashboard = () => {
                 <Route path="/ugc-review" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.ugcReview'))}</div>} />
                 <Route path="/analytics" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.analytics'))}</div>} />
                 <Route path="/branding" element={<Branding />} />
-                <Route path="/branches" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.branches'))}</div>} />
+                <Route path="/branches" element={<POSBranches />} />
                 <Route path="/app-connection" element={<AppConnection />} />
                 <Route path="/settings" element={<div className="p-12 text-center text-text-secondary">{t('admin.system.underDevelopmentDesc').replace('{tab}', t('restaurant.nav.settings'))}</div>} />
                 <Route path="/pos" element={<POSScreen />} />

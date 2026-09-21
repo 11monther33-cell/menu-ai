@@ -47,7 +47,7 @@ export const BranchSwitcher = () => {
   };
 
   if (loading) {
-    return <div className="h-4 w-24 bg-white/10 animate-pulse rounded-md"></div>;
+    return <div className="h-4 w-24 bg-border-custom animate-pulse rounded-md"></div>;
   }
 
   const currentLabel = isAllBranches
@@ -58,17 +58,17 @@ export const BranchSwitcher = () => {
     <div className="relative branch-switcher">
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-md transition-colors"
+        className="flex items-center gap-2 px-2 py-1 bg-card hover:bg-surface-2 border border-border-custom rounded-md transition-colors"
       >
         <MapPin size={12} className="text-gold" />
-        <span className="text-[10px] text-text uppercase tracking-widest font-medium">
+        <span className="text-[10px] text-text-primary uppercase tracking-widest font-medium">
           {currentLabel}
         </span>
-        <ChevronDown size={12} className={`text-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown size={12} className={`text-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className={`absolute top-full mt-2 w-48 bg-surface-2 border border-white/10 rounded-lg shadow-xl overflow-hidden z-50 ${isRtl ? 'right-0' : 'left-0'}`}>
+        <div className={`absolute top-full mt-2 w-48 bg-card border border-border-custom rounded-lg shadow-xl overflow-hidden z-50 ${isRtl ? 'right-0' : 'left-0'}`}>
           <div className="py-1">
             {branches.map((b) => (
               <button
@@ -77,7 +77,7 @@ export const BranchSwitcher = () => {
                 className={`w-full text-start px-4 py-2 text-xs transition-colors ${
                   !isAllBranches && currentBranch?.id === b.id
                     ? 'bg-gold/10 text-gold font-bold'
-                    : 'text-text hover:bg-white/5'
+                    : 'text-text-primary hover:bg-gold/10 hover:text-gold'
                 }`}
               >
                 {b.name}
@@ -85,13 +85,13 @@ export const BranchSwitcher = () => {
             ))}
             {branches.length > 1 && (
               <>
-                <div className="h-[1px] bg-white/10 my-1"></div>
+                <div className="h-[1px] bg-border-custom my-1"></div>
                 <button
                   onClick={() => handleSelect('all')}
                   className={`w-full text-start px-4 py-2 text-xs transition-colors ${
                     isAllBranches
                       ? 'bg-gold/10 text-gold font-bold'
-                      : 'text-text hover:bg-white/5'
+                      : 'text-text-primary hover:bg-gold/10 hover:text-gold'
                   }`}
                 >
                   {isRtl ? 'جميع الفروع (تقرير مجمّع)' : 'All Branches (Aggregate)'}
