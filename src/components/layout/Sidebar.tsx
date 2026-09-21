@@ -61,7 +61,7 @@ const Sidebar = () => {
       <nav className="flex-1 overflow-y-auto px-4 space-y-8">
         {sections.map((section, idx) => (
           <div key={idx} className="space-y-2">
-            <h2 className="px-4 text-xs font-bold text-text-muted tracking-widest uppercase">
+            <h2 className="px-4 text-xs font-extrabold text-gold/80 tracking-wider uppercase">
               {section.title}
             </h2>
             <div className="space-y-1">
@@ -73,18 +73,22 @@ const Sidebar = () => {
                   className={({ isActive }) => cn(
                     "flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group",
                     isActive 
-                      ? "bg-dark-custom text-white shadow-lg shadow-dark-custom/20" 
-                      : "text-text-secondary hover:bg-card hover:text-dark-custom"
+                      ? "bg-gold text-white font-bold shadow-md shadow-gold/20" 
+                      : "text-text-primary hover:bg-gold/10 hover:text-gold font-bold"
                   )}
                 >
-                  <div className="flex items-center gap-3">
-                    <item.icon size={20} className="flex-shrink-0" />
-                    <span className="font-medium text-sm">{item.name}</span>
-                  </div>
-                  {item.pro && (
-                    <span className="px-1.5 py-0.5 text-[10px] font-bold bg-card text-gold border border-gold/20 rounded uppercase">
-                      PRO
-                    </span>
+                  {({ isActive }) => (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <item.icon size={20} className={cn("flex-shrink-0", isActive ? "text-white" : "text-gold group-hover:scale-110 transition-transform")} />
+                        <span className="font-bold text-sm">{item.name}</span>
+                      </div>
+                      {item.pro && (
+                        <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded uppercase ${isActive ? 'bg-white/20 text-white' : 'bg-card text-gold border border-gold/20'}`}>
+                          PRO
+                        </span>
+                      )}
+                    </>
                   )}
                 </NavLink>
               ))}

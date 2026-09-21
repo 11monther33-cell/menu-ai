@@ -144,7 +144,7 @@ export const RestaurantDashboard = () => {
     <div className="flex h-screen lg:h-screen bg-main text-text overflow-hidden selection:bg-gold/30">
       {/* Sidebar - Desktop */}
       <aside 
-        className={`hidden lg:flex flex-col bg-surface-2 border-border-custom transition-all duration-300 relative z-30 ${
+        className={`hidden lg:flex flex-col bg-card border-border-custom transition-all duration-300 relative z-30 ${
           isSidebarCollapsed ? 'w-20' : 'w-[260px]'
         } ${isRtl ? 'border-l' : 'border-r'}`}
       >
@@ -152,11 +152,11 @@ export const RestaurantDashboard = () => {
           <img src="/logo.png" alt="VISIONO" className="h-8 object-contain" />
         </div>
 
-        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6 custom-scrollbar">
           {navItems.map((group, i) => (
             <div key={`nav-group-${i}-${group.group}`} className="space-y-2">
               {!isSidebarCollapsed && (
-                <p className="px-5 text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">
+                <p className="px-5 text-[11px] font-extrabold text-gold/80 uppercase tracking-wider mb-2">
                   {group.group}
                 </p>
               )}
@@ -167,16 +167,16 @@ export const RestaurantDashboard = () => {
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative group mx-2 ${
                       isActive(item.path) 
-                        ? 'bg-gold text-white font-bold shadow-sm shadow-gold/20' 
-                        : 'text-text-secondary hover:bg-gold/10 hover:text-gold font-medium'
+                        ? 'bg-gold text-white font-bold shadow-md shadow-gold/20' 
+                        : 'text-text-primary hover:bg-gold/10 hover:text-gold font-bold'
                     }`}
                   >
-                    <div className={`${isActive(item.path) ? 'text-white' : 'text-text-secondary group-hover:text-gold transition-colors'}`}>
+                    <div className={`${isActive(item.path) ? 'text-white' : 'text-gold group-hover:scale-110 transition-transform'}`}>
                       {item.icon}
                     </div>
                     {!isSidebarCollapsed && (
                       <>
-                        <span className="flex-1 truncate text-sm font-medium">{item.label}</span>
+                        <span className="flex-1 truncate text-sm font-bold">{item.label}</span>
                         {item.badge && (
                           <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded-md animate-pulse ${
                             isActive(item.path)
@@ -203,29 +203,29 @@ export const RestaurantDashboard = () => {
 
         <div className="p-4 border-t border-border-custom space-y-2">
           {!isSidebarCollapsed && (
-            <div className="px-4 py-3 bg-card border border-border-custom rounded-xl mb-4 shadow-sm">
+            <div className="px-4 py-3 bg-surface-2 border border-border-custom rounded-xl mb-3 shadow-sm">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-gold rounded-lg flex items-center justify-center text-white font-bold text-xs uppercase shadow-sm shrink-0">
+                <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center text-white font-bold text-sm uppercase shadow-sm shrink-0">
                   {user?.name?.slice(0, 2)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-bold truncate text-text-primary">{user?.name}</p>
-                  <p className="text-[10px] text-text-secondary truncate">{user?.email}</p>
+                  <p className="text-[11px] font-medium text-text-secondary truncate">{user?.email}</p>
                 </div>
               </div>
             </div>
           )}
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-semibold"
+            className="w-full flex items-center gap-3 px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-xl transition-colors text-sm font-bold"
           >
-            <LogOut size={16} />
+            <LogOut size={18} />
             {!isSidebarCollapsed && <span>{t('restaurant.nav.logout')}</span>}
           </button>
           
           <button 
             onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="w-full flex items-center justify-center p-2.5 text-text-secondary hover:text-gold hover:bg-gold/10 rounded-xl transition-colors"
+            className="w-full flex items-center justify-center p-2.5 text-text-primary hover:text-gold hover:bg-gold/10 rounded-xl transition-colors font-bold"
             title={isSidebarCollapsed ? (isRtl ? 'توسيع' : 'Expand') : (isRtl ? 'طي' : 'Collapse')}
           >
             {isSidebarCollapsed ? (isRtl ? <ChevronLeft size={16} /> : <ChevronRight size={16} />) : (isRtl ? <ChevronRight size={16} /> : <ChevronLeft size={16} />)}
@@ -336,18 +336,18 @@ export const RestaurantDashboard = () => {
               initial={{ x: isRtl ? 300 : -300 }}
               animate={{ x: 0 }}
               exit={{ x: isRtl ? 300 : -300 }}
-              className={`fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[280px] bg-sidebar z-50 lg:hidden flex flex-col shadow-2xl`}
+              className={`fixed inset-y-0 ${isRtl ? 'right-0' : 'left-0'} w-[280px] bg-card z-50 lg:hidden flex flex-col shadow-2xl`}
             >
               <div className="h-16 flex items-center justify-between px-6 border-b border-border-custom">
                 <img src="/logo.png" alt="VISIONO" className="h-8 object-contain" />
-                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-text-secondary hover:text-text-primary">
+                <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 text-text-primary hover:text-gold">
                   <X size={24} />
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto py-6 px-4 space-y-8">
+              <div className="flex-1 overflow-y-auto py-6 px-4 space-y-6">
                 {navItems.map((group, i) => (
                   <div key={`mobile-nav-group-${i}-${group.group}`} className="space-y-2">
-                    <p className="px-4 text-[10px] font-bold text-text-secondary uppercase tracking-[0.2em] mb-4">
+                    <p className="px-4 text-[11px] font-extrabold text-gold/80 uppercase tracking-wider mb-2">
                       {group.group}
                     </p>
                     <div className="space-y-1">
@@ -358,11 +358,13 @@ export const RestaurantDashboard = () => {
                           onClick={() => setIsMobileMenuOpen(false)}
                           className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
                             isActive(item.path) 
-                              ? 'bg-gold/10 text-gold font-bold' 
-                              : 'text-text-secondary hover:bg-card hover:text-text-primary'
+                              ? 'bg-gold text-white font-bold shadow-md shadow-gold/20' 
+                              : 'text-text-primary hover:bg-gold/10 hover:text-gold font-bold'
                           }`}
                         >
-                          {item.icon}
+                          <div className={isActive(item.path) ? 'text-white' : 'text-gold'}>
+                            {item.icon}
+                          </div>
                           <span className="flex-1">{item.label}</span>
                           {item.badge && (
                             <span className="px-1.5 py-0.5 bg-red-500 text-[8px] font-bold text-white rounded-md">
@@ -375,10 +377,21 @@ export const RestaurantDashboard = () => {
                   </div>
                 ))}
               </div>
-              <div className="p-4 border-t border-border-custom">
+              <div className="p-4 border-t border-border-custom space-y-2">
+                <div className="px-4 py-3 bg-surface-2 border border-border-custom rounded-xl mb-3 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gold rounded-xl flex items-center justify-center text-white font-bold text-sm uppercase shadow-sm shrink-0">
+                      {user?.name?.slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold truncate text-text-primary">{user?.name}</p>
+                      <p className="text-[11px] font-medium text-text-secondary truncate">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
                 <button 
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold"
                 >
                   <LogOut size={20} />
                   <span>{t('restaurant.nav.logout')}</span>
