@@ -539,7 +539,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!user) return res.status(401).json({ error: 'Auth required' });
 
       const { restaurantSlug, tableNumber, origin } = req.body;
-      const qrData = `${origin || 'https://getvisiono.com'}/menu/${restaurantSlug}?table=${tableNumber}`;
+      const qrData = `${origin || 'https://maidatak.com'}/menu/${restaurantSlug}?table=${tableNumber}`;
       const qrSvg = await QRCode.toString(qrData, { type: 'svg' });
       return res.json({ svg: Buffer.from(qrSvg).toString('base64'), qrData });
     }
@@ -644,7 +644,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Determine public URL from request context or env
-      const host = req.headers['x-forwarded-host'] || req.headers.host || 'getvisiono.com';
+      const host = req.headers['x-forwarded-host'] || req.headers.host || 'maidatak.com';
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const origin = process.env.VITE_APP_URL || `${protocol}://${host}`;
 
@@ -1079,7 +1079,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
           const urlResp = await fetch(inputUrl, {
             method: 'GET',
-            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://getvisiono.com/bot-info)' },
+            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://maidatak.com/bot-info)' },
             signal: AbortSignal.timeout(15000),
           });
           
