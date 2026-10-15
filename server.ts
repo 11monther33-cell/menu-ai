@@ -51,15 +51,18 @@ const requireAuth = async (req: any, res: any, next: any) => {
 
     const token = authHeader.replace('Bearer ', '');
     
-    // Check if it's a custom device JWT
-    try {
-      const decoded = jwt.verify(token, process.env.VITE_SUPABASE_ANON_KEY || 'fallback') as any;
-      if (decoded && decoded.role === 'DEVICE') {
-        req.user = decoded;
-        return next();
+    // Check if it's a custom device JWT (verified only with secure server secret)
+    const deviceSecret = process.env.DEVICE_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (deviceSecret) {
+      try {
+        const decoded = jwt.verify(token, deviceSecret) as any;
+        if (decoded && decoded.role === 'DEVICE') {
+          req.user = decoded;
+          return next();
+        }
+      } catch (e) {
+        // Not a valid device JWT, continue to Supabase auth
       }
-    } catch (e) {
-      // Not a valid device JWT, continue to Supabase auth
     }
     
     if (!supabaseServer) {

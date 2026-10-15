@@ -41,8 +41,8 @@ async function verifyMetaSignature(req: Request, rawBody: string): Promise<boole
   const signature = signatureHeader.replace("sha256=", "");
   const APP_SECRET = Deno.env.get("WHATSAPP_APP_SECRET");
   if (!APP_SECRET) {
-    console.warn("WHATSAPP_APP_SECRET not set, bypassing signature check for dev.");
-    return true; 
+    console.error("WHATSAPP_APP_SECRET not set in Supabase Secrets. Rejecting request.");
+    return false; 
   }
 
   const encoder = new TextEncoder();
@@ -72,12 +72,10 @@ async function verifyMetaSignature(req: Request, rawBody: string): Promise<boole
     try {
       const rawBody = await req.text();
       
-      // Verification check (only applies if signature header is present, typical for Meta)
-      if (req.headers.has("x-hub-signature-256")) {
-        const isValid = await verifyMetaSignature(req, rawBody);
-        if (!isValid) {
-          return new Response("Invalid signature", { status: 401, headers: corsHeaders });
-        }
+      // Mandatory signature verification check for Meta webhook (SEC-06)
+      const isValid = await verifyMetaSignature(req, rawBody);
+      if (!isValid) {
+        return new Response("Invalid signature or secret missing", { status: 401, headers: corsHeaders });
       }
       
       let body;

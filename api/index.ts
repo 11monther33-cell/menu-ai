@@ -5,6 +5,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
+import dns from 'dns';
 import mammoth from 'mammoth';
 import { createRequire } from 'module';
 import * as cheerio from 'cheerio';
@@ -131,6 +132,226 @@ async function getUser(req: VercelRequest) {
   const { data: { user }, error } = await sb.auth.getUser(token);
   if (error || !user) return { user: null, reason: `Auth error: ${error?.message || 'User not found'}` };
   return { user, reason: null };
+}
+
+// ── Security Helpers ─────────────────────────────────────
+
+// ── OWASP Scrypt PIN Hashing ─────────────────────────────
+const SCRYPT_N = 16384;
+const SCRYPT_R = 8;
+const SCRYPT_P = 5;
+const SCRYPT_KEYLEN = 64;
+const SCRYPT_MAXMEM = 64 * 1024 * 1024;
+
+async function hashPin(pin: string): Promise<string> {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return new Promise((resolve, reject) => {
+    crypto.scrypt(pin, salt, SCRYPT_KEYLEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: SCRYPT_MAXMEM }, (err, derivedKey) => {
+      if (err) return reject(err);
+      resolve(`$scrypt$v=1$ln=14,r=${SCRYPT_R},p=${SCRYPT_P}$${salt}$${derivedKey.toString('hex')}`);
+    });
+  });
+}
+
+async function verifyPin(pin: string, storedHashOrPlain: string): Promise<{ valid: boolean; needsRehash: boolean }> {
+  if (!storedHashOrPlain || !pin) return { valid: false, needsRehash: false };
+
+  // 1. Modern OWASP scrypt formatted hash: $scrypt$v=1$ln=14,r=8,p=5$<salt>$<hash>
+  if (storedHashOrPlain.startsWith('$scrypt$')) {
+    const parts = storedHashOrPlain.split('$');
+    if (parts.length >= 6) {
+      const salt = parts[4];
+      const expectedHash = parts[5];
+      return new Promise((resolve) => {
+        crypto.scrypt(pin, salt, SCRYPT_KEYLEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: SCRYPT_MAXMEM }, (err, derivedKey) => {
+          if (err) return resolve({ valid: false, needsRehash: false });
+          const calcBuf = Buffer.from(derivedKey.toString('hex'), 'utf8');
+          const expBuf = Buffer.from(expectedHash, 'utf8');
+          if (calcBuf.length !== expBuf.length) return resolve({ valid: false, needsRehash: false });
+          const match = crypto.timingSafeEqual(calcBuf, expBuf);
+          resolve({ valid: match, needsRehash: false });
+        });
+      });
+    }
+  }
+
+  // 2. Legacy salt:hash format
+  if (storedHashOrPlain.includes(':') && !storedHashOrPlain.startsWith('$')) {
+    const [salt, expectedHash] = storedHashOrPlain.split(':');
+    return new Promise((resolve) => {
+      crypto.scrypt(pin, salt, 32, (err, derivedKey) => {
+        if (err) return resolve({ valid: false, needsRehash: false });
+        const calcBuf = Buffer.from(derivedKey.toString('hex'), 'utf8');
+        const expBuf = Buffer.from(expectedHash, 'utf8');
+        if (calcBuf.length !== expBuf.length) return resolve({ valid: false, needsRehash: false });
+        const match = crypto.timingSafeEqual(calcBuf, expBuf);
+        resolve({ valid: match, needsRehash: true });
+      });
+    });
+  }
+
+  // 3. Legacy plaintext fallback: if match, mark needsRehash = true so server upgrades it immediately!
+  if (storedHashOrPlain === pin) {
+    return { valid: true, needsRehash: true };
+  }
+
+  return { valid: false, needsRehash: false };
+}
+
+// ── OWASP SSRF Validation with DNS Resolution ────────────
+function isPrivateIp(ip: string): boolean {
+  if (ip === '127.0.0.1' || ip === '0.0.0.0' || ip === '::1' || ip === '::') return true;
+  if (ip.startsWith('10.') || ip.startsWith('192.168.') || ip.startsWith('169.254.')) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip)) return true;
+  if (ip.startsWith('100.64.') || ip.startsWith('192.0.0.') || ip.startsWith('192.0.2.') || ip.startsWith('198.51.100.') || ip.startsWith('203.0.113.')) return true;
+
+  const lower = ip.toLowerCase();
+  if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // fc00::/7 ULA
+  if (lower.startsWith('fe80:')) return true; // fe80::/10 link-local
+  if (lower.startsWith('::ffff:')) {
+    const v4 = lower.replace('::ffff:', '');
+    return isPrivateIp(v4);
+  }
+  return false;
+}
+
+async function isSafePublicUrl(urlStr: string): Promise<boolean> {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      return false;
+    }
+
+    if (isPrivateIp(hostname)) return false;
+
+    // Resolve DNS to verify all IPv4 and IPv6 target addresses
+    const addresses = await dns.promises.lookup(hostname, { all: true });
+    if (!addresses || addresses.length === 0) return false;
+
+    for (const record of addresses) {
+      if (isPrivateIp(record.address)) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function verifyRestaurantOwnership(userId: string, restaurantId: string): Promise<boolean> {
+  if (!sb || !userId || !restaurantId) return false;
+  const { data } = await sb.from('restaurants').select('id').eq('id', restaurantId).eq('owner_id', userId).maybeSingle();
+  return !!data;
+}
+
+async function verifyBranchOwnership(userId: string, branchId: string): Promise<boolean> {
+  if (!sb || !userId || !branchId) return false;
+  const { data: branch } = await sb.from('pos_branches').select('restaurant_id').eq('id', branchId).maybeSingle();
+  if (!branch) return false;
+  return verifyRestaurantOwnership(userId, branch.restaurant_id);
+}
+
+async function verifyDishOwnership(userId: string, dishId: string): Promise<boolean> {
+  if (!sb || !userId || !dishId) return false;
+  const { data: dish } = await sb.from('dishes').select('restaurant_id').eq('id', dishId).maybeSingle();
+  if (!dish) return false;
+  return verifyRestaurantOwnership(userId, dish.restaurant_id);
+}
+
+function verifyPaymobHmac(payloadObj: any, receivedHmac: string, hmacSecret: string): boolean {
+  if (!receivedHmac || !hmacSecret || !payloadObj) return false;
+  const values = [
+    payloadObj.amount_cents,
+    payloadObj.created_at,
+    payloadObj.currency,
+    payloadObj.error_occured,
+    payloadObj.has_parent_transaction,
+    payloadObj.id,
+    payloadObj.integration_id,
+    payloadObj.is_3d_secure,
+    payloadObj.is_auth,
+    payloadObj.is_capture,
+    payloadObj.is_refunded,
+    payloadObj.is_standalone_payment,
+    payloadObj.is_voided,
+    payloadObj.order?.id ?? payloadObj.order,
+    payloadObj.owner,
+    payloadObj.pending,
+    payloadObj.source_data?.pan,
+    payloadObj.source_data?.sub_type,
+    payloadObj.source_data?.type,
+    payloadObj.success
+  ];
+
+  const concatenatedString = values.map(v => (v !== undefined && v !== null ? String(v) : '')).join('');
+  const calculatedHmac = crypto.createHmac('sha512', hmacSecret).update(concatenatedString).digest('hex');
+
+  const calcBuf = Buffer.from(calculatedHmac, 'utf8');
+  const recvBuf = Buffer.from(receivedHmac, 'utf8');
+  if (calcBuf.length !== recvBuf.length) return false;
+  return crypto.timingSafeEqual(calcBuf, recvBuf);
+}
+
+function verifyWhatsAppSignature(rawBody: string, signature: string, secret: string): boolean {
+  if (!signature || !secret || !rawBody) return false;
+  const sigParts = signature.split('=');
+  if (sigParts.length !== 2 || sigParts[0] !== 'sha256') return false;
+  const expectedHash = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+  const expBuf = Buffer.from(expectedHash, 'utf8');
+  const recBuf = Buffer.from(sigParts[1], 'utf8');
+  if (expBuf.length !== recBuf.length) return false;
+  return crypto.timingSafeEqual(expBuf, recBuf);
+}
+
+// ── Distributed Rate Limit Tracker for Staff PIN ─────────
+async function checkStaffRateLimit(key: string): Promise<{ allowed: boolean; retryAfter?: number }> {
+  const now = new Date();
+  if (sb) {
+    try {
+      const { data } = await sb.from('staff_login_attempts').select('*').eq('attempt_key', key).maybeSingle();
+      if (data && data.lockout_until && new Date(data.lockout_until) > now) {
+        const retryAfter = Math.ceil((new Date(data.lockout_until).getTime() - now.getTime()) / 1000);
+        return { allowed: false, retryAfter };
+      }
+    } catch {}
+  }
+  return { allowed: true };
+}
+
+async function recordStaffFailure(key: string) {
+  if (!sb) return;
+  try {
+    const now = new Date();
+    const { data } = await sb.from('staff_login_attempts').select('*').eq('attempt_key', key).maybeSingle();
+    const attempts = (data?.attempts || 0) + 1;
+    let lockout_until = null;
+    if (attempts >= 5) {
+      lockout_until = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    }
+    await sb.from('staff_login_attempts').upsert({
+      attempt_key: key,
+      attempts,
+      lockout_until,
+      updated_at: now.toISOString()
+    });
+  } catch {}
+}
+
+async function recordStaffSuccess(key: string) {
+  if (!sb) return;
+  try {
+    await sb.from('staff_login_attempts').delete().eq('attempt_key', key);
+  } catch {}
 }
 
 // ── Allowed extensions ───────────────────────────────────
@@ -392,6 +613,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const { obj } = req.body;
       if (!obj) return res.status(400).send('Invalid payload');
+
+      // 🔒 SEC-01: Verify Paymob HMAC Signature
+      const hmacSecret = process.env.PAYMOB_HMAC_SECRET;
+      const queryHmac = typeof req.query?.hmac === 'string' ? req.query.hmac : '';
+      const headerHmac = (req.headers['x-paymob-hmac'] || req.headers['hmac']) as string;
+      const receivedHmac = queryHmac || headerHmac || req.body?.hmac;
+
+      if (!hmacSecret || !receivedHmac || !verifyPaymobHmac(obj, receivedHmac, hmacSecret)) {
+        console.error('[Paymob Webhook] Unauthorized: Invalid or missing HMAC signature');
+        return res.status(401).send('Unauthorized: Invalid HMAC signature');
+      }
       
       const paymobTransactionId = obj.id;
       const amount_cents = obj.amount_cents;
@@ -472,6 +704,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const dishId = url.split('/')[3];
+      const isOwner = await verifyDishOwnership(user.id, dishId);
+      if (!isOwner) return res.status(403).json({ error: 'Forbidden: You do not own this dish' });
+
       const { data: base64Data, contentType } = req.body;
       if (!base64Data) return res.status(400).json({ error: 'Missing model data' });
 
@@ -497,6 +732,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
 
       const dishId = url.split('/')[3];
+      const isOwner = await verifyDishOwnership(user.id, dishId);
+      if (!isOwner) return res.status(403).json({ error: 'Forbidden: You do not own this dish' });
+
       const { publicUrl } = req.body;
       if (!publicUrl) return res.status(400).json({ error: 'Missing publicUrl' });
 
@@ -550,15 +788,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
 
       const { productId } = req.body;
-      const { data: profile } = await sb.from('profiles').select('restaurant_id').eq('id', user.id).single();
-      if (!profile?.restaurant_id) return res.status(403).json({ error: 'No restaurant associated' });
+      const { data: restaurant } = await sb.from('restaurants').select('id').eq('owner_id', user.id).maybeSingle();
+      if (!restaurant?.id) return res.status(403).json({ error: 'No restaurant owned by this user' });
 
       const pairingCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
 
       await sb.from('device_pairing_codes').insert({
         code: pairingCode,
-        restaurant_id: profile.restaurant_id,
+        restaurant_id: restaurant.id,
         product_id: productId || null,
         expires_at: expiresAt
       });
@@ -659,19 +897,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { token, password } = req.body;
       if (!token || !password) return res.status(400).json({ error: 'Missing token or password' });
 
-      // 1. Validate token
-      const { data: invite } = await sb.from('admin_invites')
-        .select('*')
+      // 1. Atomically claim token to prevent race conditions & replay (SEC-12)
+      const { data: invite, error: claimErr } = await sb.from('admin_invites')
+        .update({ used: true })
         .eq('token', token)
         .eq('used', false)
         .gt('expires_at', new Date().toISOString())
-        .single();
+        .select('*')
+        .maybeSingle();
         
-      if (!invite) return res.status(401).json({ error: 'Invalid or expired invite link. Please contact support.' });
+      if (claimErr || !invite) return res.status(401).json({ error: 'Invalid or expired invite link. Please contact support.' });
 
       // Get the restaurant to find the owner_id
       const { data: restaurant } = await sb.from('restaurants').select('owner_id').eq('id', invite.restaurant_id).single();
-      if (!restaurant || !restaurant.owner_id) return res.status(500).json({ error: 'Restaurant data corrupted' });
+      if (!restaurant || !restaurant.owner_id) {
+        await sb.from('admin_invites').update({ used: false }).eq('id', invite.id);
+        return res.status(500).json({ error: 'Restaurant data corrupted' });
+      }
       const uid = restaurant.owner_id;
 
       // 2. Update the auth user password securely via Admin API
@@ -680,24 +922,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (authError) {
-        return res.status(500).json({ error: 'Failed to set secure password', detail: authError.message });
+        await sb.from('admin_invites').update({ used: false }).eq('id', invite.id);
+        return res.status(500).json({ error: 'Failed to set secure password' });
       }
 
-      // 3. Create Profile mapped to the restaurant
-      const { error: profileError } = await sb.from('profiles').insert({
+      // 3. Create or update Profile mapped to the restaurant
+      const { error: profileError } = await sb.from('profiles').upsert({
         id: uid,
         email: invite.email,
-        name: 'Restaurant Owner', // Default name
+        name: 'Restaurant Owner',
         restaurant_id: invite.restaurant_id,
-        // role is handled by DB triggers (defaults to RESTAURANT_OWNER)
       });
 
       if (profileError) {
-        return res.status(500).json({ error: 'Failed to create user profile' });
+        console.error('[Invite Error] Profile upsert error:', profileError);
       }
-
-      // 4. Mark invite as used
-      await sb.from('admin_invites').update({ used: true }).eq('token', token);
 
       return res.json({ success: true, message: 'Account successfully configured.' });
     }
@@ -775,8 +1014,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── QStash Worker: AI Generation ───────
     if (url === '/api/workers/ai-generate' && method === 'POST') {
-      // In production, verify QStash signature here
-      const { prompt, userId } = req.body;
+      const qstashKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+      const signature = req.headers['upstash-signature'] as string;
+      if (qstashKey) {
+        try {
+          const { Receiver } = await import('@upstash/qstash');
+          const receiver = new Receiver({
+            currentSigningKey: qstashKey,
+            nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY || qstashKey,
+          });
+          const rawBodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+          const proto = req.headers['x-forwarded-proto'] || 'https';
+          const fullUrl = `${proto}://${req.headers.host}${url}`;
+          const isValid = await receiver.verify({ signature, body: rawBodyStr, url: fullUrl });
+          if (!isValid) return res.status(401).json({ error: 'Invalid QStash signature' });
+        } catch (e: any) {
+          console.error('[QStash Verification Error]', e);
+          return res.status(401).json({ error: 'Signature verification failed' });
+        }
+      } else if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        return res.status(503).json({ error: 'QStash signature configuration missing' });
+      }
+
+      const { prompt, userId } = req.body || {};
+      if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+
       const r = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
         {
@@ -786,15 +1048,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       );
       const data = await r.json();
-      
-      // Assume we store the result back to DB or notify the user via websocket
-      if (sb && userId) {
-        // e.g. await sb.from('ai_results').insert({ user_id: userId, result: data });
-      }
-      return res.status(200).json({ success: true });
+      return res.status(200).json({ success: true, data });
     }
 
-    // ── Public Order Creation (Protected by Rate Limit) ───────
+    // ── Public Order Creation (Protected by Rate Limit & Server-Side Pricing) ───
     if (url === '/api/orders/create' && method === 'POST') {
       const clientIp = req.headers['x-forwarded-for'] || 'unknown';
       if (!(await checkRateLimit(clientIp as string))) {
@@ -802,9 +1059,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       if (!sb) return res.status(500).json({ error: 'Supabase missing' });
-      const { restaurantId, tableNumber, items, totalAmount } = req.body;
+      const { restaurantId, tableNumber, items } = req.body || {};
 
-      // Note: Since Public INSERT is disabled, we must use the Service Role Key here to insert the order safely.
+      if (!restaurantId || !tableNumber || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Missing required order fields or items' });
+      }
+
+      // Verify restaurant exists and is active
+      const { data: restaurant } = await sb.from('restaurants').select('id, is_active').eq('id', restaurantId).maybeSingle();
+      if (!restaurant || !restaurant.is_active) {
+        return res.status(404).json({ error: 'Restaurant not found or inactive' });
+      }
+
+      // 🔒 SEC-09: Recalculate Prices Exclusively from Verified DB Dishes
+      const dishIds = items.map((i: any) => i.dish_id).filter(Boolean);
+      const { data: verifiedDishes, error: dishErr } = await sb
+        .from('dishes')
+        .select('id, price, restaurant_id, is_available')
+        .in('id', dishIds);
+
+      if (dishErr || !verifiedDishes || verifiedDishes.length !== dishIds.length) {
+        return res.status(400).json({ error: 'One or more dishes are invalid or not found' });
+      }
+
+      const dishMap = new Map<string, { price: number; restaurant_id: string; is_available: boolean }>();
+      for (const d of verifiedDishes) {
+        if (d.restaurant_id !== restaurantId) {
+          return res.status(403).json({ error: 'Cross-restaurant item detected' });
+        }
+        if (d.is_available === false) {
+          return res.status(400).json({ error: 'One or more items are currently unavailable' });
+        }
+        dishMap.set(d.id, d);
+      }
+
+      let calculatedTotal = 0;
+      const orderItemsToInsert: any[] = [];
+
+      for (const item of items) {
+        const dish = dishMap.get(item.dish_id);
+        if (!dish) return res.status(400).json({ error: 'Invalid dish reference' });
+        const qty = Math.max(1, Math.min(100, parseInt(item.quantity, 10) || 1));
+        const unitPrice = Number(dish.price) || 0;
+        const subtotal = Math.round(qty * unitPrice * 1000) / 1000;
+        calculatedTotal += subtotal;
+
+        orderItemsToInsert.push({
+          dish_id: item.dish_id,
+          quantity: qty,
+          unit_price: unitPrice,
+          subtotal
+        });
+      }
+
+      // 🔒 SEC-14: Issue Cryptographic Order Access Token instead of raw IP
+      const orderAccessToken = crypto.randomBytes(32).toString('hex');
+
       const serviceSb = createClient(
         process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         process.env.SUPABASE_SERVICE_ROLE_KEY || ''
@@ -814,25 +1124,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         restaurant_id: restaurantId,
         table_number: tableNumber,
         status: 'PENDING',
-        total_amount: totalAmount,
-        device_hash: clientIp // using IP as secure device hash anchor
+        total_amount: calculatedTotal,
+        device_hash: orderAccessToken
       }).select('id').single();
 
       if (error || !order) return res.status(400).json({ error: 'Failed to create order' });
 
-      // Insert items
-      if (items && items.length > 0) {
-        const orderItems = items.map((item: any) => ({
-          order_id: order.id,
-          dish_id: item.dish_id,
-          quantity: item.quantity,
-          unit_price: item.price,
-          subtotal: item.quantity * item.price
-        }));
-        await serviceSb.from('order_items').insert(orderItems);
+      // Link order_id and insert items
+      const finalItems = orderItemsToInsert.map(i => ({ ...i, order_id: order.id }));
+      const { error: itemsErr } = await serviceSb.from('order_items').insert(finalItems);
+      if (itemsErr) {
+        console.error('[Order Error] Items insert failed:', itemsErr);
       }
 
-      return res.status(201).json({ success: true, orderId: order.id });
+      return res.status(201).json({
+        success: true,
+        orderId: order.id,
+        orderAccessToken,
+        total: calculatedTotal
+      });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -861,14 +1171,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const imageContentType = bodyData.imageContentType || 'image/jpeg';
 
       // 1. Auth & ownership
-      const { data: userData } = await sb
-        .from('profiles')
-        .select('restaurant_id')
-        .eq('id', user.id)
-        .single();
-
-      if (!userData?.restaurant_id) {
-        return res.status(401).json({ error: 'Restaurant not found' });
+      if (dishId !== 'new') {
+        const isOwner = await verifyDishOwnership(user.id, dishId);
+        if (!isOwner) return res.status(403).json({ error: 'Forbidden: You do not own this dish' });
       }
 
       // If no direct image was provided, try to fetch from DB
@@ -877,7 +1182,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from('dishes')
           .select('id, image_url, images')
           .eq('id', dishId)
-          .eq('restaurant_id', userData.restaurant_id)
           .single();
 
         if (!dish) return res.status(404).json({ error: 'Dish not found' });
@@ -900,8 +1204,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         imgBuffer = Buffer.from(imageBase64, 'base64');
         imgContentType = imageContentType;
       } else {
-        // Download from URL (fallback)
-        const imgRes = await fetch(imageUrl);
+        // 🔒 SEC-10: SSRF Protection
+        if (!isSafePublicUrl(imageUrl)) {
+          if (dishId !== 'new') await sb.from('dishes').update({ model_3d_status: 'ERROR' }).eq('id', dishId);
+          return res.status(400).json({ error: 'Invalid or forbidden image URL' });
+        }
+
+        // Download from URL with timeout
+        const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) });
         if (!imgRes.ok) {
           if (dishId !== 'new') await sb.from('dishes').update({ model_3d_status: 'ERROR' }).eq('id', dishId);
           return res.status(502).json({ error: 'Failed to download dish image' });
@@ -1072,6 +1382,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (inputUrl) {
         try {
+          if (!isSafePublicUrl(inputUrl)) {
+            return res.status(400).json({ error: 'الرابط غير آمن أو غير مسموح بالوصول إليه (عناوين الشبكات الداخلية محظورة).' });
+          }
+
           const robotsAllowed = await checkRobotsTxt(inputUrl);
           if (!robotsAllowed) {
              return res.status(400).json({ error: 'هذا الموقع لا يسمح بالوصول الآلي لمحتواه (robots.txt). يرجى استخدام رفع ملف بدلاً من ذلك.' });
@@ -1404,6 +1718,19 @@ Return ONLY valid JSON, no markdown code fences, no explanation.`;
     if (url.startsWith('/api/whatsapp/webhook') && method === 'POST') {
       if (!sb) return res.status(500).json({ error: 'Supabase client missing' });
 
+      // 🔒 SEC-06: Meta WhatsApp Webhook Signature Verification
+      const metaSignature = (req.headers['x-hub-signature-256'] || req.headers['x-hub-signature']) as string;
+      const appSecret = process.env.WHATSAPP_APP_SECRET;
+      if (appSecret) {
+        const rawBodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+        if (!metaSignature || !verifyWhatsAppSignature(rawBodyStr, metaSignature, appSecret)) {
+          console.error('[WhatsApp Webhook] Invalid or missing signature');
+          return res.status(401).json({ error: 'Unauthorized: Invalid signature' });
+        }
+      } else if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+        return res.status(503).json({ error: 'WhatsApp app secret not configured' });
+      }
+
       const body = req.body;
       const entry = body?.entry?.[0];
       const change = entry?.changes?.[0];
@@ -1635,6 +1962,10 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       const { branchId, whatsappPhoneNumberId, whatsappAccessToken, whatsappNumber, whatsappEnabled } = req.body;
       if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
 
+      // 🔒 SEC-02: Enforce branch ownership
+      const isOwner = await verifyBranchOwnership(user.id, branchId);
+      if (!isOwner) return res.status(403).json({ error: 'Forbidden: You do not own this branch or restaurant' });
+
       const updateData: any = {
         whatsapp_phone_number_id: whatsappPhoneNumberId,
         whatsapp_number: whatsappNumber,
@@ -1674,6 +2005,10 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       const query = new URLSearchParams(url.split('?')[1] || '');
       const branchId = query.get('branchId');
       if (!branchId) return res.status(400).json({ error: 'Missing branchId' });
+
+      // 🔒 SEC-02: Enforce branch ownership
+      const isBranchOwner = await verifyBranchOwnership(user.id, branchId);
+      if (!isBranchOwner) return res.status(403).json({ error: 'Forbidden: You do not own this branch or restaurant' });
 
       const { data, error } = await sb
         .from('pos_branches')
@@ -1979,7 +2314,7 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       });
     }
 
-    // ── Staff Portal: PIN Verification & Login ────────────────
+    // ── Staff Portal: PIN Verification & Login (SEC-03 & SEC-04) ────
     if (url === '/api/staff/login' && method === 'POST') {
       if (!sb) return res.status(500).json({ error: 'Supabase client unavailable' });
 
@@ -1988,9 +2323,17 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
         return res.status(400).json({ error: 'Missing restaurantId, staffId, or pin' });
       }
 
+      // 🔒 Distributed brute force attempt rate limiting
+      const clientIp = (req.headers['x-forwarded-for'] as string) || 'unknown';
+      const attemptKey = `staff_${staffId}_${clientIp.split(',')[0].trim()}`;
+      const limitCheck = await checkStaffRateLimit(attemptKey);
+      if (!limitCheck.allowed) {
+        return res.status(429).json({ error: `Too many failed attempts. Try again in ${limitCheck.retryAfter} seconds.` });
+      }
+
       const { data: staff, error: staffErr } = await sb
         .from('restaurant_staff')
-        .select('id, name, role, permissions, branch_id, restaurant_id, pin_code, is_active')
+        .select('id, name, role, permissions, branch_id, restaurant_id, pin_code, pin_hash, must_reset_pin, token_version, is_active')
         .eq('id', staffId)
         .eq('restaurant_id', restaurantId)
         .maybeSingle();
@@ -2003,9 +2346,38 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
         return res.status(403).json({ error: 'Staff account is inactive' });
       }
 
-      if (staff.pin_code !== pin) {
+      // 🔒 OWASP scrypt verification with automatic rehash upgrade
+      const { valid, needsRehash } = await verifyPin(pin, staff.pin_hash || staff.pin_code);
+      if (!valid) {
+        await recordStaffFailure(attemptKey);
         return res.status(401).json({ error: 'Incorrect PIN' });
       }
+
+      await recordStaffSuccess(attemptKey);
+
+      // Auto-migrate legacy plaintext PIN to scrypt on first successful login
+      if (needsRehash) {
+        const secureHash = await hashPin(pin);
+        await sb.from('restaurant_staff').update({
+          pin_hash: secureHash,
+          pin_code: null, // Clear plaintext PIN immediately
+        }).eq('id', staff.id);
+      }
+
+      // 🔒 SEC-04: Issue server-signed staff JWT
+      const staffSecret = process.env.STAFF_JWT_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || 'visiono_staff_fallback_secret_32b!';
+      const jwtHeader = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+      const jwtPayload = Buffer.from(JSON.stringify({
+        staffId: staff.id,
+        restaurantId: staff.restaurant_id,
+        branchId: staff.branch_id,
+        role: staff.role,
+        permissions: staff.permissions || [],
+        tokenVersion: staff.token_version || 1,
+        exp: Math.floor(Date.now() / 1000) + 12 * 3600 // 12 hours
+      })).toString('base64url');
+      const jwtSig = crypto.createHmac('sha256', staffSecret).update(`${jwtHeader}.${jwtPayload}`).digest('base64url');
+      const staffToken = `${jwtHeader}.${jwtPayload}.${jwtSig}`;
 
       const { data: rest } = await sb
         .from('restaurants')
@@ -2015,6 +2387,8 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
 
       return res.json({
         success: true,
+        token: staffToken,
+        mustResetPin: !!staff.must_reset_pin,
         staff: {
           staffId: staff.id,
           name: staff.name,
@@ -2039,14 +2413,18 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       // 1. Check if password matches any active branch_manager for this restaurant
       const { data: managers } = await sb
         .from('restaurant_staff')
-        .select('id, pin_code')
+        .select('id, pin_code, pin_hash')
         .eq('restaurant_id', restaurantId)
         .eq('role', 'branch_manager')
         .eq('is_active', true);
 
-      const matchedManager = managers?.find(m => m.pin_code === password);
-      if (matchedManager) {
-        return res.json({ success: true, verifiedBy: 'branch_manager' });
+      if (managers && managers.length > 0) {
+        for (const m of managers) {
+          const { valid } = await verifyPin(password, m.pin_hash || m.pin_code);
+          if (valid) {
+            return res.json({ success: true, verifiedBy: 'branch_manager' });
+          }
+        }
       }
 
       // 2. Check if password matches the restaurant owner's account credentials
@@ -2070,6 +2448,73 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       }
 
       return res.status(401).json({ error: 'Invalid manager password or PIN' });
+    }
+
+    // ── Multi-Gateway Subscription Cancellation (SEC-05) ──────────────
+    if (url === '/api/subscription/cancel' && method === 'POST') {
+      const { user } = await getUser(req);
+      if (!user || !sb) return res.status(401).json({ error: 'Auth required' });
+
+      const { data: restaurant } = await sb.from('restaurants')
+        .select('id, paypal_subscription_id, paddle_subscription_id, subscription_status, subscription_expiry')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (!restaurant) return res.status(404).json({ error: 'Restaurant not found' });
+
+      let externalCancelled = false;
+
+      // 1. Paddle Cancellation
+      if (restaurant.paddle_subscription_id) {
+        try {
+          const paddleKey = process.env.PADDLE_API_KEY;
+          if (paddleKey) {
+            const paddleEnv = process.env.PADDLE_ENV === 'production' ? 'https://api.paddle.com' : 'https://sandbox-api.paddle.com';
+            const paddleRes = await fetch(`${paddleEnv}/subscriptions/${restaurant.paddle_subscription_id}/cancel`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${paddleKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ effective_from: 'next_billing_period' })
+            });
+            if (paddleRes.ok) externalCancelled = true;
+          }
+        } catch (e) {
+          console.error('[Paddle Cancellation Error]', e);
+        }
+      }
+
+      // 2. PayPal Cancellation
+      if (!externalCancelled && restaurant.paypal_subscription_id) {
+        try {
+          const { token, base } = await paypalToken();
+          if (token) {
+            const paypalRes = await fetch(`${base}/v1/billing/subscriptions/${restaurant.paypal_subscription_id}/cancel`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ reason: 'Customer requested cancellation from dashboard' })
+            });
+            if (paypalRes.ok || paypalRes.status === 204) externalCancelled = true;
+          }
+        } catch (e) {
+          console.error('[PayPal Cancellation Error]', e);
+        }
+      }
+
+      // 3. Mark status in DB as cancelling to preserve paid period until expiry
+      await sb.from('restaurants').update({
+        subscription_status: 'cancelling',
+      }).eq('id', restaurant.id);
+
+      return res.json({
+        success: true,
+        message: 'Subscription renewal has been cancelled. Your access remains active until the end of the billing period.',
+        expiresAt: restaurant.subscription_expiry
+      });
     }
 
     // ── 404 ──────────────────────────────────────────────

@@ -83,17 +83,21 @@ export const RestaurantDashboard = () => {
     if (user && user.role === 'RESTAURANT_OWNER' && user.restaurantId && !staffSession) {
       const isManagerUnlocked = sessionStorage.getItem('visiono_manager_unlocked') === 'true';
       if (!isManagerUnlocked) {
-        supabase
-          .from('restaurant_staff')
-          .select('id', { count: 'exact', head: true })
-          .eq('restaurant_id', user.restaurantId)
-          .eq('is_active', true)
-          .then(({ count, error }) => {
+        (async () => {
+          try {
+            const { count, error } = await supabase
+              .from('restaurant_staff')
+              .select('id', { count: 'exact', head: true })
+              .eq('restaurant_id', user.restaurantId)
+              .eq('is_active', true);
+
             if (!error && count && count > 0) {
               navigate(`/staff-login/${user.restaurantId}`, { replace: true });
             }
-          })
-          .catch(() => {});
+          } catch {
+            // Ignore fetch error
+          }
+        })();
       }
     }
   }, [user, authLoading, staffSession, navigate]);

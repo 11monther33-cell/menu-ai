@@ -16,7 +16,6 @@ interface StaffItem {
   role: string;
   branch_id: string | null;
   branch_name?: string;
-  pin_code?: string;
   permissions?: string[];
 }
 
@@ -102,7 +101,7 @@ export const StaffLogin: React.FC = () => {
       if (fetchedStaff.length === 0) {
         const { data, error } = await supabase
           .from('restaurant_staff')
-          .select('id, name, role, branch_id, pin_code, permissions, is_active')
+          .select('id, name, role, branch_id, permissions, is_active')
           .eq('restaurant_id', restaurantId)
           .eq('is_active', true);
 
@@ -113,7 +112,6 @@ export const StaffLogin: React.FC = () => {
             role: s.role,
             branch_id: s.branch_id,
             branch_name: s.branch_id ? branchMap.get(s.branch_id) : undefined,
-            pin_code: s.pin_code,
             permissions: s.permissions || []
           }));
         }
@@ -195,25 +193,14 @@ export const StaffLogin: React.FC = () => {
               loginTime: new Date().toISOString()
             };
           }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          if (errData.error) {
+            toast.error(errData.error);
+          }
         }
-      } catch {
-        // ignore
-      }
-
-      if (!success && selectedStaff.pin_code) {
-        if (selectedStaff.pin_code === password) {
-          success = true;
-          verifiedStaff = {
-            staffId: selectedStaff.id,
-            name: selectedStaff.name,
-            role: selectedStaff.role,
-            permissions: selectedStaff.permissions || [],
-            branchId: selectedStaff.branch_id,
-            restaurantId,
-            restaurantName: restaurantName || 'VISIONO',
-            loginTime: new Date().toISOString()
-          };
-        }
+      } catch (e: any) {
+        toast.error(isRtl ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
       }
 
       if (success && verifiedStaff) {
@@ -282,13 +269,7 @@ export const StaffLogin: React.FC = () => {
         }
       }
 
-      // 3. Fallback: Check if matches any active branch_manager PIN
-      if (!verified) {
-        const branchMgr = staffList.find(s => s.role === 'branch_manager' && s.pin_code === managerPassword);
-        if (branchMgr) {
-          verified = true;
-        }
-      }
+      // Server verification via /api/staff/manager-verify already checked manager credentials securely
 
       if (verified) {
         sessionStorage.setItem('visiono_manager_unlocked', 'true');
