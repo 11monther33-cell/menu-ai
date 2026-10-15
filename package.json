@@ -55,7 +55,7 @@
     "react-router-dom": "^7.14.0",
     "recharts": "^3.8.1",
     "selfsigned": "^5.5.0",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "string-similarity": "^4.0.4",
     "tailwind-merge": "^3.5.0",
     "three": "^0.183.2",
@@ -74,5 +74,9 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
+  },
+  "overrides": {
+    "braces": "^3.0.3",
+    "path-to-regexp": "^6.3.0"
   }
 }
