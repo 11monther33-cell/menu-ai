@@ -2077,8 +2077,7 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
 
   } catch (err: any) {
     console.error('[API Error]', err);
-    // Include the actual error message in the error field so it gets shown on the client
-    return res.status(500).json({ error: `Internal server error: ${err.message}`, detail: err.message, stack: err.stack });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
 

@@ -12,3 +12,7 @@ coverage/
 ios-app/ARCodeCaptureApp_BACKUP*
 ios-app/xcodegen*
 ios-app/*.xcodeproj
+test-*.js
+debug_*.ts
+check_*.cjs
+*.scratch.*
