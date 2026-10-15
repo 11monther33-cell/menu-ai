@@ -68,9 +68,33 @@ export const RestaurantDashboard = () => {
   }, [effectiveRestaurantId, setBranch]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     // 🔒 SECURITY: Allow access if manager/admin OR active staff session
-    if (!authLoading && (!user || !['RESTAURANT_OWNER', 'SUPER_ADMIN'].includes(user.role || '')) && !staffSession) {
+    if ((!user || !['RESTAURANT_OWNER', 'SUPER_ADMIN'].includes(user.role || '')) && !staffSession) {
       navigate('/login');
+      return;
+    }
+
+    // 🔒 If logged in as restaurant owner and NO staff session:
+    // Check if staff members are registered.
+    // If staff exist and the manager has not entered the manager unlock PIN for this session:
+    // Redirect immediately to /staff-login so employees cannot access the full dashboard!
+    if (user && user.role === 'RESTAURANT_OWNER' && user.restaurantId && !staffSession) {
+      const isManagerUnlocked = sessionStorage.getItem('visiono_manager_unlocked') === 'true';
+      if (!isManagerUnlocked) {
+        supabase
+          .from('restaurant_staff')
+          .select('id', { count: 'exact', head: true })
+          .eq('restaurant_id', user.restaurantId)
+          .eq('is_active', true)
+          .then(({ count, error }) => {
+            if (!error && count && count > 0) {
+              navigate(`/staff-login/${user.restaurantId}`, { replace: true });
+            }
+          })
+          .catch(() => {});
+      }
     }
   }, [user, authLoading, staffSession, navigate]);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -325,12 +349,16 @@ export const RestaurantDashboard = () => {
               </div>
             ) : effectiveRestaurantId ? (
               <button
-                onClick={() => navigate(`/staff-login/${effectiveRestaurantId}`)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-card hover:bg-gold/10 hover:text-gold border border-border-custom rounded-lg text-xs font-bold text-text-primary transition-colors shadow-sm cursor-pointer"
-                title={isRtl ? 'فتح بوابة الموظفين (PIN)' : 'Staff PIN Terminal'}
+                onClick={() => {
+                  sessionStorage.removeItem('visiono_manager_unlocked');
+                  navigate(`/staff-login/${effectiveRestaurantId}`);
+                  toast.success(isRtl ? 'تم قفل الشاشة والانتقال لوضع الموظفين' : 'Locked to Staff Terminal');
+                }}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-bold transition-colors shadow-sm cursor-pointer"
+                title={isRtl ? 'قفل الشاشة والانتقال لشاشة الموظفين' : 'Lock to Staff Terminal'}
               >
-                <Key size={13} className="text-gold" />
-                <span>{isRtl ? 'وضع الموظفين' : 'Staff Mode'}</span>
+                <Key size={13} className="text-red-600" />
+                <span>{isRtl ? '🔒 قفل الشاشة (الموظفون)' : '🔒 Lock (Staff Mode)'}</span>
               </button>
             ) : null}
           </div>

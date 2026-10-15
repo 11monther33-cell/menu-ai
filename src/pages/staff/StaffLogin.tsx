@@ -6,7 +6,7 @@ import { useStaffSession, StaffSession } from '../../hooks/useStaffSession';
 import { 
   Building2, Key, Shield, ArrowRight, ArrowLeft, 
   RefreshCw, Delete, Check, Lock, Users, MapPin, X,
-  Eye, EyeOff, LayoutDashboard
+  Eye, EyeOff, LayoutDashboard, AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -43,6 +43,14 @@ export const StaffLogin: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [shake, setShake] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 🔒 Manager Security Unlock Modal State
+  const [isManagerModalOpen, setIsManagerModalOpen] = useState(false);
+  const [managerPassword, setManagerPassword] = useState('');
+  const [managerShowPassword, setManagerShowPassword] = useState(false);
+  const [managerVerifying, setManagerVerifying] = useState(false);
+  const [managerShake, setManagerShake] = useState(false);
+  const managerInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = useCallback(async () => {
     if (!restaurantId) return;
@@ -124,7 +132,7 @@ export const StaffLogin: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Focus input when modal opens
+  // Focus input when staff password modal opens
   useEffect(() => {
     if (selectedStaff) {
       setTimeout(() => {
@@ -132,6 +140,15 @@ export const StaffLogin: React.FC = () => {
       }, 100);
     }
   }, [selectedStaff]);
+
+  // Focus input when manager password modal opens
+  useEffect(() => {
+    if (isManagerModalOpen) {
+      setTimeout(() => {
+        managerInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isManagerModalOpen]);
 
   const handleKeypadPress = (val: string) => {
     setPassword(prev => prev + val);
@@ -222,6 +239,77 @@ export const StaffLogin: React.FC = () => {
     }
   };
 
+  // 🔒 Handle Manager Unlock Verification
+  const handleManagerUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!managerPassword || !restaurantId) return;
+
+    try {
+      setManagerVerifying(true);
+      let verified = false;
+
+      // 1. Try server API verify first
+      try {
+        const res = await fetch('/api/staff/manager-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurantId,
+            password: managerPassword
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            verified = true;
+          }
+        }
+      } catch {
+        // non-blocking
+      }
+
+      // 2. Client fallback: verify against Supabase session email
+      if (!verified) {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser?.email) {
+          const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
+            email: currentUser.email,
+            password: managerPassword
+          });
+          if (!authErr && authData?.user) {
+            verified = true;
+          }
+        }
+      }
+
+      // 3. Fallback: Check if matches any active branch_manager PIN
+      if (!verified) {
+        const branchMgr = staffList.find(s => s.role === 'branch_manager' && s.pin_code === managerPassword);
+        if (branchMgr) {
+          verified = true;
+        }
+      }
+
+      if (verified) {
+        sessionStorage.setItem('visiono_manager_unlocked', 'true');
+        toast.success(isRtl ? 'تم التحقق من هوية المدير بنجاح!' : 'Manager verified successfully!');
+        setIsManagerModalOpen(false);
+        navigate('/dashboard');
+      } else {
+        setManagerShake(true);
+        setTimeout(() => setManagerShake(false), 600);
+        toast.error(isRtl ? 'كلمة المرور أو PIN المدير غير صحيح!' : 'Incorrect manager password/PIN!');
+        setManagerPassword('');
+        managerInputRef.current?.focus();
+      }
+    } catch (err) {
+      console.error('Manager unlock error', err);
+      toast.error(isRtl ? 'حدث خطأ أثناء التحقق' : 'Verification error');
+    } finally {
+      setManagerVerifying(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-main text-text-primary flex flex-col justify-between p-4 sm:p-6 md:p-10">
       {/* Top Header */}
@@ -242,13 +330,17 @@ export const StaffLogin: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Manager Dashboard Button */}
+          {/* Manager Dashboard Button (Protected by PIN/Password) */}
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => {
+              setManagerPassword('');
+              setManagerShowPassword(false);
+              setIsManagerModalOpen(true);
+            }}
             className="flex items-center gap-1.5 px-3 py-2 bg-card hover:bg-gold/10 hover:text-gold border border-border-custom rounded-xl text-xs sm:text-sm font-bold text-text-primary transition-all shadow-sm cursor-pointer"
-            title={isRtl ? 'الدخول كمدير المطعم' : 'Manager Dashboard'}
+            title={isRtl ? 'الدخول كمدير المطعم (محمي برقم سري)' : 'Manager Dashboard (PIN protected)'}
           >
-            <LayoutDashboard size={15} className="text-gold" />
+            <Lock size={14} className="text-gold" />
             <span>{isRtl ? 'لوحة تحكم المدير' : 'Manager Dashboard'}</span>
           </button>
 
@@ -287,10 +379,13 @@ export const StaffLogin: React.FC = () => {
                 : 'The restaurant manager can add staff and set permissions from the dashboard (Branches & Staff page).'}
             </p>
             <button
-              onClick={() => navigate('/dashboard/branches')}
+              onClick={() => {
+                setManagerPassword('');
+                setIsManagerModalOpen(true);
+              }}
               className="w-full py-3 px-4 bg-gold text-white font-bold rounded-xl hover:bg-gold/90 transition-all shadow-md shadow-gold/20 cursor-pointer"
             >
-              {isRtl ? 'الذهاب إلى لوحة التحكم' : 'Go to Dashboard'}
+              {isRtl ? 'الدخول كمدير لإضافة الموظفين' : 'Login as Manager to Add Staff'}
             </button>
           </div>
         ) : (
@@ -351,7 +446,7 @@ export const StaffLogin: React.FC = () => {
         <span>VISIONO Smart Restaurant System • Staff Terminal</span>
       </footer>
 
-      {/* Password Entry Modal Overlay */}
+      {/* Staff Password Entry Modal Overlay */}
       {selectedStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-card border border-border-custom rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 sm:p-8 relative">
@@ -450,6 +545,98 @@ export const StaffLogin: React.FC = () => {
                   </>
                 )}
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🔒 Manager Security Unlock Modal */}
+      {isManagerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
+          <div className="bg-card border-2 border-gold/40 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col p-6 sm:p-8 relative">
+            <button
+              onClick={() => {
+                setIsManagerModalOpen(false);
+                setManagerPassword('');
+              }}
+              className="absolute top-4 end-4 p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-surface-2 transition-colors cursor-pointer"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-gold/15 text-gold flex items-center justify-center mx-auto mb-3 shadow-md border border-gold/30">
+                <Lock size={28} />
+              </div>
+              <h3 className="text-xl font-black text-text-primary">
+                {isRtl ? 'دخول مدير المطعم' : 'Manager Authentication'}
+              </h3>
+              <p className="text-xs text-text-secondary mt-1.5 leading-relaxed">
+                {isRtl 
+                  ? 'أدخل كلمة مرور حسابك أو PIN المدير للدخول إلى لوحة التحكم الكاملة' 
+                  : 'Enter your account password or Manager PIN to access full dashboard'}
+              </p>
+            </div>
+
+            {/* Manager Password Form */}
+            <form onSubmit={handleManagerUnlock} className="space-y-4">
+              <div className={`relative ${managerShake ? 'animate-shake' : ''}`}>
+                <input
+                  ref={managerInputRef}
+                  type={managerShowPassword ? 'text' : 'password'}
+                  value={managerPassword}
+                  onChange={e => setManagerPassword(e.target.value)}
+                  placeholder={isRtl ? 'كلمة مرور المدير...' : 'Manager password or PIN...'}
+                  className="w-full bg-surface-2 border border-border-custom rounded-2xl px-4 py-3.5 text-text-primary text-center font-bold tracking-wider focus:outline-none focus:border-gold transition-colors pe-12"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setManagerShowPassword(!managerShowPassword)}
+                  className="absolute end-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-gold transition-colors p-1"
+                >
+                  {managerShowPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 text-[11px] text-text-secondary bg-surface-2 p-2.5 rounded-xl border border-border-custom">
+                <AlertCircle size={15} className="text-gold flex-shrink-0" />
+                <span>
+                  {isRtl 
+                    ? 'هذا القسم مخصص للمدير فقط لحماية إعدادات المطعم' 
+                    : 'Restricted to restaurant owners and managers'}
+                </span>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManagerModalOpen(false);
+                    setManagerPassword('');
+                  }}
+                  className="flex-1 py-3 px-4 bg-surface-2 hover:bg-border-custom text-text-secondary font-bold rounded-2xl transition-all text-xs cursor-pointer"
+                >
+                  {isRtl ? 'إلغاء' : 'Cancel'}
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!managerPassword || managerVerifying}
+                  className="flex-1 py-3 px-4 bg-gold text-white font-bold rounded-2xl hover:bg-gold/90 transition-all shadow-lg shadow-gold/25 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer text-xs"
+                >
+                  {managerVerifying ? (
+                    <RefreshCw className="animate-spin" size={16} />
+                  ) : (
+                    <>
+                      <LayoutDashboard size={15} />
+                      <span>{isRtl ? 'دخول اللوحة' : 'Unlock Dashboard'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           </div>
         </div>

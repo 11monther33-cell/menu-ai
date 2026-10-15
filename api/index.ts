@@ -2027,6 +2027,51 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
       });
     }
 
+    // ── Staff Portal: Manager PIN / Password Unlock Verification ────────
+    if (url === '/api/staff/manager-verify' && method === 'POST') {
+      if (!sb) return res.status(500).json({ error: 'Supabase client unavailable' });
+
+      const { restaurantId, password } = req.body || {};
+      if (!restaurantId || !password) {
+        return res.status(400).json({ error: 'Missing restaurantId or password' });
+      }
+
+      // 1. Check if password matches any active branch_manager for this restaurant
+      const { data: managers } = await sb
+        .from('restaurant_staff')
+        .select('id, pin_code')
+        .eq('restaurant_id', restaurantId)
+        .eq('role', 'branch_manager')
+        .eq('is_active', true);
+
+      const matchedManager = managers?.find(m => m.pin_code === password);
+      if (matchedManager) {
+        return res.json({ success: true, verifiedBy: 'branch_manager' });
+      }
+
+      // 2. Check if password matches the restaurant owner's account credentials
+      const { data: rest } = await sb
+        .from('restaurants')
+        .select('owner_id')
+        .eq('id', restaurantId)
+        .maybeSingle();
+
+      if (rest?.owner_id) {
+        const { data: ownerUser } = await sb.auth.admin.getUserById(rest.owner_id);
+        if (ownerUser?.user?.email) {
+          const { data: authData, error: authErr } = await sb.auth.signInWithPassword({
+            email: ownerUser.user.email,
+            password: password
+          });
+          if (!authErr && authData?.user) {
+            return res.json({ success: true, verifiedBy: 'owner_credentials' });
+          }
+        }
+      }
+
+      return res.status(401).json({ error: 'Invalid manager password or PIN' });
+    }
+
     // ── 404 ──────────────────────────────────────────────
     return res.status(404).json({ error: 'API route not found', url });
 
