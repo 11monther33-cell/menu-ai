@@ -27,11 +27,17 @@ export const AmwalCheckout: React.FC<AmwalCheckoutProps> = ({ onSuccess, onCance
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [honeypot, setHoneypot] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const primaryColor = branding?.primary_color || '#C9A84C';
 
   const handlePay = async () => {
+    if (honeypot) {
+      // Silently drop bot submission
+      return;
+    }
+
     if (!customerName || !customerPhone || (fulfillmentType === 'delivery' && !deliveryAddress)) {
       toast.error(isRtl ? 'يرجى إكمال جميع البيانات المطلوبة' : 'Please fill all required fields');
       return;
@@ -39,16 +45,17 @@ export const AmwalCheckout: React.FC<AmwalCheckoutProps> = ({ onSuccess, onCance
 
     setIsProcessing(true);
     try {
-      const response = await fetch('/api/paymob/intent', {
+      const response = await fetch('/api/amwal/intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          branchId: restaurantId, // We use restaurantId as branchId for now in the demo
+          branchId: restaurantId,
           orderItems: items,
           fulfillmentType,
           customerName,
           customerPhone,
-          deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : undefined
+          deliveryAddress: fulfillmentType === 'delivery' ? deliveryAddress : undefined,
+          honeypot
         })
       });
 
@@ -58,15 +65,18 @@ export const AmwalCheckout: React.FC<AmwalCheckoutProps> = ({ onSuccess, onCance
         throw new Error(data.error || 'Failed to initialize payment');
       }
 
-      // Simulate redirect to Paymob
-      toast.loading(isRtl ? 'جاري التحويل لبوابة الدفع...' : 'Redirecting to payment gateway...', { duration: 2000 });
+      // Simulate redirect to AmwalPay
+      toast.loading(isRtl ? 'جاري التحويل لبوابة Amwal Pay...' : 'Redirecting to Amwal Pay...', { duration: 2000 });
       
       setTimeout(() => {
         setIsProcessing(false);
         clearCart();
-        toast.success(isRtl ? 'تم تحويل الطلب للدفع!' : 'Order ready for payment!');
-        // In real life: window.location.href = data.paymobUrl;
-        onSuccess();
+        toast.success(isRtl ? 'تم تحويل الطلب للدفع بأمان!' : 'Order ready for payment!');
+        if (data.paymentUrl && !data.paymentUrl.includes('dummy') && !data.paymentUrl.includes('14443')) {
+          window.location.href = data.paymentUrl;
+        } else {
+          onSuccess();
+        }
       }, 2000);
 
     } catch (err: any) {
@@ -82,13 +92,24 @@ export const AmwalCheckout: React.FC<AmwalCheckoutProps> = ({ onSuccess, onCance
       exit={{ opacity: 0, y: 20 }}
       className="bg-white dark:bg-black/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-3xl"
     >
+      {/* Honeypot field for bot protection */}
+      <input 
+        type="text" 
+        name="website_hp_check" 
+        value={honeypot} 
+        onChange={(e) => setHoneypot(e.target.value)} 
+        style={{ display: 'none' }} 
+        tabIndex={-1} 
+        autoComplete="off" 
+      />
+
       <div className="flex justify-between items-center mb-6">
         <div>
           <h3 className="text-xl font-bold text-gray-900 dark:text-white">
             {isRtl ? 'الدفع الآمن' : 'Secure Checkout'}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
-            {isRtl ? 'مدعوم من Paymob' : 'Powered by Paymob'}
+          <p className="text-xs text-gray-500 mt-1">
+            {isRtl ? 'مدعوم من Amwal Pay (مرخص من البنك المركزي العماني)' : 'Powered by Amwal Pay (Central Bank of Oman regulated)'}
           </p>
         </div>
       </div>

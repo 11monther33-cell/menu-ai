@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 import dns from 'dns';
+import http from 'http';
+import https from 'https';
 import mammoth from 'mammoth';
 import { createRequire } from 'module';
 import * as cheerio from 'cheerio';
@@ -243,6 +245,147 @@ async function isSafePublicUrl(urlStr: string): Promise<boolean> {
     }
 
     return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── OWASP SSRF: Socket-Level Connection Pinning Helper ───────
+interface SafeHttpResponse {
+  statusCode: number;
+  headers: http.IncomingHttpHeaders;
+  body: Buffer;
+  text: () => string;
+  contentType: string;
+}
+
+async function safeSsrfRequest(
+  targetUrl: string,
+  options: { maxRedirects?: number; timeoutMs?: number; headers?: Record<string, string> } = {}
+): Promise<SafeHttpResponse> {
+  const maxRedirects = options.maxRedirects ?? 3;
+  const timeoutMs = options.timeoutMs ?? 10000;
+  let currentUrl = targetUrl;
+
+  for (let hop = 0; hop <= maxRedirects; hop++) {
+    const parsed = new URL(currentUrl);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error(`SSRF Blocked: Invalid protocol ${parsed.protocol}`);
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.localhost') ||
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      throw new Error(`SSRF Blocked: Prohibited hostname ${hostname}`);
+    }
+
+    if (isPrivateIp(hostname)) {
+      throw new Error(`SSRF Blocked: Prohibited direct private IP ${hostname}`);
+    }
+
+    // Resolve DNS for all IPv4/IPv6 addresses
+    const addresses = await dns.promises.lookup(hostname, { all: true });
+    if (!addresses || addresses.length === 0) {
+      throw new Error(`DNS resolution failed for ${hostname}`);
+    }
+
+    for (const rec of addresses) {
+      if (isPrivateIp(rec.address)) {
+        throw new Error(`SSRF Blocked: ${hostname} resolved to internal/cloud IP ${rec.address}`);
+      }
+    }
+
+    // Connection Pinning: connect directly to the verified IP
+    const pinnedIp = addresses[0].address;
+    const isHttps = parsed.protocol === 'https:';
+
+    const res = await new Promise<SafeHttpResponse>((resolve, reject) => {
+      const port = parsed.port ? parseInt(parsed.port, 10) : (isHttps ? 443 : 80);
+      const reqHeaders = {
+        'Host': parsed.host,
+        'User-Agent': 'MenuAI-SafeProxy/1.0',
+        ...(options.headers || {})
+      };
+
+      const reqOptions: https.RequestOptions = {
+        protocol: parsed.protocol,
+        host: pinnedIp, // Direct socket connection to verified IP (Anti-TOCTOU)
+        port,
+        path: parsed.pathname + parsed.search,
+        method: 'GET',
+        headers: reqHeaders,
+        servername: parsed.hostname, // TLS SNI matches origin domain
+        timeout: timeoutMs
+      };
+
+      const lib = isHttps ? https : http;
+      const clientReq = lib.request(reqOptions, (resp) => {
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+
+        resp.on('data', (chunk) => {
+          totalSize += chunk.length;
+          if (totalSize > 10 * 1024 * 1024) { // 10MB limit
+            clientReq.destroy();
+            return reject(new Error('Response exceeded 10MB limit'));
+          }
+          chunks.push(chunk);
+        });
+
+        resp.on('end', () => {
+          const bodyBuf = Buffer.concat(chunks);
+          resolve({
+            statusCode: resp.statusCode || 200,
+            headers: resp.headers,
+            body: bodyBuf,
+            text: () => bodyBuf.toString('utf-8'),
+            contentType: (resp.headers['content-type'] as string) || ''
+          });
+        });
+      });
+
+      clientReq.on('timeout', () => {
+        clientReq.destroy();
+        reject(new Error(`Request timed out after ${timeoutMs}ms`));
+      });
+
+      clientReq.on('error', (err) => reject(err));
+      clientReq.end();
+    });
+
+    // Check for redirect
+    if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+      const nextUrl = new URL(res.headers.location, currentUrl).toString();
+      currentUrl = nextUrl;
+      continue;
+    }
+
+    return res;
+  }
+
+  throw new Error(`SSRF Blocked: Exceeded maximum redirects (${maxRedirects})`);
+}
+
+// ── AmwalPay HMAC-SHA256 Helper (Central Bank of Oman Spec) ──
+function calculateAmwalHmac(data: Record<string, any>, secretKey: string): string {
+  // Sort alphabetically and exclude signature fields
+  const keys = Object.keys(data).filter(k => k !== 'secureHashValue' && k !== 'signature').sort();
+  const paramString = keys.map(k => `${k}=${data[k]}`).join('&');
+  return crypto.createHmac('sha256', secretKey).update(paramString).digest('hex');
+}
+
+function verifyAmwalHmac(payload: Record<string, any>, receivedHash: string, secretKey: string): boolean {
+  if (!payload || !receivedHash || !secretKey) return false;
+  try {
+    const calculated = calculateAmwalHmac(payload, secretKey);
+    const calcBuf = Buffer.from(calculated.toLowerCase(), 'utf8');
+    const recvBuf = Buffer.from(receivedHash.toLowerCase(), 'utf8');
+    if (calcBuf.length !== recvBuf.length) return false;
+    return crypto.timingSafeEqual(calcBuf, recvBuf);
   } catch {
     return false;
   }
@@ -549,6 +692,201 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ══════════════════════════════════════════════════════
     // PAYMOB ONLINE ORDERING
+    // ══════════════════════════════════════════════════════
+    // AMWALPAY ONLINE ORDERING (Central Bank of Oman Regulated)
+    // ══════════════════════════════════════════════════════
+
+    // 1. Create AmwalPay Payment Intent (from checkout page)
+    if (url === '/api/amwal/intent' && method === 'POST') {
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket?.remoteAddress || 'unknown';
+      if (!(await checkRateLimit(clientIp))) {
+        return res.status(429).json({ error: 'Too many requests' });
+      }
+
+      const { branchId, orderItems, deliveryAddress, customerPhone, customerName, fulfillmentType, honeypot } = req.body || {};
+      if (honeypot) {
+        return res.status(400).json({ error: 'Bot detected' });
+      }
+
+      if (!sb) return res.status(500).json({ error: 'DB not connected' });
+      if (!branchId || !Array.isArray(orderItems) || orderItems.length === 0) {
+        return res.status(400).json({ error: 'Missing branchId or order items' });
+      }
+
+      // Calculate total securely from DB dishes
+      let calculatedTotal = 0;
+      for (const item of orderItems) {
+        const { data: dish } = await sb.from('dishes').select('price, is_available').eq('id', item.id || item.dish_id).maybeSingle();
+        if (!dish || dish.is_available === false) {
+          return res.status(400).json({ error: 'One or more items are invalid or unavailable' });
+        }
+        const qty = Math.max(1, Math.min(100, parseInt(item.quantity, 10) || 1));
+        calculatedTotal += Number(dish.price) * qty;
+      }
+
+      if (calculatedTotal <= 0) return res.status(400).json({ error: 'Empty or invalid cart total' });
+
+      // Create local order in pos_orders
+      const { data: order, error: orderErr } = await sb.from('pos_orders').insert({
+        branch_id: branchId,
+        status: 'open',
+        subtotal: Math.round(calculatedTotal * 1000) / 1000,
+        total: Math.round(calculatedTotal * 1000) / 1000,
+        currency_code: 'OMR',
+        fulfillment_type: fulfillmentType || 'pickup',
+        delivery_address: deliveryAddress || null,
+        customer_phone: customerPhone || null,
+        customer_name: customerName || null,
+        source: 'online'
+      }).select('id').single();
+
+      if (orderErr || !order) {
+        return res.status(500).json({ error: 'Failed to create order' });
+      }
+
+      // Fetch Amwal credentials for branch from isolated secure table
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data: creds } = await serviceSb
+        .from('branch_payment_credentials')
+        .select('amwal_merchant_id, amwal_terminal_id, amwal_secret_key')
+        .eq('branch_id', branchId)
+        .maybeSingle();
+
+      const merchantId = creds?.amwal_merchant_id || process.env.AMWAL_MERCHANT_ID || 'AMWAL_MOCK_MERCHANT';
+      const terminalId = creds?.amwal_terminal_id || process.env.AMWAL_TERMINAL_ID || 'AMWAL_MOCK_TERMINAL';
+      const secretKey = creds?.amwal_secret_key || process.env.AMWAL_SECRET_KEY || 'amwal_mock_secret_key_32b!';
+
+      // AmwalPay parameters: ISO 512 for OMR, formatted amount with 3 decimals
+      const formattedAmount = (Math.round(calculatedTotal * 1000) / 1000).toFixed(3);
+      const requestDatetime = new Date().toISOString();
+
+      const amwalPayload: Record<string, any> = {
+        amount: formattedAmount,
+        currencyCode: '512', // ISO 512 for Omani Rial
+        merchantID: merchantId,
+        orderId: order.id,
+        requestDatetime,
+        terminalID: terminalId
+      };
+
+      const secureHashValue = calculateAmwalHmac(amwalPayload, secretKey);
+
+      return res.json({
+        success: true,
+        orderId: order.id,
+        amount: formattedAmount,
+        currency: 'OMR',
+        currencyCode: '512',
+        amwalCheckoutData: {
+          ...amwalPayload,
+          secureHashValue
+        },
+        paymentUrl: `https://test.amwalpg.com:14443/payment/pay?orderId=${order.id}&hash=${secureHashValue}`
+      });
+    }
+
+    // 2. AmwalPay Webhook Handler
+    if (url === '/api/amwal/webhook' && method === 'POST') {
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const payload = req.body || {};
+      const receivedHash = (req.headers['x-amwal-signature'] || payload.secureHashValue || payload.signature) as string;
+      const orderId = payload.orderId || payload.order_id;
+      const transactionId = payload.transactionId || payload.transaction_id || payload.paymentId;
+      const amountReceived = parseFloat(payload.amount);
+      const currencyReceived = (payload.currencyCode || payload.currency || '').toString();
+
+      if (!orderId || !transactionId || !receivedHash) {
+        return res.status(400).json({ error: 'Missing required webhook fields' });
+      }
+
+      // Check for replay attacks via idempotency
+      const { data: existingTx } = await serviceSb
+        .from('amwal_transactions')
+        .select('id')
+        .eq('transaction_id', transactionId.toString())
+        .maybeSingle();
+
+      if (existingTx) {
+        return res.status(200).json({ status: 'already_processed' });
+      }
+
+      // Fetch the local order
+      const { data: localOrder } = await serviceSb
+        .from('pos_orders')
+        .select('id, branch_id, total, status')
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (!localOrder) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+
+      // Fetch branch payment credentials
+      const { data: creds } = await serviceSb
+        .from('branch_payment_credentials')
+        .select('amwal_secret_key')
+        .eq('branch_id', localOrder.branch_id)
+        .maybeSingle();
+
+      const secretKey = creds?.amwal_secret_key || process.env.AMWAL_SECRET_KEY;
+      if (!secretKey) {
+        console.error('[Amwal Webhook] Missing secret key configuration');
+        return res.status(500).json({ error: 'Gateway configuration missing' });
+      }
+
+      // 🔒 Verify HMAC-SHA256 signature
+      if (!verifyAmwalHmac(payload, receivedHash, secretKey)) {
+        console.error('[Amwal Webhook] Invalid HMAC signature');
+        return res.status(401).json({ error: 'Invalid HMAC signature' });
+      }
+
+      // 🔒 Currency check: ISO 512 or OMR
+      if (currencyReceived !== '512' && currencyReceived !== 'OMR') {
+        console.error(`[Amwal Webhook] Currency mismatch: ${currencyReceived}`);
+        return res.status(400).json({ error: 'Invalid currency' });
+      }
+
+      // 🔒 Strict Baisa Amount Match
+      const expectedBaisa = Math.round(Number(localOrder.total) * 1000);
+      const receivedBaisa = Math.round(amountReceived * 1000);
+
+      if (Math.abs(expectedBaisa - receivedBaisa) > 1) { // > 1 baisa difference
+        console.error(`[Amwal Webhook] Amount mismatch: expected ${expectedBaisa} baisa, received ${receivedBaisa} baisa`);
+        await serviceSb.from('pos_orders').update({ status: 'flagged_amount_mismatch' }).eq('id', localOrder.id);
+        return res.status(400).json({ error: 'Amount mismatch' });
+      }
+
+      // Record transaction with ON DELETE RESTRICT foreign key
+      await serviceSb.from('amwal_transactions').insert({
+        branch_id: localOrder.branch_id,
+        pos_order_id: localOrder.id,
+        transaction_id: transactionId.toString(),
+        amount_baisa: receivedBaisa,
+        currency_code: '512',
+        status: 'paid',
+        secure_hash: receivedHash,
+        raw_payload: payload
+      });
+
+      // Update POS order status to paid
+      await serviceSb.from('pos_orders').update({
+        status: 'paid',
+        closed_at: new Date().toISOString()
+      }).eq('id', localOrder.id);
+
+      return res.status(200).json({ status: 'success' });
+    }
+
+    // ══════════════════════════════════════════════════════
+    // PAYMOB ONLINE ORDERING (Legacy / Backward-Compatible)
     // ══════════════════════════════════════════════════════
 
     // 1. Create Payment Intent (from checkout page)
@@ -894,51 +1232,112 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (url === '/api/auth/complete-invite' && method === 'POST') {
       if (!sb) return res.status(500).json({ error: 'Supabase missing' });
       
-      const { token, password } = req.body;
+      const { token, password, honeypot } = req.body || {};
+      if (honeypot) return res.status(400).json({ error: 'Bot detected' });
       if (!token || !password) return res.status(400).json({ error: 'Missing token or password' });
 
-      // 1. Atomically claim token to prevent race conditions & replay (SEC-12)
-      const { data: invite, error: claimErr } = await sb.from('admin_invites')
-        .update({ used: true })
-        .eq('token', token)
-        .eq('used', false)
-        .gt('expires_at', new Date().toISOString())
+      // Fetch the invite first
+      const { data: invite, error: fetchErr } = await sb
+        .from('admin_invites')
         .select('*')
+        .eq('token', token)
         .maybeSingle();
-        
-      if (claimErr || !invite) return res.status(401).json({ error: 'Invalid or expired invite link. Please contact support.' });
 
-      // Get the restaurant to find the owner_id
-      const { data: restaurant } = await sb.from('restaurants').select('owner_id').eq('id', invite.restaurant_id).single();
+      if (fetchErr || !invite) {
+        return res.status(401).json({ error: 'Invalid invite link' });
+      }
+
+      if (new Date(invite.expires_at) <= new Date()) {
+        return res.status(401).json({ error: 'This invite link has expired' });
+      }
+
+      if (invite.status === 'completed' || invite.used) {
+        return res.status(401).json({ error: 'This invite has already been completed' });
+      }
+
+      // Check restaurant and owner
+      const { data: restaurant } = await sb.from('restaurants').select('owner_id').eq('id', invite.restaurant_id).maybeSingle();
       if (!restaurant || !restaurant.owner_id) {
-        await sb.from('admin_invites').update({ used: false }).eq('id', invite.id);
-        return res.status(500).json({ error: 'Restaurant data corrupted' });
+        return res.status(500).json({ error: 'Restaurant record missing or invalid' });
       }
       const uid = restaurant.owner_id;
 
-      // 2. Update the auth user password securely via Admin API
-      const { error: authError } = await sb.auth.admin.updateUserById(uid, {
-        password: password
-      });
+      // 1. Password Step (if status is 'pending' or timed-out 'processing_password')
+      if (invite.status === 'pending' || (invite.status === 'processing_password' && invite.processing_started_at && new Date(invite.processing_started_at).getTime() < Date.now() - 10 * 60 * 1000)) {
+        // Atomic claim for password step
+        const { data: claimed, error: claimErr } = await sb
+          .from('admin_invites')
+          .update({
+            status: 'processing_password',
+            processing_started_at: new Date().toISOString()
+          })
+          .eq('id', invite.id)
+          .in('status', ['pending', 'processing_password'])
+          .select('*')
+          .maybeSingle();
 
-      if (authError) {
-        await sb.from('admin_invites').update({ used: false }).eq('id', invite.id);
-        return res.status(500).json({ error: 'Failed to set secure password' });
+        if (claimErr || !claimed) {
+          return res.status(409).json({ error: 'Invite is currently being processed by another worker. Please retry in a few moments.' });
+        }
+
+        // Set password via Admin API
+        const { error: authError } = await sb.auth.admin.updateUserById(uid, { password });
+        if (authError) {
+          // Revert to pending so user can retry entering password
+          await sb.from('admin_invites').update({ status: 'pending', processing_started_at: null }).eq('id', invite.id);
+          return res.status(500).json({ error: 'Failed to update account credentials' });
+        }
+
+        // Password update succeeded! Move directly to profile_pending
+        // CRITICAL: NEVER revert to 'pending' after this line!
+        await sb.from('admin_invites').update({ status: 'profile_pending', processing_started_at: null }).eq('id', invite.id);
+        invite.status = 'profile_pending';
       }
 
-      // 3. Create or update Profile mapped to the restaurant
-      const { error: profileError } = await sb.from('profiles').upsert({
-        id: uid,
-        email: invite.email,
-        name: 'Restaurant Owner',
-        restaurant_id: invite.restaurant_id,
-      });
+      // 2. Profile Creation Step (if status is 'profile_pending' or timed-out 'processing_profile')
+      if (invite.status === 'profile_pending' || (invite.status === 'processing_profile' && invite.processing_started_at && new Date(invite.processing_started_at).getTime() < Date.now() - 10 * 60 * 1000)) {
+        // Atomic claim for profile step
+        const { data: claimedProfile, error: claimErr } = await sb
+          .from('admin_invites')
+          .update({
+            status: 'processing_profile',
+            processing_started_at: new Date().toISOString()
+          })
+          .eq('id', invite.id)
+          .in('status', ['profile_pending', 'processing_profile'])
+          .select('*')
+          .maybeSingle();
 
-      if (profileError) {
-        console.error('[Invite Error] Profile upsert error:', profileError);
+        if (claimErr || !claimedProfile) {
+          return res.status(409).json({ error: 'Profile configuration in progress. Please retry momentarily.' });
+        }
+
+        // Create or link Profile using service role
+        const { error: profileError } = await sb.from('profiles').upsert({
+          id: uid,
+          email: invite.email,
+          name: 'Restaurant Owner',
+          restaurant_id: invite.restaurant_id,
+        });
+
+        if (profileError) {
+          console.error('[Invite Error] Profile setup failed:', profileError);
+          // Keep as profile_pending so user can re-trigger ONLY profile setup without password overwrite!
+          await sb.from('admin_invites').update({ status: 'profile_pending', processing_started_at: null }).eq('id', invite.id);
+          return res.status(500).json({ error: 'Password updated, but profile setup encountered an issue. Please click submit again to finalize profile.' });
+        }
+
+        // Both steps completed! Mark as completed and used
+        await sb.from('admin_invites').update({
+          status: 'completed',
+          used: true,
+          processing_started_at: null
+        }).eq('id', invite.id);
+
+        return res.json({ success: true, message: 'Account successfully configured.' });
       }
 
-      return res.json({ success: true, message: 'Account successfully configured.' });
+      return res.status(400).json({ error: 'Invalid invite lifecycle state' });
     }
 
     // ── Device Pairing (Auth) ────────────────────────────
@@ -1112,37 +1511,96 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
-      // 🔒 SEC-14: Issue Cryptographic Order Access Token instead of raw IP
+      // 🔒 SEC-14: Issue Cryptographic Order Access Token and compute SHA-256 hash
       const orderAccessToken = crypto.randomBytes(32).toString('hex');
+      const orderAccessTokenHash = crypto.createHash('sha256').update(orderAccessToken).digest('hex');
 
       const serviceSb = createClient(
         process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
         process.env.SUPABASE_SERVICE_ROLE_KEY || ''
       );
 
-      const { data: order, error } = await serviceSb.from('orders').insert({
-        restaurant_id: restaurantId,
-        table_number: tableNumber,
-        status: 'PENDING',
-        total_amount: calculatedTotal,
-        device_hash: orderAccessToken
-      }).select('id').single();
+      const tableNum = parseInt(tableNumber, 10);
+      if (isNaN(tableNum) || tableNum <= 0) {
+        return res.status(400).json({ error: 'Table number must be a valid positive integer' });
+      }
 
-      if (error || !order) return res.status(400).json({ error: 'Failed to create order' });
+      // 🔒 SEC-09: Atomic DB Transaction via create_order_atomic RPC
+      const { data: rpcRes, error: rpcErr } = await serviceSb.rpc('create_order_atomic', {
+        p_order: {
+          restaurant_id: restaurantId,
+          table_number: tableNum,
+          status: 'PENDING',
+          total: Math.round(calculatedTotal * 100) / 100,
+          special_request: typeof req.body?.special_request === 'string' ? req.body.special_request.slice(0, 500) : null,
+          order_access_token_hash: orderAccessTokenHash
+        },
+        p_items: orderItemsToInsert
+      });
 
-      // Link order_id and insert items
-      const finalItems = orderItemsToInsert.map(i => ({ ...i, order_id: order.id }));
-      const { error: itemsErr } = await serviceSb.from('order_items').insert(finalItems);
-      if (itemsErr) {
-        console.error('[Order Error] Items insert failed:', itemsErr);
+      if (rpcErr || !rpcRes?.success) {
+        console.error('[Order RPC Error]', rpcErr);
+        return res.status(400).json({ error: 'Failed to create order atomically' });
       }
 
       return res.status(201).json({
         success: true,
-        orderId: order.id,
+        orderId: rpcRes.order_id,
         orderAccessToken,
-        total: calculatedTotal
+        total: Math.round(calculatedTotal * 100) / 100
       });
+    }
+
+    // ── Track Order by Token Hash (SEC-14) ──────────────────────
+    if (url === '/api/orders/track' && (method === 'GET' || method === 'POST')) {
+      const orderId = (method === 'GET' ? req.query?.orderId : req.body?.orderId) as string;
+      const orderAccessToken = (method === 'GET' ? req.query?.token : req.body?.token) as string;
+
+      if (!orderId || !orderAccessToken) {
+        return res.status(400).json({ error: 'Missing orderId or access token' });
+      }
+
+      const clientIp = (req.headers['x-forwarded-for'] as string) || 'unknown';
+      if (!(await checkRateLimit(`track_${clientIp.split(',')[0].trim()}`))) {
+        return res.status(429).json({ error: 'Too many tracking attempts' });
+      }
+
+      const tokenHash = crypto.createHash('sha256').update(orderAccessToken).digest('hex');
+
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data: order, error } = await serviceSb
+        .from('orders')
+        .select(`
+          id,
+          restaurant_id,
+          table_number,
+          status,
+          total,
+          special_request,
+          created_at,
+          order_items (
+            id,
+            dish_id,
+            quantity,
+            unit_price,
+            notes,
+            selected_options,
+            dishes ( name_ar, name_en, image_url )
+          )
+        `)
+        .eq('id', orderId)
+        .eq('order_access_token_hash', tokenHash)
+        .maybeSingle();
+
+      if (error || !order) {
+        return res.status(404).json({ error: 'Order not found or invalid token' });
+      }
+
+      return res.status(200).json({ success: true, order });
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1203,22 +1661,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Image was sent directly from the client — no download needed!
         imgBuffer = Buffer.from(imageBase64, 'base64');
         imgContentType = imageContentType;
-      } else {
-        // 🔒 SEC-10: SSRF Protection
-        if (!isSafePublicUrl(imageUrl)) {
+        // 🔒 SEC-10: SSRF Protection with Socket-Level Connection Pinning
+        try {
+          const safeRes = await safeSsrfRequest(imageUrl, { timeoutMs: 10000 });
+          if (safeRes.statusCode < 200 || safeRes.statusCode >= 300) {
+            if (dishId !== 'new') await sb.from('dishes').update({ model_3d_status: 'ERROR' }).eq('id', dishId);
+            return res.status(502).json({ error: 'Failed to download dish image' });
+          }
+          imgBuffer = safeRes.body;
+          imgContentType = (safeRes.headers['content-type'] as string) || 'image/jpeg';
+        } catch (ssrfErr: any) {
           if (dishId !== 'new') await sb.from('dishes').update({ model_3d_status: 'ERROR' }).eq('id', dishId);
-          return res.status(400).json({ error: 'Invalid or forbidden image URL' });
+          return res.status(400).json({ error: `Invalid or forbidden image URL: ${ssrfErr.message}` });
         }
-
-        // Download from URL with timeout
-        const imgRes = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) });
-        if (!imgRes.ok) {
-          if (dishId !== 'new') await sb.from('dishes').update({ model_3d_status: 'ERROR' }).eq('id', dishId);
-          return res.status(502).json({ error: 'Failed to download dish image' });
-        }
-        imgBuffer = Buffer.from(await imgRes.arrayBuffer());
-        imgContentType = imgRes.headers.get('content-type') || 'image/jpeg';
-      }
 
       const extMap: Record<string, string> = {
         'image/jpeg': 'jpg', 'image/png': 'png',
@@ -1382,30 +1837,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (inputUrl) {
         try {
-          if (!isSafePublicUrl(inputUrl)) {
-            return res.status(400).json({ error: 'الرابط غير آمن أو غير مسموح بالوصول إليه (عناوين الشبكات الداخلية محظورة).' });
-          }
-
           const robotsAllowed = await checkRobotsTxt(inputUrl);
           if (!robotsAllowed) {
              return res.status(400).json({ error: 'هذا الموقع لا يسمح بالوصول الآلي لمحتواه (robots.txt). يرجى استخدام رفع ملف بدلاً من ذلك.' });
           }
 
-          const urlResp = await fetch(inputUrl, {
-            method: 'GET',
-            headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://maidatak.com/bot-info)' },
-            signal: AbortSignal.timeout(15000),
-          });
+          let urlResp: SafeHttpResponse;
+          try {
+            urlResp = await safeSsrfRequest(inputUrl, {
+              timeoutMs: 15000,
+              headers: { 'User-Agent': 'VISIONO-MenuImportBot/1.0 (+https://maidatak.com/bot-info)' }
+            });
+          } catch (ssrfErr: any) {
+            return res.status(400).json({ error: `الرابط غير آمن أو غير مسموح بالوصول إليه: ${ssrfErr.message}` });
+          }
           
-          if (!urlResp.ok) {
+          if (urlResp.statusCode < 200 || urlResp.statusCode >= 300) {
             return res.status(400).json({ error: 'تعذر الوصول إلى الرابط. الموقع لم يستجب أو الرابط غير صحيح.' });
           }
 
-          const contentType = urlResp.headers.get('content-type') || '';
+          const contentType = urlResp.contentType || '';
           
           if (contentType.includes('application/pdf')) {
-            const arr = await urlResp.arrayBuffer();
-            fileBuffer = Buffer.from(arr);
+            fileBuffer = urlResp.body;
             detectedMimeType = 'application/pdf';
             detectedFilename = 'url-download.pdf';
           } else if (contentType.includes('text/html')) {
@@ -2346,6 +2800,14 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
         return res.status(403).json({ error: 'Staff account is inactive' });
       }
 
+      // 🔒 SEC-03: Block login if PIN reset is required by management
+      if (staff.must_reset_pin) {
+        return res.status(403).json({
+          error: 'تم إلغاء الرمز القديم لأسباب أمنية. يرجى مراجعة مدير المطعم لتعيين رمز جديد.',
+          code: 'PIN_RESET_REQUIRED'
+        });
+      }
+
       // 🔒 OWASP scrypt verification with automatic rehash upgrade
       const { valid, needsRehash } = await verifyPin(pin, staff.pin_hash || staff.pin_code);
       if (!valid) {
@@ -2399,6 +2861,82 @@ ${faqSummary || 'لا تتوفر أسئلة شائعة حالياً'}
           restaurantName: rest?.name_ar || rest?.name_en || 'VISIONO Restaurant'
         }
       });
+    }
+
+    // ── Staff Portal: Minimal Public Staff Roster (SEC-03) ────────────
+    if (url.startsWith('/api/staff/public-list') && method === 'GET') {
+      const restaurantId = req.query?.restaurantId as string;
+      if (!restaurantId) return res.status(400).json({ error: 'Missing restaurantId' });
+
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data: staffList, error } = await serviceSb
+        .from('restaurant_staff')
+        .select('id, name, role, branch_id, is_active, must_reset_pin')
+        .eq('restaurant_id', restaurantId)
+        .eq('is_active', true);
+
+      if (error) {
+        return res.status(500).json({ error: 'Failed to fetch roster' });
+      }
+
+      return res.json({
+        success: true,
+        staff: staffList || []
+      });
+    }
+
+    // ── Staff Portal: Owner-Only PIN Reset (SEC-03) ──────────────────
+    if (url === '/api/staff/admin-reset-pin' && method === 'POST') {
+      const { user, reason } = await getUser(req);
+      if (!user) return res.status(401).json({ error: `Auth required: ${reason}` });
+
+      const { restaurantId, staffId, newPin } = req.body || {};
+      if (!restaurantId || !staffId || !newPin) {
+        return res.status(400).json({ error: 'Missing restaurantId, staffId, or newPin' });
+      }
+
+      if (typeof newPin !== 'string' || newPin.length < 4 || newPin.length > 8 || !/^\d+$/.test(newPin)) {
+        return res.status(400).json({ error: 'PIN must be between 4 and 8 digits' });
+      }
+
+      // Verify ownership
+      const isOwner = await verifyRestaurantOwnership(user.id, restaurantId);
+      if (!isOwner) {
+        return res.status(403).json({ error: 'Unauthorized: Only restaurant owner can reset staff PINs' });
+      }
+
+      // Hash with scrypt
+      const newHash = await hashPin(newPin);
+
+      const serviceSb = createClient(
+        process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+
+      const { data: staffRec } = await serviceSb.from('restaurant_staff').select('token_version').eq('id', staffId).single();
+      const nextVersion = (staffRec?.token_version || 1) + 1;
+
+      const { error: updErr } = await serviceSb
+        .from('restaurant_staff')
+        .update({
+          pin_hash: newHash,
+          pin_code: null,
+          must_reset_pin: false,
+          token_version: nextVersion,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', staffId)
+        .eq('restaurant_id', restaurantId);
+
+      if (updErr) {
+        return res.status(500).json({ error: 'Failed to update staff PIN' });
+      }
+
+      return res.json({ success: true, message: 'PIN updated successfully' });
     }
 
     // ── Staff Portal: Manager PIN / Password Unlock Verification ────────

@@ -84,7 +84,7 @@ export const StaffLogin: React.FC = () => {
 
       let fetchedStaff: StaffItem[] = [];
       try {
-        const apiRes = await fetch(`/api/staff/list?restaurantId=${restaurantId}`);
+        const apiRes = await fetch(`/api/staff/public-list?restaurantId=${restaurantId}`);
         if (apiRes.ok) {
           const apiData = await apiRes.json();
           if (apiData.success && Array.isArray(apiData.staff)) {
@@ -195,9 +195,8 @@ export const StaffLogin: React.FC = () => {
           }
         } else {
           const errData = await res.json().catch(() => ({}));
-          if (errData.error) {
-            toast.error(errData.error);
-          }
+          const msg = errData.error || (isRtl ? 'كلمة المرور / الرقم السري غير صحيح' : 'Incorrect password / PIN');
+          toast.error(msg);
         }
       } catch (e: any) {
         toast.error(isRtl ? 'حدث خطأ في الاتصال بالخادم' : 'Server connection error');
@@ -214,7 +213,6 @@ export const StaffLogin: React.FC = () => {
       } else {
         setShake(true);
         setTimeout(() => setShake(false), 600);
-        toast.error(isRtl ? 'كلمة المرور / الرقم السري غير صحيح' : 'Incorrect password / PIN');
         setPassword('');
         inputRef.current?.focus();
       }
